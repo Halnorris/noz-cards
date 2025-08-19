@@ -13,3 +13,8 @@ html, body, #root {
 body {
   font-family: theme('fontFamily.body');
 }
+
+/* utility helpers */
+.container-page {
+  @apply max-w-7xl mx-auto px-4;
+}
