@@ -1,25 +1,43 @@
 import { NavLink } from 'react-router-dom'
 
+const NavItem = ({ to, label }: { to: string; label: string }) => (
+  <NavLink
+    to={to}
+    className={({ isActive }) =>
+      `px-3 py-2 rounded-xl text-sm transition ${
+        isActive ? 'bg-primary text-white' : 'hover:bg-black/5'
+      }`
+    }
+  >
+    {label}
+  </NavLink>
+)
+
 export default function Header() {
   return (
-    <header className="h-16 bg-white/70 backdrop-blur sticky top-0 z-40 shadow-soft border-b border-black/5">
+    <header className="h-16 sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-black/10">
       <div className="max-w-7xl mx-auto h-full px-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-2xl bg-primary/10 grid place-items-center border border-primary/20">
+          <div className="w-10 h-10 rounded-2xl bg-primary/10 grid place-items-center border border-primary/20">
             <span className="font-header text-primary">NC</span>
           </div>
           <span className="font-header text-lg">Noz Cards</span>
         </div>
 
-        <nav className="flex items-center gap-6">
-          <NavLink to="/" className={({isActive}) => isActive ? 'text-primary font-medium' : 'opacity-80 hover:opacity-100'}>Home</NavLink>
-          <NavLink to="/marketplace" className={({isActive}) => isActive ? 'text-primary font-medium' : 'opacity-80 hover:opacity-100'}>Marketplace</NavLink>
-          <NavLink to="/account" className={({isActive}) => isActive ? 'text-primary font-medium' : 'opacity-80 hover:opacity-100'}>Account</NavLink>
+        <nav className="hidden md:flex items-center gap-1">
+          <NavItem to="/" label="Home" />
+          <NavItem to="/marketplace" label="Marketplace" />
+          <NavItem to="/account" label="Account" />
+          <NavItem to="/account/pending" label="Pending" />
+          <NavItem to="/account/live" label="Live" />
         </nav>
 
-        <div className="flex items-center gap-3">
-          <button className="px-3 py-1.5 rounded-2xl bg-primary text-white hover:opacity-90 text-sm">
+        <div className="flex items-center gap-2">
+          <button className="px-3 py-1.5 rounded-xl border border-black/10 hover:bg-black/5 text-sm">
             Sign In
+          </button>
+          <button className="px-3 py-1.5 rounded-xl bg-primary text-white hover:opacity-90 text-sm">
+            Create Account
           </button>
         </div>
       </div>
