@@ -101,7 +101,7 @@ export default function Home() {
         {[
           {
             title: '1) Submit',
-            desc: 'Fill out our form, send us your cards, and we'll do the rest.',
+            desc: 'Fill out our form, send us your cards, and we will do the rest.',
           },
           {
             title: '2) Go Live',
