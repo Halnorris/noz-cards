@@ -1,21 +1,6 @@
 export default function Home() {
   return (
     <div className="space-y-14">
-      {/* Announcement bar */}
-      <section className="rounded-2xl p-3 md:p-4 bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 border border-black/5">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <p className="text-sm md:text-base">
-            🚀 New: Run **Auctions** with reserve, Buy-It-Now, and anti-sniping.
-          </p>
-          <a
-            href="/auctions/123"
-            className="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-primary text-white text-sm hover:opacity-90"
-          >
-            View Sample Auction
-          </a>
-        </div>
-      </section>
-
       {/* HERO */}
       <section className="rounded-2xl bg-white shadow-soft border border-black/5 p-6 md:p-10">
         <div className="grid md:grid-cols-2 gap-10 items-center">
@@ -51,14 +36,9 @@ export default function Home() {
             </ul>
           </div>
 
-          {/* Visual placeholder */}
+          {/* Hero visual placeholder */}
           <div className="rounded-xl border border-black/10 shadow-soft p-3">
             <div className="aspect-[4/3] md:aspect-square rounded-lg bg-gradient-to-br from-black/5 via-black/10 to-black/5" />
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-16 rounded-lg bg-black/5" />
-              ))}
-            </div>
           </div>
         </div>
       </section>
@@ -133,3 +113,4 @@ export default function Home() {
     </div>
   )
 }
+
