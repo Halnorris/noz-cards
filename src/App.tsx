@@ -4,26 +4,29 @@ import Sidebar from './components/Sidebar'
 
 export default function App() {
   const { pathname } = useLocation()
-  const isHome = pathname === '/'
+
+  // Show sidebar only on these sections
+  const showSidebar =
+    pathname.startsWith('/account') ||
+    pathname.startsWith('/marketplace') ||
+    pathname.startsWith('/auctions')
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
 
       <div className="max-w-7xl mx-auto px-4">
-        {isHome ? (
-          // Homepage: no sidebar at all
-          <main className="py-6">
-            <Outlet />
-          </main>
-        ) : (
-          // Other pages: with sidebar
+        {showSidebar ? (
           <div className="flex gap-6">
             <Sidebar />
             <main className="flex-1 py-6">
               <Outlet />
             </main>
           </div>
+        ) : (
+          <main className="py-6">
+            <Outlet />
+          </main>
         )}
       </div>
 
