@@ -11,8 +11,8 @@ export default function Home() {
             </h1>
 
             <p className="mt-4 opacity-80 max-w-xl">
-              List cards in minutes. Buyers pay instantly at checkout; sellers are paid out via Stripe.
-              Auctions require ID verification to keep bidding legit.
+              Submit a consignment in minutes, we do the rest. 
+              KYC ID verification for buyers, keeping bidding legit. 
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
