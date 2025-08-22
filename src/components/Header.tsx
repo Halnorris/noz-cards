@@ -27,9 +27,8 @@ export default function Header() {
         <nav className="hidden md:flex items-center gap-1">
           <NavItem to="/" label="Home" />
           <NavItem to="/marketplace" label="Marketplace" />
+          <NavItem to="/auctions/123" label="Auctions" />
           <NavItem to="/account" label="Account" />
-          <NavItem to="/account/pending" label="Pending" />
-          <NavItem to="/account/live" label="Live" />
         </nav>
 
         <div className="flex items-center gap-2">
@@ -44,3 +43,4 @@ export default function Header() {
     </header>
   )
 }
+
