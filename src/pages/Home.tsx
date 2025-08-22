@@ -27,9 +27,9 @@ export default function Home() {
             {/* Updated key points */}
             <ul className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               {[
-                'Instant checkout — no store credit',
-                'Seller paid via Stripe Connect',
-                'Fees: Buyer +10%, Seller 15%',
+                'Instant checkout',
+                'Create a collection and ship everything together',
+                'No upfront cost for sellers',
                 'Auctions require ID to bid',
               ].map((t) => (
                 <li key={t} className="flex items-center gap-2">
@@ -101,15 +101,15 @@ export default function Home() {
         {[
           {
             title: '1) Submit',
-            desc: 'Upload scans & details. Choose fixed price or auction (ID needed to bid).',
+            desc: 'Fill out our form, send us your cards, and we'll do the rest.',
           },
           {
             title: '2) Go Live',
-            desc: 'Your card is listed. Buyers pay immediately at checkout.',
+            desc: 'You can price it, we can price it. Auction or Buy it Now? Your Choice.',
           },
           {
             title: '3) Get Paid',
-            desc: 'We take 15% seller fee and pay out via Stripe. Buyer pays +10% at checkout.',
+            desc: 'Get paid out via Stripe.',
           },
         ].map((x) => (
           <div key={x.title} className="rounded-2xl bg-white p-5 shadow-soft border border-black/5">
