@@ -9,9 +9,12 @@ export default function Home() {
               Buy, Sell & Consign <span className="text-primary">Football Cards</span>
               <span className="block text-[clamp(22px,3vw,32px)] mt-1">Now with real-time Auctions</span>
             </h1>
+
             <p className="mt-4 opacity-80 max-w-xl">
-              List cards in minutes, run timed auctions with anti-sniping, and manage everything from your dashboard.
+              List cards in minutes. Buyers pay instantly at checkout; sellers are paid out via Stripe.
+              Auctions require ID verification to keep bidding legit.
             </p>
+
             <div className="mt-6 flex flex-wrap gap-3">
               <a href="/marketplace" className="px-5 py-3 rounded-xl bg-primary text-white hover:opacity-90">
                 Browse Marketplace
@@ -21,12 +24,13 @@ export default function Home() {
               </a>
             </div>
 
-            <ul className="mt-6 grid grid-cols-2 gap-3 text-sm">
+            {/* Updated key points */}
+            <ul className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               {[
-                'Consign in minutes',
-                'Reserve & Buy-Now',
-                'Anti-sniping built in',
-                'Store credit + fees',
+                'Instant checkout — no store credit',
+                'Seller paid via Stripe Connect',
+                'Fees: Buyer +10%, Seller 15%',
+                'Auctions require ID to bid',
               ].map((t) => (
                 <li key={t} className="flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-primary/10 grid place-items-center text-primary">✓</span>
@@ -36,26 +40,32 @@ export default function Home() {
             </ul>
           </div>
 
-          {/* Hero visual placeholder */}
-          <div className="rounded-xl border border-black/10 shadow-soft p-3">
-            <div className="aspect-[4/3] md:aspect-square rounded-lg bg-gradient-to-br from-black/5 via-black/10 to-black/5" />
+          {/* Hero visual (placeholder or later Supabase image) */}
+          <div className="rounded-xl border border-black/10 shadow-soft p-3 bg-gradient-to-br from-black/5 via-black/10 to-black/5 flex items-center justify-center">
+            {/* If using a local placeholder, keep this img. If not uploaded yet, keep the grey box. */}
+            {/* <img src="/hero-card.jpg" alt="Featured football card" className="rounded-xl shadow-md max-h-[420px] w-auto" /> */}
+            <div className="aspect-[4/3] md:aspect-square rounded-lg bg-black/10" />
           </div>
         </div>
       </section>
 
-      {/* STATS STRIP */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          ['Live Listings', '1,248'],
-          ['Cards Sold', '9,372'],
-          ['Avg. Sell Time', '3.2 days'],
-          ['Active Bidders', '642'],
-        ].map(([label, value]) => (
-          <div key={label} className="rounded-2xl bg-white p-4 shadow-soft border border-black/5">
-            <div className="text-xs uppercase tracking-wide opacity-70">{label}</div>
-            <div className="text-2xl font-header">{value}</div>
-          </div>
-        ))}
+      {/* FEES STRIP (new) */}
+      <section className="grid md:grid-cols-3 gap-3">
+        <div className="rounded-2xl bg-white p-5 shadow-soft border border-black/5">
+          <div className="text-xs uppercase tracking-wide opacity-70">Buyer Fee</div>
+          <div className="text-2xl font-header">+10%</div>
+          <p className="text-sm opacity-80 mt-1">Applied at checkout, shown before you pay.</p>
+        </div>
+        <div className="rounded-2xl bg-white p-5 shadow-soft border border-black/5">
+          <div className="text-xs uppercase tracking-wide opacity-70">Seller Fee</div>
+          <div className="text-2xl font-header">15%</div>
+          <p className="text-sm opacity-80 mt-1">Deducted from the sale; payout handled by Stripe.</p>
+        </div>
+        <div className="rounded-2xl bg-white p-5 shadow-soft border border-black/5">
+          <div className="text-xs uppercase tracking-wide opacity-70">Security</div>
+          <div className="text-2xl font-header">ID Required</div>
+          <p className="text-sm opacity-80 mt-1">KYC required to bid in auctions—no ghost bidding.</p>
+        </div>
       </section>
 
       {/* FEATURED */}
@@ -86,12 +96,21 @@ export default function Home() {
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
+      {/* HOW IT WORKS (updated for instant checkout & Stripe) */}
       <section className="grid md:grid-cols-3 gap-4">
         {[
-          { title: '1) Submit', desc: 'Upload scans & details. Choose fixed price or auction.' },
-          { title: '2) List', desc: 'Pay a listing fee by service level. Card goes live instantly.' },
-          { title: '3) Sell', desc: 'Buyer pays → funds settle to your balance → request payout.' },
+          {
+            title: '1) Submit',
+            desc: 'Upload scans & details. Choose fixed price or auction (ID needed to bid).',
+          },
+          {
+            title: '2) Go Live',
+            desc: 'Your card is listed. Buyers pay immediately at checkout.',
+          },
+          {
+            title: '3) Get Paid',
+            desc: 'We take 15% seller fee and pay out via Stripe. Buyer pays +10% at checkout.',
+          },
         ].map((x) => (
           <div key={x.title} className="rounded-2xl bg-white p-5 shadow-soft border border-black/5">
             <div className="text-lg font-header mb-1">{x.title}</div>
@@ -104,6 +123,7 @@ export default function Home() {
       <section className="rounded-2xl border border-primary/30 bg-primary/5 p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h3 className="font-header text-xl">Ready to sell your first card?</h3>
+          <p className="opacity-80 text-sm">Instant checkout for buyers, streamlined Stripe payouts for sellers.</p>
         </div>
         <div className="flex gap-3">
           <a href="/account" className="px-4 py-2 rounded-xl bg-primary text-white hover:opacity-90">Go to Dashboard</a>
@@ -113,4 +133,3 @@ export default function Home() {
     </div>
   )
 }
-
