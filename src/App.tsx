@@ -12,12 +12,12 @@ export default function App() {
 
       <div className="max-w-7xl mx-auto px-4">
         {isHome ? (
-          // Homepage: no sidebar, full-width content
+          // Homepage: no sidebar at all
           <main className="py-6">
             <Outlet />
           </main>
         ) : (
-          // Other pages: keep sidebar layout
+          // Other pages: with sidebar
           <div className="flex gap-6">
             <Sidebar />
             <main className="flex-1 py-6">
