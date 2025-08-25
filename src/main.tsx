@@ -9,6 +9,7 @@ import Account from './pages/Account'
 import Pending from './pages/Pending'
 import Live from './pages/Live'
 import Auction from './pages/Auction'
+import HowItWorks from '@/pages/HowItWorks'
 import NotFound from './pages/NotFound'
 
 const router = createBrowserRouter([
@@ -20,6 +21,7 @@ const router = createBrowserRouter([
       { path: 'marketplace', element: <Marketplace /> },
       { path: 'account', element: <Account /> },
       { path: 'account/pending', element: <Pending /> },
+      { path: '/how-it-works', element: <HowItWorks /> },
       { path: 'account/live', element: <Live /> },
       { path: 'auctions/:id', element: <Auction /> },
       { path: '*', element: <NotFound /> },
