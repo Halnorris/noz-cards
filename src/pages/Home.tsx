@@ -10,7 +10,9 @@ export default function Home() {
           <div>
             <h1 className="font-header leading-tight text-4xl md:text-5xl">
               Buy, Sell & Consign <span className="text-primary">Football Cards</span>
-              <span className="block text-[clamp(22px,3vw,32px)] mt-1">Now with real-time Auctions</span>
+              <span className="block text-[clamp(22px,3vw,32px)] mt-1">
+                Now with real-time Auctions
+              </span>
             </h1>
 
             <p className="mt-4 opacity-80 max-w-xl">
@@ -19,10 +21,16 @@ export default function Home() {
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
-              <a href="/marketplace" className="px-5 py-3 rounded-xl bg-primary text-white hover:opacity-90">
+              <a
+                href="/marketplace"
+                className="px-5 py-3 rounded-xl bg-primary text-white hover:opacity-90"
+              >
                 Browse Marketplace
               </a>
-              <a href="/account/pending" className="px-5 py-3 rounded-xl bg-secondary hover:opacity-90">
+              <a
+                href="/account/pending"
+                className="px-5 py-3 rounded-xl bg-secondary hover:opacity-90"
+              >
                 Submit Cards
               </a>
             </div>
@@ -36,7 +44,9 @@ export default function Home() {
                 'Auctions require ID to bid',
               ].map((t) => (
                 <li key={t} className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-primary/10 grid place-items-center text-primary">✓</span>
+                  <span className="w-5 h-5 rounded-full bg-primary/10 grid place-items-center text-primary">
+                    ✓
+                  </span>
                   <span className="opacity-80">{t}</span>
                 </li>
               ))}
@@ -55,17 +65,23 @@ export default function Home() {
         <div className="rounded-2xl bg-white p-5 shadow-soft border border-black/5">
           <div className="text-xs uppercase tracking-wide opacity-70">Buyer Fee</div>
           <div className="text-2xl font-header">+10%</div>
-          <p className="text-sm opacity-80 mt-1">Applied at checkout, shown before you pay.</p>
+          <p className="text-sm opacity-80 mt-1">
+            Applied at checkout, shown before you pay.
+          </p>
         </div>
         <div className="rounded-2xl bg-white p-5 shadow-soft border border-black/5">
           <div className="text-xs uppercase tracking-wide opacity-70">Seller Fee</div>
           <div className="text-2xl font-header">15%</div>
-          <p className="text-sm opacity-80 mt-1">Deducted from the sale; payout handled by Stripe.</p>
+          <p className="text-sm opacity-80 mt-1">
+            Deducted from the sale; payout handled by Stripe.
+          </p>
         </div>
         <div className="rounded-2xl bg-white p-5 shadow-soft border border-black/5">
           <div className="text-xs uppercase tracking-wide opacity-70">Security</div>
           <div className="text-2xl font-header">ID Required</div>
-          <p className="text-sm opacity-80 mt-1">KYC required to bid in auctions—no ghost bidding.</p>
+          <p className="text-sm opacity-80 mt-1">
+            KYC required to bid in auctions—no ghost bidding.
+          </p>
         </div>
       </section>
 
@@ -73,44 +89,81 @@ export default function Home() {
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-header text-2xl">Recently Uploaded</h2>
-          <a href="/marketplace" className="text-sm underline opacity-80 hover:opacity-100">See all</a>
+          <a
+            href="/marketplace"
+            className="text-sm underline opacity-80 hover:opacity-100"
+          >
+            See all
+          </a>
         </div>
 
         <RecentlyUploadedGrid />
       </section>
 
       {/* HOW IT WORKS */}
-      <section className="grid md:grid-cols-3 gap-4">
-        {[
-          {
-            title: '1) Submit',
-            desc: 'Fill out our form, send us your cards, and we’ll do the rest.',
-          },
-          {
-            title: '2) Go Live',
-            desc: 'You can price it, we can price it. Auction or Buy it Now? Your choice.',
-          },
-          {
-            title: '3) Get Paid',
-            desc: 'Get paid out via Stripe.',
-          },
-        ].map((x) => (
-          <div key={x.title} className="rounded-2xl bg-white p-5 shadow-soft border border-black/5">
-            <div className="text-lg font-header mb-1">{x.title}</div>
-            <p className="text-sm opacity-80">{x.desc}</p>
-          </div>
-        ))}
+      <section className="space-y-8">
+        <h2 className="font-header text-2xl text-center">How It Works</h2>
+        <div className="grid md:grid-cols-3 gap-6">
+          {[
+            {
+              step: '1',
+              title: 'Submit',
+              desc: 'Fill out our online form and send your cards to us. No upfront costs.',
+            },
+            {
+              step: '2',
+              title: 'Go Live',
+              desc: 'We scan, list, and promote your cards. Choose Buy Now or run an Auction.',
+            },
+            {
+              step: '3',
+              title: 'Get Paid',
+              desc: 'Buyers pay instantly. We deduct fees and you receive funds via Stripe.',
+            },
+          ].map((x) => (
+            <div
+              key={x.step}
+              className="rounded-2xl bg-white p-6 shadow-soft border border-black/5 text-center"
+            >
+              <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-primary/10 text-primary font-bold grid place-items-center">
+                {x.step}
+              </div>
+              <h3 className="font-header text-lg mb-1">{x.title}</h3>
+              <p className="text-sm opacity-80">{x.desc}</p>
+            </div>
+          ))}
+        </div>
+        <div className="text-center">
+          <a
+            href="/how-it-works"
+            className="px-4 py-2 rounded-xl border border-black/10 hover:bg-black/5 text-sm"
+          >
+            Learn More
+          </a>
+        </div>
       </section>
 
       {/* CTA BAND */}
       <section className="rounded-2xl border border-primary/30 bg-primary/5 p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h3 className="font-header text-xl">Ready to sell your first card?</h3>
-          <p className="opacity-80 text-sm">Instant checkout for buyers, streamlined Stripe payouts for sellers.</p>
+          <p className="opacity-80 text-sm">
+            Instant checkout for buyers, streamlined Stripe payouts for sellers.
+          </p>
         </div>
         <div className="flex gap-3">
-          <a href="/account" className="px-4 py-2 rounded-xl bg-primary text-white hover:opacity-90">Go to Dashboard</a>
-          <a href="/account/pending" className="px-4 py-2 rounded-xl border border-black/10 hover:bg-black/5">Submit Cards</a>
+          <a
+            href="/account"
+            className="px-4 py-2 rounded-xl bg-primary text-white hover:opacity-90"
+          >
+            Go to Dashboard
+          </a>
+          <a
+            href="/account/pending"
+            className="px-4 py-2 rounded-xl border border-black/10 hover:bg-black/5"
+          >
+            Submit Cards
+          </a>
         </div>
       </section>
     </div>
@@ -149,7 +202,10 @@ function RecentlyUploadedGrid() {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
         {Array.from({ length: 12 }).map((_, i) => (
-          <div key={i} className="p-3 bg-white rounded-2xl shadow-soft border border-black/5">
+          <div
+            key={i}
+            className="p-3 bg-white rounded-2xl shadow-soft border border-black/5"
+          >
             <div className="aspect-[3/4] rounded-xl bg-black/10 mb-2 animate-pulse" />
             <div className="h-4 w-2/3 bg-black/10 rounded mb-1 animate-pulse" />
             <div className="h-3 w-1/3 bg-black/10 rounded animate-pulse" />
@@ -160,7 +216,11 @@ function RecentlyUploadedGrid() {
   }
 
   if (!cards.length) {
-    return <div className="opacity-70 text-sm">No cards yet — upload some and they’ll appear here.</div>
+    return (
+      <div className="opacity-70 text-sm">
+        No cards yet — upload some and they’ll appear here.
+      </div>
+    )
   }
 
   return (
@@ -172,16 +232,28 @@ function RecentlyUploadedGrid() {
         >
           <div className="aspect-[3/4] rounded-xl bg-black/5 mb-2 border border-black/10 overflow-hidden">
             {card.image_url ? (
-              <img src={card.image_url} alt={card.title} className="object-cover w-full h-full" />
+              <img
+                src={card.image_url}
+                alt={card.title}
+                className="object-cover w-full h-full"
+              />
             ) : null}
           </div>
-          <h3 className="text-sm font-medium truncate">{card.title ?? 'Untitled card'}</h3>
-          {card.price != null && <p className="text-sm opacity-70">£{card.price}</p>}
+          <h3 className="text-sm font-medium truncate">
+            {card.title ?? 'Untitled card'}
+          </h3>
+          {card.price != null && (
+            <p className="text-sm opacity-70">£{card.price}</p>
+          )}
           <button className="mt-2 w-full px-3 py-2 rounded-xl bg-primary text-white text-sm opacity-0 group-hover:opacity-100 transition">
             View
           </button>
         </article>
       ))}
+    </div>
+  )
+}
+
     </div>
   )
 }
