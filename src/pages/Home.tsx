@@ -253,8 +253,3 @@ function RecentlyUploadedGrid() {
     </div>
   )
 }
-
-    </div>
-  )
-}
-
