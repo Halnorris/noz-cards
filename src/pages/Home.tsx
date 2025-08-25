@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
+
 export default function Home() {
   return (
     <div className="space-y-14">
@@ -24,7 +27,7 @@ export default function Home() {
               </a>
             </div>
 
-            {/* Updated key points */}
+            {/* Key points */}
             <ul className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               {[
                 'Instant checkout',
@@ -40,16 +43,14 @@ export default function Home() {
             </ul>
           </div>
 
-          {/* Hero visual (placeholder or later Supabase image) */}
+          {/* Hero visual (placeholder for now) */}
           <div className="rounded-xl border border-black/10 shadow-soft p-3 bg-gradient-to-br from-black/5 via-black/10 to-black/5 flex items-center justify-center">
-            {/* If using a local placeholder, keep this img. If not uploaded yet, keep the grey box. */}
-            {/* <img src="/hero-card.jpg" alt="Featured football card" className="rounded-xl shadow-md max-h-[420px] w-auto" /> */}
             <div className="aspect-[4/3] md:aspect-square rounded-lg bg-black/10" />
           </div>
         </div>
       </section>
 
-      {/* FEES STRIP (new) */}
+      {/* FEES STRIP */}
       <section className="grid md:grid-cols-3 gap-3">
         <div className="rounded-2xl bg-white p-5 shadow-soft border border-black/5">
           <div className="text-xs uppercase tracking-wide opacity-70">Buyer Fee</div>
@@ -68,44 +69,26 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FEATURED */}
+      {/* RECENTLY UPLOADED */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-header text-2xl">Featured Cards</h2>
+          <h2 className="font-header text-2xl">Recently Uploaded</h2>
           <a href="/marketplace" className="text-sm underline opacity-80 hover:opacity-100">See all</a>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <article
-              key={i}
-              className="group rounded-2xl bg-white p-3 shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition"
-            >
-              <div className="aspect-[3/4] rounded-xl bg-black/5 mb-2 border border-black/10 relative overflow-hidden">
-                <span className="absolute top-2 left-2 text-[11px] px-2 py-1 rounded-full bg-secondary/80">
-                  Featured
-                </span>
-              </div>
-              <h3 className="text-sm font-medium truncate">Card #{i + 1}</h3>
-              <p className="text-sm opacity-70">£{(i + 1) * 8}.00</p>
-              <button className="mt-2 w-full px-3 py-2 rounded-xl bg-primary text-white text-sm opacity-0 group-hover:opacity-100 transition">
-                View
-              </button>
-            </article>
-          ))}
-        </div>
+        <RecentlyUploadedGrid />
       </section>
 
-      {/* HOW IT WORKS (updated for instant checkout & Stripe) */}
+      {/* HOW IT WORKS */}
       <section className="grid md:grid-cols-3 gap-4">
         {[
           {
             title: '1) Submit',
-            desc: 'Fill out our form, send us your cards, and we will do the rest.',
+            desc: 'Fill out our form, send us your cards, and we’ll do the rest.',
           },
           {
             title: '2) Go Live',
-            desc: 'You can price it, we can price it. Auction or Buy it Now? Your Choice.',
+            desc: 'You can price it, we can price it. Auction or Buy it Now? Your choice.',
           },
           {
             title: '3) Get Paid',
@@ -133,3 +116,73 @@ export default function Home() {
     </div>
   )
 }
+
+/* 🔽 Recently Uploaded Grid component 🔽 */
+function RecentlyUploadedGrid() {
+  type Card = {
+    id: string
+    title: string
+    price: number | null
+    image_url: string | null
+    created_at: string
+    status?: string
+  }
+
+  const [cards, setCards] = useState<Card[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchRecent() {
+      setLoading(true)
+      const { data } = await supabase
+        .from('cards')
+        .select('id,title,price,image_url,created_at,status')
+        .order('created_at', { ascending: false })
+        .limit(12)
+      setCards(data ?? [])
+      setLoading(false)
+    }
+    fetchRecent()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        {Array.from({ length: 12 }).map((_, i) => (
+          <div key={i} className="p-3 bg-white rounded-2xl shadow-soft border border-black/5">
+            <div className="aspect-[3/4] rounded-xl bg-black/10 mb-2 animate-pulse" />
+            <div className="h-4 w-2/3 bg-black/10 rounded mb-1 animate-pulse" />
+            <div className="h-3 w-1/3 bg-black/10 rounded animate-pulse" />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (!cards.length) {
+    return <div className="opacity-70 text-sm">No cards yet — upload some and they’ll appear here.</div>
+  }
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+      {cards.map((card) => (
+        <article
+          key={card.id}
+          className="group rounded-2xl bg-white p-3 shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition"
+        >
+          <div className="aspect-[3/4] rounded-xl bg-black/5 mb-2 border border-black/10 overflow-hidden">
+            {card.image_url ? (
+              <img src={card.image_url} alt={card.title} className="object-cover w-full h-full" />
+            ) : null}
+          </div>
+          <h3 className="text-sm font-medium truncate">{card.title ?? 'Untitled card'}</h3>
+          {card.price != null && <p className="text-sm opacity-70">£{card.price}</p>}
+          <button className="mt-2 w-full px-3 py-2 rounded-xl bg-primary text-white text-sm opacity-0 group-hover:opacity-100 transition">
+            View
+          </button>
+        </article>
+      ))}
+    </div>
+  )
+}
+
