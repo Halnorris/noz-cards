@@ -44,20 +44,20 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FEES STRIP */}
+      {/* MINI HOW IT WORKS STRIP */}
       <section className="grid md:grid-cols-3 gap-3">
         <div className="rounded-2xl bg-white p-5 shadow-soft border border-black/5">
-          <div className="text-xs uppercase tracking-wide opacity-70">Buyer Fee</div>
-          <div className="text-2xl font-header">+10%</div>
+          <div className="text-xs uppercase tracking-wide opacity-70">Buyers</div>
+          <div className="text-2xl font-header">Collective Shipping</div>
           <p className="text-sm opacity-80 mt-1">
-            Applied at checkout, shown before you pay.
+            Buy multiple items and ship them all at once.
           </p>
         </div>
         <div className="rounded-2xl bg-white p-5 shadow-soft border border-black/5">
-          <div className="text-xs uppercase tracking-wide opacity-70">Seller Fee</div>
-          <div className="text-2xl font-header">15%</div>
+          <div className="text-xs uppercase tracking-wide opacity-70">Sellers</div>
+          <div className="text-2xl font-header">Consign &amp; Sell</div>
           <p className="text-sm opacity-80 mt-1">
-            Deducted from the sale; payout handled by Stripe.
+            Send us your cards and we&apos;ll do the rest.
           </p>
         </div>
         <div className="rounded-2xl bg-white p-5 shadow-soft border border-black/5">
@@ -84,7 +84,7 @@ export default function Home() {
         <RecentlyUploadedGrid />
       </section>
 
-      {/* HOW IT WORKS */}
+      {/* HOW IT WORKS (fuller section) */}
       <section className="space-y-8">
         <h2 className="font-header text-2xl text-center">How It Works</h2>
         <div className="grid md:grid-cols-3 gap-6">
@@ -164,7 +164,7 @@ function HeroFeaturedCards() {
         .from('cards')
         .select('id,title,price,image_url,created_at')
         .eq('status', 'live')
-        .order('price', { ascending: false }) // sort by highest price
+        .order('price', { ascending: false })
         .limit(8)
       setCards(data ?? [])
     }
