@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 
@@ -16,7 +16,7 @@ export default function CardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [wishlisted, setWishlisted] = useState(false)
-  const [showBack, setShowBack] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(0) // 0 = first image (front)
 
   useEffect(() => {
     async function fetchCard() {
@@ -39,24 +39,30 @@ export default function CardPage() {
         setCard(null)
       } else {
         setCard(data as Card)
-        setShowBack(false) // default to front on load
+        setActiveIndex(0) // default to first image
       }
       setLoading(false)
     }
     fetchCard()
   }, [id])
 
+  const images = useMemo(() => {
+    if (!card) return []
+    const list = [
+      card.image_url ? { src: card.image_url, label: 'Front' } : null,
+      card.image_back_url ? { src: card.image_back_url, label: 'Back' } : null,
+    ].filter(Boolean) as { src: string; label: string }[]
+    return list
+  }, [card])
+
   function handleBuyNow() {
-    // TODO: route to /checkout/:id or create Stripe Checkout Session
     console.log('Buy Now', card?.id)
   }
   function handleAddToBasket() {
-    // TODO: persist to localStorage or Supabase table
     console.log('Add to Basket', card?.id)
   }
   function handleToggleWishlist() {
     setWishlisted((w) => !w)
-    // TODO: persist to Supabase if logged in
   }
 
   if (loading) {
@@ -84,7 +90,7 @@ export default function CardPage() {
     )
   }
 
-  const mainImage = showBack ? card.image_back_url : card.image_url
+  const main = images[activeIndex]?.src
 
   return (
     <div className="space-y-6">
@@ -98,59 +104,67 @@ export default function CardPage() {
       </nav>
 
       <div className="grid md:grid-cols-2 gap-6 items-start">
-        {/* Image column */}
+        {/* Image column with vertical thumbnails */}
         <div className="rounded-2xl bg-white p-3 shadow-soft border border-black/5">
-          <div className="relative mx-auto max-h-[60vh] aspect-[3/4] rounded-xl bg-black/5 overflow-hidden">
-            {mainImage ? (
-              <img
-                src={mainImage}
-                alt={`${card.title ?? 'Card'} ${showBack ? '(Back)' : '(Front)'}`}
-                className="object-contain w-full h-full"
-              />
-            ) : (
-              <div className="w-full h-full grid place-items-center text-xs opacity-60">
-                No Image
-              </div>
-            )}
-          </div>
+          <div className="flex gap-3">
+            {/* Thumbs — vertical on sm+, hidden on very small screens */}
+            <div className="hidden sm:flex flex-col gap-2 w-16">
+              {images.map((img, idx) => (
+                <button
+                  key={img.src}
+                  type="button"
+                  onClick={() => setActiveIndex(idx)}
+                  className={`rounded-lg overflow-hidden border aspect-[3/4] ${
+                    activeIndex === idx
+                      ? 'border-primary ring-2 ring-primary/30'
+                      : 'border-black/10 hover:bg-black/5'
+                  }`}
+                  aria-label={`Show ${img.label}`}
+                  aria-pressed={activeIndex === idx}
+                >
+                  <img src={img.src} alt={img.label} className="object-contain w-full h-full bg-black/5" />
+                </button>
+              ))}
+            </div>
 
-          {/* Front/Back selector */}
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setShowBack(false)}
-              className={`rounded-xl border p-2 transition ${
-                !showBack ? 'border-primary ring-2 ring-primary/30' : 'border-black/10 hover:bg-black/5'
-              }`}
-              aria-pressed={!showBack}
-            >
-              <div className="aspect-[3/4] overflow-hidden rounded-lg bg-black/5">
-                {card.image_url ? (
-                  <img src={card.image_url} alt="Front" className="object-contain w-full h-full" />
+            {/* Main image */}
+            <div className="relative flex-1">
+              <div className="mx-auto max-h-[60vh] aspect-[3/4] rounded-xl bg-black/5 overflow-hidden">
+                {main ? (
+                  <img
+                    src={main}
+                    alt={`${card.title ?? 'Card'} (${images[activeIndex]?.label ?? 'Image'})`}
+                    className="object-contain w-full h-full"
+                  />
                 ) : (
-                  <div className="w-full h-full grid place-items-center text-[11px] opacity-60">Front</div>
+                  <div className="w-full h-full grid place-items-center text-xs opacity-60">
+                    No Image
+                  </div>
                 )}
               </div>
-              <div className="mt-1 text-xs text-center">Front</div>
-            </button>
 
-            <button
-              type="button"
-              onClick={() => setShowBack(true)}
-              className={`rounded-xl border p-2 transition ${
-                showBack ? 'border-primary ring-2 ring-primary/30' : 'border-black/10 hover:bg-black/5'
-              }`}
-              aria-pressed={showBack}
-            >
-              <div className="aspect-[3/4] overflow-hidden rounded-lg bg-black/5">
-                {card.image_back_url ? (
-                  <img src={card.image_back_url} alt="Back" className="object-contain w-full h-full" />
-                ) : (
-                  <div className="w-full h-full grid place-items-center text-[11px] opacity-60">Back</div>
-                )}
-              </div>
-              <div className="mt-1 text-xs text-center">Back</div>
-            </button>
+              {/* On mobile: thumbs appear below main in a small row */}
+              {images.length > 1 && (
+                <div className="sm:hidden mt-3 grid grid-cols-2 gap-2">
+                  {images.map((img, idx) => (
+                    <button
+                      key={img.src}
+                      type="button"
+                      onClick={() => setActiveIndex(idx)}
+                      className={`rounded-lg overflow-hidden border aspect-[3/4] ${
+                        activeIndex === idx
+                          ? 'border-primary ring-2 ring-primary/30'
+                          : 'border-black/10 hover:bg-black/5'
+                      }`}
+                      aria-label={`Show ${img.label}`}
+                      aria-pressed={activeIndex === idx}
+                    >
+                      <img src={img.src} alt={img.label} className="object-contain w-full h-full bg-black/5" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
