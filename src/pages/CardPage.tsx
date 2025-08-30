@@ -5,33 +5,43 @@ import { supabase } from '@/lib/supabase'
 type Card = {
   id: string
   title: string | null
-  description?: string | null
   price: number | null
   image_url: string | null
   status?: string | null
-  created_at?: string
+  created_at?: string | null
 }
 
 export default function CardPage() {
-  const { id } = useParams()
+  const { id } = useParams<{ id: string }>()
   const [card, setCard] = useState<Card | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchCard() {
+      if (!id) {
+        setError('Missing card id.')
+        setLoading(false)
+        return
+      }
       setLoading(true)
       setError(null)
+
       const { data, error } = await supabase
         .from('cards')
-        .select('id,title,description,price,image_url,status,created_at')
+        .select('id,title,price,image_url,status,created_at') // matches your schema
         .eq('id', id)
         .single()
-      if (error) setError('Card not found.')
-      setCard(data as Card | null)
+
+      if (error) {
+        setError('Card not found.')
+        setCard(null)
+      } else {
+        setCard(data as Card)
+      }
       setLoading(false)
     }
-    if (id) fetchCard()
+    fetchCard()
   }, [id])
 
   if (loading) {
@@ -54,7 +64,7 @@ export default function CardPage() {
   if (error || !card) {
     return (
       <div className="space-y-3">
-        <p className="text-sm opacity-70">Couldn’t load this card.</p>
+        <p className="text-sm opacity-70">{error ?? "Couldn't load this card."}</p>
         <Link to="/marketplace" className="underline">Back to Marketplace</Link>
       </div>
     )
@@ -76,9 +86,15 @@ export default function CardPage() {
         <div className="rounded-2xl bg-white p-3 shadow-soft border border-black/5">
           <div className="aspect-[3/4] bg-black/5 rounded-xl overflow-hidden">
             {card.image_url ? (
-              <img src={card.image_url} alt={card.title ?? 'Card'} className="object-cover w-full h-full" />
+              <img
+                src={card.image_url}
+                alt={card.title ?? 'Card'}
+                className="object-cover w-full h-full"
+              />
             ) : (
-              <div className="w-full h-full grid place-items-center text-xs opacity-60">No Image</div>
+              <div className="w-full h-full grid place-items-center text-xs opacity-60">
+                No Image
+              </div>
             )}
           </div>
         </div>
@@ -86,16 +102,24 @@ export default function CardPage() {
         {/* Info */}
         <div className="space-y-4">
           <h1 className="font-header text-2xl">{card.title ?? 'Untitled card'}</h1>
+
           {card.price != null && (
             <div className="text-xl">£{card.price}</div>
           )}
 
-          <div className="text-sm opacity-80 space-y-2">
+          <div className="text-sm opacity-80 space-y-1">
             {card.status && <p>Status: <span className="opacity-100">{card.status}</span></p>}
-            {card.description ? <p>{card.description}</p> : <p>No description provided.</p>}
+            {card.created_at && (
+              <p>
+                Listed:{' '}
+                <span className="opacity-100">
+                  {new Date(card.created_at).toLocaleDateString()}
+                </span>
+              </p>
+            )}
           </div>
 
-          {/* Actions (wire to Stripe checkout later) */}
+          {/* Actions (wire to Stripe later) */}
           <div className="flex flex-wrap gap-3 pt-2">
             <button className="px-5 py-3 rounded-xl bg-primary text-white hover:opacity-90">
               Buy Now
@@ -105,9 +129,8 @@ export default function CardPage() {
             </button>
           </div>
 
-          {/* Trust copy */}
           <div className="text-xs opacity-70 pt-2">
-            Instant checkout. Buyer pays +10% fee at checkout. Seller receives payout via Stripe (15% fee deducted).
+            Instant checkout. Buyer pays +10% at checkout. Seller receives payout via Stripe (15% fee deducted).
           </div>
         </div>
       </div>
