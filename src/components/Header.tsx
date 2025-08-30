@@ -1,44 +1,47 @@
-import { NavLink } from 'react-router-dom'
-
-const NavItem = ({ to, label }: { to: string; label: string }) => (
-  <NavLink
-    to={to}
-    className={({ isActive }) =>
-      `px-3 py-2 rounded-xl text-sm transition ${
-        isActive ? 'bg-primary text-white' : 'hover:bg-black/5'
-      }`
-    }
-  >
-    {label}
-  </NavLink>
-)
+import { NavLink, Link } from 'react-router-dom'
+import { useBasket } from '@/context/basket'
 
 export default function Header() {
+  const { count } = useBasket()
+
   return (
-    <header className="h-16 sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-black/10">
-      <div className="max-w-7xl mx-auto h-full px-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-primary/10 grid place-items-center border border-primary/20">
-            <span className="font-header text-primary">NC</span>
-          </div>
-          <span className="font-header text-lg">Noz Cards</span>
-        </div>
+    <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-black/5">
+      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <Link to="/" className="font-header text-xl">Noz Cards</Link>
 
-        <nav className="hidden md:flex items-center gap-1">
-          <NavItem to="/" label="Home" />
-          <NavItem to="/marketplace" label="Marketplace" />
-          <NavItem to="/auctions/123" label="Auctions" />
-          <NavItem to="/account" label="Account" />
+        <nav className="flex items-center gap-4">
+          <NavLink to="/" end className={({isActive}) => isActive ? 'underline' : 'hover:underline'}>
+            Home
+          </NavLink>
+          <NavLink to="/marketplace" className={({isActive}) => isActive ? 'underline' : 'hover:underline'}>
+            Marketplace
+          </NavLink>
+          <NavLink to="/how-it-works" className={({isActive}) => isActive ? 'underline' : 'hover:underline'}>
+            How it Works
+          </NavLink>
+          <NavLink to="/account" className={({isActive}) => isActive ? 'underline' : 'hover:underline'}>
+            Account
+          </NavLink>
+
+          {/* Basket icon + live count */}
+          <Link
+            to="/basket"
+            aria-label="Basket"
+            className="relative ml-2 p-2 rounded-lg border border-black/10 hover:bg-black/5"
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5 stroke-current" fill="none" strokeWidth="2">
+              <path d="M6 6h15l-1.5 9H7.5L6 6Z" />
+              <path d="M6 6H3" />
+              <circle cx="9" cy="20" r="1.5" />
+              <circle cx="18" cy="20" r="1.5" />
+            </svg>
+            {count > 0 && (
+              <span className="absolute -top-1 -right-1 text-[10px] px-1.5 py-0.5 rounded-full bg-primary text-white">
+                {count}
+              </span>
+            )}
+          </Link>
         </nav>
-
-        <div className="flex items-center gap-2">
-          <button className="px-3 py-1.5 rounded-xl border border-black/10 hover:bg-black/5 text-sm">
-            Sign In
-          </button>
-          <button className="px-3 py-1.5 rounded-xl bg-primary text-white hover:opacity-90 text-sm">
-            Create Account
-          </button>
-        </div>
       </div>
     </header>
   )
