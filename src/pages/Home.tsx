@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 
 export default function Home() {
@@ -22,18 +23,18 @@ export default function Home() {
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
-              <a
-                href="/marketplace"
+              <Link
+                to="/marketplace"
                 className="px-5 py-3 rounded-xl bg-primary text-white hover:opacity-90"
               >
                 Browse Marketplace
-              </a>
-              <a
-                href="/account/pending"
+              </Link>
+              <Link
+                to="/account/pending"
                 className="px-5 py-3 rounded-xl bg-secondary hover:opacity-90"
               >
                 Submit Cards
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -73,12 +74,12 @@ export default function Home() {
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-header text-2xl">Recently Uploaded</h2>
-          <a
-            href="/marketplace"
+          <Link
+            to="/marketplace"
             className="text-sm underline opacity-80 hover:opacity-100"
           >
             See all
-          </a>
+          </Link>
         </div>
 
         <RecentlyUploadedGrid />
@@ -118,12 +119,12 @@ export default function Home() {
           ))}
         </div>
         <div className="text-center">
-          <a
-            href="/how-it-works"
+          <Link
+            to="/how-it-works"
             className="px-4 py-2 rounded-xl border border-black/10 hover:bg-black/5 text-sm"
           >
             Learn More
-          </a>
+          </Link>
         </div>
       </section>
 
@@ -136,18 +137,18 @@ export default function Home() {
           </p>
         </div>
         <div className="flex gap-3">
-          <a
-            href="/account"
+          <Link
+            to="/account"
             className="px-4 py-2 rounded-xl bg-primary text-white hover:opacity-90"
           >
             Go to Dashboard
-          </a>
-          <a
-            href="/account/pending"
+          </Link>
+          <Link
+            to="/account/pending"
             className="px-4 py-2 rounded-xl border border-black/10 hover:bg-black/5"
           >
             Submit Cards
-          </a>
+          </Link>
         </div>
       </section>
     </div>
@@ -187,9 +188,9 @@ function HeroFeaturedCards() {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
       {cards.map((card) => (
-        <a
+        <Link
           key={card.id}
-          href={`/card/${card.id}`}
+          to={`/card/${card.id}`}
           className="p-2 bg-white rounded-lg shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition block"
         >
           <div className="aspect-[3/4] bg-black/5 rounded mb-1 overflow-hidden">
@@ -203,7 +204,7 @@ function HeroFeaturedCards() {
           </div>
           <h3 className="text-xs font-medium truncate">{card.title}</h3>
           <p className="text-xs opacity-70">£{card.price}</p>
-        </a>
+        </Link>
       ))}
     </div>
   )
@@ -284,12 +285,12 @@ function RecentlyUploadedGrid() {
           {card.price != null && (
             <p className="text-sm opacity-70">£{card.price}</p>
           )}
-          <a
-            href={`/card/${card.id}`}
+          <Link
+            to={`/card/${card.id}`}
             className="mt-2 block w-full text-center px-3 py-2 rounded-xl bg-primary text-white text-sm hover:opacity-90"
           >
             View
-          </a>
+          </Link>
         </article>
       ))}
     </div>
