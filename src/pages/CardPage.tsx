@@ -7,18 +7,18 @@ type Card = {
   id: string
   title: string | null
   price: number | null
-  image_url: string | null           // front
-  image_back_url: string | null      // back
+  image_url: string | null        // front
+  image_back_url: string | null   // back
 }
 
 export default function CardPage() {
   const { id } = useParams<{ id: string }>()
+  const { addItem } = useBasket()
   const [card, setCard] = useState<Card | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [wishlisted, setWishlisted] = useState(false)
-  const [activeIndex, setActiveIndex] = useState(0) // 0 = first image (front)
-  const { addItem } = useBasket()
+  const [activeIndex, setActiveIndex] = useState(0) // 0 = first image
 
   useEffect(() => {
     async function fetchCard() {
@@ -41,7 +41,7 @@ export default function CardPage() {
         setCard(null)
       } else {
         setCard(data as Card)
-        setActiveIndex(0) // default to first image
+        setActiveIndex(0)
       }
       setLoading(false)
     }
@@ -50,28 +50,33 @@ export default function CardPage() {
 
   const images = useMemo(() => {
     if (!card) return []
-    const list = [
+    return [
       card.image_url ? { src: card.image_url, label: 'Front' } : null,
       card.image_back_url ? { src: card.image_back_url, label: 'Back' } : null,
     ].filter(Boolean) as { src: string; label: string }[]
-    return list
   }, [card])
 
   function handleBuyNow() {
+    // TODO: route to /checkout/:id or create Stripe Checkout Session
     console.log('Buy Now', card?.id)
   }
+
   function handleAddToBasket() {
-  if (!card) return
-  addItem(
-    {
-      id: card.id,
-      title: card.title ?? 'Card',
-      price: card.price,
-      image_url: (card.image_url ?? card.image_back_url) ?? null,
-    },
+    if (!card) return
+    addItem(
+      {
+        id: card.id,
+        title: card.title ?? 'Card',
+        price: card.price,
+        image_url: (card.image_url ?? card.image_back_url) ?? null,
+      },
+      1
+    )
   }
+
   function handleToggleWishlist() {
     setWishlisted((w) => !w)
+    // TODO: persist to Supabase when auth is in
   }
 
   if (loading) {
@@ -116,7 +121,7 @@ export default function CardPage() {
         {/* Image column with vertical thumbnails */}
         <div className="rounded-2xl bg-white p-3 shadow-soft border border-black/5">
           <div className="flex gap-3">
-            {/* Thumbs — vertical on sm+, hidden on very small screens */}
+            {/* Thumbs (vertical on sm+) */}
             <div className="hidden sm:flex flex-col gap-2 w-16">
               {images.map((img, idx) => (
                 <button
@@ -152,7 +157,7 @@ export default function CardPage() {
                 )}
               </div>
 
-              {/* On mobile: thumbs appear below main in a small row */}
+              {/* Mobile thumbs below main image */}
               {images.length > 1 && (
                 <div className="sm:hidden mt-3 grid grid-cols-2 gap-2">
                   {images.map((img, idx) => (
@@ -182,7 +187,7 @@ export default function CardPage() {
           <h1 className="font-header text-2xl">{card.title ?? 'Untitled card'}</h1>
           {card.price != null && <div className="text-xl">£{card.price}</div>}
 
-          {/* Actions: Buy Now + icon-only buttons */}
+          {/* Actions: Buy Now + cart + heart */}
           <div className="flex items-center gap-3 pt-2">
             <button
               onClick={handleBuyNow}
@@ -191,7 +196,7 @@ export default function CardPage() {
               Buy Now
             </button>
 
-            {/* Add to Basket (cart icon) */}
+            {/* Add to Basket (icon-only) */}
             <button
               onClick={handleAddToBasket}
               aria-label="Add to Basket"
@@ -206,7 +211,7 @@ export default function CardPage() {
               </svg>
             </button>
 
-            {/* Wishlist (heart icon) */}
+            {/* Wishlist (icon-only) */}
             <button
               onClick={handleToggleWishlist}
               aria-label={wishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
