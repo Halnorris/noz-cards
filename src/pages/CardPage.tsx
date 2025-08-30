@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { useBasket } from '@/context/basket'
 
 type Card = {
   id: string
@@ -17,6 +18,7 @@ export default function CardPage() {
   const [error, setError] = useState<string | null>(null)
   const [wishlisted, setWishlisted] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0) // 0 = first image (front)
+  const { addItem } = useBasket()
 
   useEffect(() => {
     async function fetchCard() {
@@ -59,7 +61,14 @@ export default function CardPage() {
     console.log('Buy Now', card?.id)
   }
   function handleAddToBasket() {
-    console.log('Add to Basket', card?.id)
+  if (!card) return
+  addItem(
+    {
+      id: card.id,
+      title: card.title ?? 'Card',
+      price: card.price,
+      image_url: (card.image_url ?? card.image_back_url) ?? null,
+    },
   }
   function handleToggleWishlist() {
     setWishlisted((w) => !w)
