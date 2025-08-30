@@ -37,7 +37,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right side: featured cards */}
+          {/* Right side: smaller featured cards */}
           <div>
             <HeroFeaturedCards />
           </div>
@@ -154,7 +154,7 @@ export default function Home() {
   )
 }
 
-/* 🔽 Hero Featured Cards 🔽 */
+/* 🔽 Hero Featured Cards (8 smaller cards) 🔽 */
 function HeroFeaturedCards() {
   const [cards, setCards] = useState<any[]>([])
 
@@ -165,7 +165,7 @@ function HeroFeaturedCards() {
         .select('id,title,price,image_url,created_at')
         .eq('status', 'live')
         .order('created_at', { ascending: false })
-        .limit(4)
+        .limit(8)
       setCards(data ?? [])
     }
     loadCards()
@@ -173,11 +173,11 @@ function HeroFeaturedCards() {
 
   if (!cards.length) {
     return (
-      <div className="grid grid-cols-2 gap-3">
-        {Array.from({ length: 4 }).map((_, i) => (
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {Array.from({ length: 8 }).map((_, i) => (
           <div
             key={i}
-            className="rounded-xl bg-black/10 aspect-[3/4] animate-pulse"
+            className="rounded-lg bg-black/10 aspect-[3/4] animate-pulse"
           />
         ))}
       </div>
@@ -185,13 +185,13 @@ function HeroFeaturedCards() {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
       {cards.map((card) => (
         <div
           key={card.id}
-          className="p-3 bg-white rounded-xl shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition"
+          className="p-2 bg-white rounded-lg shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition"
         >
-          <div className="aspect-[3/4] bg-black/5 rounded-lg mb-2 overflow-hidden">
+          <div className="aspect-[3/4] bg-black/5 rounded mb-1 overflow-hidden">
             {card.image_url && (
               <img
                 src={card.image_url}
@@ -200,14 +200,8 @@ function HeroFeaturedCards() {
               />
             )}
           </div>
-          <h3 className="text-sm font-medium truncate">{card.title}</h3>
-          <p className="text-sm opacity-70">£{card.price}</p>
-          <a
-            href={`/card/${card.id}`}
-            className="mt-2 block w-full text-center px-3 py-2 rounded-xl bg-primary text-white text-sm hover:opacity-90"
-          >
-            View
-          </a>
+          <h3 className="text-xs font-medium truncate">{card.title}</h3>
+          <p className="text-xs opacity-70">£{card.price}</p>
         </div>
       ))}
     </div>
