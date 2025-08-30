@@ -7,6 +7,7 @@ export default function Home() {
       {/* HERO */}
       <section className="rounded-2xl bg-white shadow-soft border border-black/5 p-6 md:p-10">
         <div className="grid md:grid-cols-2 gap-10 items-center">
+          {/* Left side: headline & CTAs */}
           <div>
             <h1 className="font-header leading-tight text-4xl md:text-5xl">
               Buy, Sell & Consign <span className="text-primary">Football Cards</span>
@@ -16,8 +17,8 @@ export default function Home() {
             </h1>
 
             <p className="mt-4 opacity-80 max-w-xl">
-              Submit a consignment in minutes, we do the rest. 
-              KYC ID verification for buyers, keeping bidding legit. 
+              Submit a consignment in minutes, we do the rest.
+              KYC ID verification for buyers, keeping bidding legit.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
@@ -34,28 +35,11 @@ export default function Home() {
                 Submit Cards
               </a>
             </div>
-
-            {/* Key points */}
-            <ul className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-              {[
-                'Instant checkout',
-                'Create a collection and ship everything together',
-                'No upfront cost for sellers',
-                'Auctions require ID to bid',
-              ].map((t) => (
-                <li key={t} className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-primary/10 grid place-items-center text-primary">
-                    ✓
-                  </span>
-                  <span className="opacity-80">{t}</span>
-                </li>
-              ))}
-            </ul>
           </div>
 
-          {/* Hero visual (placeholder for now) */}
-          <div className="rounded-xl border border-black/10 shadow-soft p-3 bg-gradient-to-br from-black/5 via-black/10 to-black/5 flex items-center justify-center">
-            <div className="aspect-[4/3] md:aspect-square rounded-lg bg-black/10" />
+          {/* Right side: featured cards */}
+          <div>
+            <HeroFeaturedCards />
           </div>
         </div>
       </section>
@@ -170,7 +154,67 @@ export default function Home() {
   )
 }
 
-/* 🔽 Recently Uploaded Grid component 🔽 */
+/* 🔽 Hero Featured Cards 🔽 */
+function HeroFeaturedCards() {
+  const [cards, setCards] = useState<any[]>([])
+
+  useEffect(() => {
+    async function loadCards() {
+      const { data } = await supabase
+        .from('cards')
+        .select('id,title,price,image_url,created_at')
+        .eq('status', 'live')
+        .order('created_at', { ascending: false })
+        .limit(4)
+      setCards(data ?? [])
+    }
+    loadCards()
+  }, [])
+
+  if (!cards.length) {
+    return (
+      <div className="grid grid-cols-2 gap-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div
+            key={i}
+            className="rounded-xl bg-black/10 aspect-[3/4] animate-pulse"
+          />
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {cards.map((card) => (
+        <div
+          key={card.id}
+          className="p-3 bg-white rounded-xl shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition"
+        >
+          <div className="aspect-[3/4] bg-black/5 rounded-lg mb-2 overflow-hidden">
+            {card.image_url && (
+              <img
+                src={card.image_url}
+                alt={card.title}
+                className="object-cover w-full h-full"
+              />
+            )}
+          </div>
+          <h3 className="text-sm font-medium truncate">{card.title}</h3>
+          <p className="text-sm opacity-70">£{card.price}</p>
+          <a
+            href={`/card/${card.id}`}
+            className="mt-2 block w-full text-center px-3 py-2 rounded-xl bg-primary text-white text-sm hover:opacity-90"
+          >
+            View
+          </a>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/* 🔽 Recently Uploaded Grid 🔽 */
 function RecentlyUploadedGrid() {
   type Card = {
     id: string
