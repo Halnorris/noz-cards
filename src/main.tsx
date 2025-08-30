@@ -10,7 +10,7 @@ import Pending from './pages/Pending'
 import Live from './pages/Live'
 import Auction from './pages/Auction'
 import HowItWorks from '@/pages/HowItWorks'
-import CardPage from '@/pages/Card.tsx'
+import CardPage from '@/pages/CardPage'   // ✅ fixed here
 import NotFound from './pages/NotFound'
 
 const router = createBrowserRouter([
@@ -22,10 +22,10 @@ const router = createBrowserRouter([
       { path: 'marketplace', element: <Marketplace /> },
       { path: 'account', element: <Account /> },
       { path: 'account/pending', element: <Pending /> },
-      { path: '/how-it-works', element: <HowItWorks /> },
+      { path: 'how-it-works', element: <HowItWorks /> }, // ✅ dropped the extra slash
       { path: 'account/live', element: <Live /> },
       { path: 'auctions/:id', element: <Auction /> },
-      { path: '/card/:id', element: <CardPage /> },
+      { path: 'card/:id', element: <CardPage /> },       // ✅ fixed here
       { path: '*', element: <NotFound /> },
     ],
   },
