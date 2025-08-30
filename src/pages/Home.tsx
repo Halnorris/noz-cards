@@ -37,7 +37,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right side: smaller featured cards */}
+          {/* Right side: Top priced cards */}
           <div>
             <HeroFeaturedCards />
           </div>
@@ -154,7 +154,7 @@ export default function Home() {
   )
 }
 
-/* 🔽 Hero Featured Cards (8 smaller cards) 🔽 */
+/* 🔽 Hero Featured Cards (Top 8 highest priced) 🔽 */
 function HeroFeaturedCards() {
   const [cards, setCards] = useState<any[]>([])
 
@@ -164,7 +164,7 @@ function HeroFeaturedCards() {
         .from('cards')
         .select('id,title,price,image_url,created_at')
         .eq('status', 'live')
-        .order('created_at', { ascending: false })
+        .order('price', { ascending: false }) // sort by highest price
         .limit(8)
       setCards(data ?? [])
     }
@@ -187,9 +187,10 @@ function HeroFeaturedCards() {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
       {cards.map((card) => (
-        <div
+        <a
           key={card.id}
-          className="p-2 bg-white rounded-lg shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition"
+          href={`/card/${card.id}`}
+          className="p-2 bg-white rounded-lg shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition block"
         >
           <div className="aspect-[3/4] bg-black/5 rounded mb-1 overflow-hidden">
             {card.image_url && (
@@ -202,7 +203,7 @@ function HeroFeaturedCards() {
           </div>
           <h3 className="text-xs font-medium truncate">{card.title}</h3>
           <p className="text-xs opacity-70">£{card.price}</p>
-        </div>
+        </a>
       ))}
     </div>
   )
@@ -283,9 +284,12 @@ function RecentlyUploadedGrid() {
           {card.price != null && (
             <p className="text-sm opacity-70">£{card.price}</p>
           )}
-          <button className="mt-2 w-full px-3 py-2 rounded-xl bg-primary text-white text-sm opacity-0 group-hover:opacity-100 transition">
+          <a
+            href={`/card/${card.id}`}
+            className="mt-2 block w-full text-center px-3 py-2 rounded-xl bg-primary text-white text-sm hover:opacity-90"
+          >
             View
-          </button>
+          </a>
         </article>
       ))}
     </div>
