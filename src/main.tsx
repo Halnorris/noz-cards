@@ -10,6 +10,7 @@ import Pending from './pages/Pending'
 import Live from './pages/Live'
 import Auction from './pages/Auction'
 import HowItWorks from '@/pages/HowItWorks'
+import CardPage from '@/pages/Card'
 import NotFound from './pages/NotFound'
 
 const router = createBrowserRouter([
@@ -24,6 +25,7 @@ const router = createBrowserRouter([
       { path: '/how-it-works', element: <HowItWorks /> },
       { path: 'account/live', element: <Live /> },
       { path: 'auctions/:id', element: <Auction /> },
+      { path: '/card/:id', element: <CardPage /> },
       { path: '*', element: <NotFound /> },
     ],
   },
