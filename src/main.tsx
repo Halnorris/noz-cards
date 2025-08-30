@@ -10,7 +10,7 @@ import Pending from './pages/Pending'
 import Live from './pages/Live'
 import Auction from './pages/Auction'
 import HowItWorks from '@/pages/HowItWorks'
-import CardPage from '@/pages/Card'
+import CardPage from '@/pages/Card.tsx'
 import NotFound from './pages/NotFound'
 
 const router = createBrowserRouter([
