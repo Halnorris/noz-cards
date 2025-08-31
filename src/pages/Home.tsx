@@ -266,9 +266,10 @@ function RecentlyUploadedGrid() {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
       {cards.map((card) => (
-        <article
+        <Link
           key={card.id}
-          className="group rounded-2xl bg-white p-3 shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition"
+          to={`/card/${card.id}`}
+          className="group rounded-2xl bg-white p-3 shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition block"
         >
           <div className="aspect-[3/4] rounded-xl bg-black/5 mb-2 border border-black/10 overflow-hidden">
             {card.image_url ? (
@@ -285,13 +286,7 @@ function RecentlyUploadedGrid() {
           {card.price != null && (
             <p className="text-sm opacity-70">£{card.price}</p>
           )}
-          <Link
-            to={`/card/${card.id}`}
-            className="mt-2 block w-full text-center px-3 py-2 rounded-xl bg-primary text-white text-sm hover:opacity-90"
-          >
-            View
-          </Link>
-        </article>
+        </Link>
       ))}
     </div>
   )
