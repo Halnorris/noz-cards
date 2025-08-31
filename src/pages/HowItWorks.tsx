@@ -3,39 +3,31 @@ import { Link } from 'react-router-dom'
 export default function HowItWorks() {
   return (
     <div className="space-y-12">
-      {/* HERO / INTRO */}
-      <section className="rounded-2xl bg-white border border-black/5 shadow-soft p-6 md:p-10">
-        <div className="grid md:grid-cols-2 gap-8 items-center">
-          <div className="space-y-4">
-            <span className="inline-block px-3 py-1 rounded-full text-sm bg-primary/10 text-primary">
-              How It Works
-            </span>
-            <h1 className="font-header text-3xl md:text-4xl leading-tight">
-              List your cards in minutes. <span className="text-primary">We do the rest.</span>
-            </h1>
-            <p className="opacity-80">
-              Consignment made simple: submit, we scan & list, buyers pay instantly, and payouts
-              are handled via Stripe. Auctions include ID verification to keep bidding legit.
-            </p>
-
-            <div className="flex gap-3">
-              <Link to="/account/pending" className="px-5 py-3 rounded-xl bg-primary text-white hover:opacity-90">
-                Submit Cards
-              </Link>
-              <Link to="/marketplace" className="px-5 py-3 rounded-xl border border-black/10 hover:bg-black/5">
-                Browse Marketplace
-              </Link>
-            </div>
-          </div>
-
-          {/* Simple visual */}
-          <div className="rounded-2xl border border-black/10 bg-gradient-to-br from-black/5 via-black/10 to-black/5 p-4">
-            <div className="grid grid-cols-3 gap-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="aspect-[3/4] rounded-xl bg-white border border-black/10 shadow-soft" />
-              ))}
-            </div>
-          </div>
+      {/* SIMPLE HERO / INTRO */}
+      <section className="rounded-2xl bg-white border border-black/5 shadow-soft p-8 text-center">
+        <span className="inline-block px-3 py-1 rounded-full text-sm bg-primary/10 text-primary mb-3">
+          How It Works
+        </span>
+        <h1 className="font-header text-3xl md:text-4xl leading-tight">
+          Sell your cards with ease. <span className="text-primary">We handle the rest.</span>
+        </h1>
+        <p className="mt-4 max-w-2xl mx-auto opacity-80">
+          Submit your cards in minutes. We scan, list, and promote them. Buyers pay instantly,
+          and payouts are handled securely via Stripe.
+        </p>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <Link
+            to="/account/pending"
+            className="px-5 py-3 rounded-xl bg-primary text-white hover:opacity-90"
+          >
+            Submit Cards
+          </Link>
+          <Link
+            to="/marketplace"
+            className="px-5 py-3 rounded-xl border border-black/10 hover:bg-black/5"
+          >
+            Browse Marketplace
+          </Link>
         </div>
       </section>
 
@@ -148,7 +140,7 @@ export default function HowItWorks() {
         </ol>
       </section>
 
-      {/* FAQ ACCORDION (no JS lib needed) */}
+      {/* FAQ ACCORDION */}
       <section className="space-y-4">
         <h2 className="font-header text-xl">FAQ</h2>
 
@@ -193,7 +185,7 @@ export default function HowItWorks() {
   )
 }
 
-/** Minimal accordion component (pure Tailwind + details/summary) */
+/** Minimal accordion component */
 function Accordion({
   items,
 }: {
