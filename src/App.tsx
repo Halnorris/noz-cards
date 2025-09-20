@@ -2,6 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import Header from './components/Header'
 import Sidebar from './components/Sidebar'
 import ScrollToTop from './components/ScrollToTop'
+import Footer from './components/Footer'
 
 export default function App() {
   const { pathname } = useLocation()
@@ -33,9 +34,7 @@ export default function App() {
         )}
       </div>
 
-      <footer className="mt-8 p-6 text-sm text-center opacity-70">
-        Noz Cards • Built with ❤️ on React + Vite + Supabase + Vercel
-      </footer>
+      <Footer/>
     </div>
   )
 }
