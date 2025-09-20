@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import Header from './components/Header'
 import Sidebar from './components/Sidebar'
+import ScrollToTop from './components/ScrollToTop'
 
 export default function App() {
   const { pathname } = useLocation()
