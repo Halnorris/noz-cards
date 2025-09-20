@@ -44,15 +44,6 @@ export default function Header() {
           </NavLink>
 
           <NavLink
-            to="/auctions"
-            className={({ isActive }) =>
-              `${linkBase} ${isActive ? linkActive : linkInactive}`
-            }
-          >
-            Auctions
-          </NavLink>
-
-          <NavLink
             to="/account"
             className={({ isActive }) =>
               `${linkBase} ${isActive ? linkActive : linkInactive}`
