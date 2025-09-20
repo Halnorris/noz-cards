@@ -17,10 +17,10 @@ import NotFound from './pages/NotFound'
 import Terms from '@/pages/legal/Terms'
 import Privacy from '@/pages/legal/Privacy'
 import Cookies from '@/pages/legal/Cookies'
-import Shipping from '@/pages/policies/Shipping'
-import Returns from '@/pages/policies/Returns'
-import Consignment from '@/pages/policies/Consignment'
-import Contact from '@/pages/Contact'
+import Shipping from '@/pages/legal/Shipping'
+import Returns from '@/pages/legal/Returns'
+import Consignment from '@/pages/legal/Consignment'
+import Contact from '@/pages/legal/Contact'
 
 // 🧺 Wrap everything with this provider
 import { BasketProvider } from '@/context/basket'
@@ -43,10 +43,10 @@ const router = createBrowserRouter([
       { path: 'legal/terms', element: <Terms /> },
       { path: 'legal/privacy', element: <Privacy /> },
       { path: 'legal/cookies', element: <Cookies /> },
-      { path: 'policies/shipping', element: <Shipping /> },
-      { path: 'policies/returns', element: <Returns /> },
-      { path: 'policies/consignment', element: <Consignment /> },
-      { path: 'contact', element: <Contact /> },
+      { path: 'legal/shipping', element: <Shipping /> },
+      { path: 'legal/returns', element: <Returns /> },
+      { path: 'legal/consignment', element: <Consignment /> },
+      { path: 'legal/contact', element: <Contact /> },
     ],
   },
 ])
