@@ -12,14 +12,16 @@ export default function Home() {
           <div>
             <h1 className="font-header leading-tight text-4xl md:text-5xl">
               Buy, Sell & Consign <span className="text-primary">Football Cards</span>
+              {/* ✅ removed the “Now with real-time Auctions” line */}
               <span className="block text-[clamp(22px,3vw,32px)] mt-1">
-                Now with real-time Auctions
+                Fast, secure & hassle-free marketplace
               </span>
             </h1>
 
+            {/* ✅ simplified paragraph */}
             <p className="mt-4 opacity-80 max-w-xl">
-              Submit a consignment in minutes, we do the rest.
-              KYC ID verification for buyers, keeping bidding legit.
+              Submit a consignment in minutes and we’ll handle the rest — from professional scans
+              to instant checkout and smooth payouts.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
@@ -63,9 +65,9 @@ export default function Home() {
         </div>
         <div className="rounded-2xl bg-white p-5 shadow-soft border border-black/5">
           <div className="text-xs uppercase tracking-wide opacity-70">Security</div>
-          <div className="text-2xl font-header">ID Required</div>
+          <div className="text-2xl font-header">Trusted Payments</div>
           <p className="text-sm opacity-80 mt-1">
-            KYC required to bid in auctions—no ghost bidding.
+            Stripe-powered checkout and payouts for a safe buying & selling experience.
           </p>
         </div>
       </section>
@@ -81,7 +83,6 @@ export default function Home() {
             See all
           </Link>
         </div>
-
         <RecentlyUploadedGrid />
       </section>
 
@@ -98,7 +99,7 @@ export default function Home() {
             {
               step: '2',
               title: 'Go Live',
-              desc: 'We scan, list, and promote your cards. Choose Buy Now or run an Auction.',
+              desc: 'We scan, list, and promote your cards. Choose your price and start selling.',
             },
             {
               step: '3',
