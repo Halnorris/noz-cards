@@ -44,7 +44,7 @@ export default function HowItWorks() {
             step: '2',
             title: 'Go Live',
             desc:
-              'Choose Buy Now or Auction. We market your cards and manage buyer questions and offers.',
+              'Set your own prices, or let us do it for you. We handle marketing, storage and shipping.',
           },
           {
             step: '3',
@@ -84,7 +84,7 @@ export default function HowItWorks() {
             </li>
             <li className="flex gap-2">
               <span className="w-5 h-5 grid place-items-center rounded-full bg-primary/10 text-primary">✓</span>
-              Auction bidding requires ID (KYC) to prevent ghost bids.
+              Buy from one trusted seller.
             </li>
           </ul>
           <div className="mt-4">
@@ -104,7 +104,7 @@ export default function HowItWorks() {
             </li>
             <li className="flex gap-2">
               <span className="w-5 h-5 grid place-items-center rounded-full bg-primary/10 text-primary">✓</span>
-              Choose pricing: Buy Now or Auction, your call — we can advise based on comps.
+              Set your own price or we can do it for you. You can always change your prices at any time.
             </li>
             <li className="flex gap-2">
               <span className="w-5 h-5 grid place-items-center rounded-full bg-primary/10 text-primary">✓</span>
@@ -123,9 +123,9 @@ export default function HowItWorks() {
         <ol className="relative pl-6 space-y-6">
           {[
             { title: 'Submit cards', body: 'Complete the online form and send your package.' },
-            { title: 'We scan & list', body: 'High-quality images, clean titles, market-driven pricing.' },
-            { title: 'Go Live', body: 'Cards appear in Marketplace and, if chosen, in live Auctions.' },
-            { title: 'Buyers checkout', body: 'Instant payment with +10% buyer fee shown at checkout.' },
+            { title: 'We scan & list', body: 'High-quality images and clean titles hassle free.' },
+            { title: 'Go Live', body: 'Confirm your cards and prices and they'll go live on our marketplace.' },
+            { title: 'Buyers checkout', body: 'Instant payment at checkout.' },
             { title: 'Payout', body: 'We deduct 15% seller fee and pay the remainder to your Stripe account.' },
           ].map((row, i) => (
             <li key={i} className="relative">
