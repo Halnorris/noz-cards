@@ -151,8 +151,8 @@ export default function HowItWorks() {
               a: 'Buyers pay +10% at checkout. Sellers pay 15% which is deducted from the sale before payout.',
             },
             {
-              q: 'How do Auctions work?',
-              a: 'Bidders must complete ID verification before bidding. Winners pay instantly at auction end.',
+              q: 'Why do I need a Stripe account?',
+              a: 'You only need a Stripe account as a seller. We use Stripe as a secure payment system that allows us to send funds to your bank account',
             },
             {
               q: 'Can I combine shipping?',
