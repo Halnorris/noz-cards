@@ -124,7 +124,7 @@ export default function HowItWorks() {
           {[
             { title: 'Submit cards', body: 'Complete the online form and send your package.' },
             { title: 'We scan & list', body: 'High-quality images and clean titles hassle free.' },
-            { title: 'Go Live', body: 'Confirm your cards and prices and they'll go live on our marketplace.' },
+            { title: 'Go Live', body: 'Confirm your cards and prices and they go live on our marketplace.' },
             { title: 'Buyers checkout', body: 'Instant payment at checkout.' },
             { title: 'Payout', body: 'We deduct 15% seller fee and pay the remainder to your Stripe account.' },
           ].map((row, i) => (
