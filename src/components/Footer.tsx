@@ -24,7 +24,7 @@ export default function Footer() {
             <li><Link to="/how-it-works" className="hover:underline">How it Works</Link></li>
             <li><Link to="/marketplace" className="hover:underline">Marketplace</Link></li>
             <li><Link to="/account/pending" className="hover:underline">Submit Cards</Link></li>
-            <li><Link to="/contact" className="hover:underline">Contact</Link></li>
+            <li><Link to="/legal/contact" className="hover:underline">Contact</Link></li>
           </ul>
         </div>
 
@@ -42,9 +42,9 @@ export default function Footer() {
         <div>
           <div className="font-header mb-2">Selling & Shipping</div>
           <ul className="space-y-2 text-sm">
-            <li><Link to="/policies/shipping" className="hover:underline">Shipping Policy</Link></li>
-            <li><Link to="/policies/returns" className="hover:underline">Returns & Refunds</Link></li>
-            <li><Link to="/policies/consignment" className="hover:underline">Consignment Policy</Link></li>
+            <li><Link to="/legal/shipping" className="hover:underline">Shipping Policy</Link></li>
+            <li><Link to="/legal/returns" className="hover:underline">Returns & Refunds</Link></li>
+            <li><Link to="/legal/consignment" className="hover:underline">Consignment Policy</Link></li>
           </ul>
         </div>
       </div>
