@@ -14,6 +14,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header (with cart badge now handled inside Header.tsx) */}
+      <ScrollToTop />
       <Header />
 
       <div className="max-w-7xl mx-auto px-4">
