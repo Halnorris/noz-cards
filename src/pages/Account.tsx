@@ -1,3 +1,19 @@
+import { useAuth } from '@/context/auth'
+import { Link } from 'react-router-dom'
+
+export function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth()
+  if (loading) return <div>Loading…</div>
+  if (!user) {
+    return (
+      <div className="rounded-2xl bg-white p-6 border border-black/5 shadow-soft">
+        <p className="mb-3">Please sign in to view this page.</p>
+        <Link to="/signin" className="px-4 py-2 rounded-xl bg-primary text-white">Sign in</Link>
+      </div>
+    )
+  }
+  return <>{children}</>
+}
 export default function Account() {
   return (
     <section className="space-y-4">
