@@ -21,6 +21,7 @@ import Shipping from '@/pages/legal/Shipping'
 import Returns from '@/pages/legal/Returns'
 import Consignment from '@/pages/legal/Consignment'
 import Contact from '@/pages/legal/Contact'
+import SignIn from '@/pages/SignIn'
 
 // 🧺 Wrap everything with this provider
 import { BasketProvider } from '@/context/basket'
@@ -48,6 +49,7 @@ const router = createBrowserRouter([
       { path: 'legal/returns', element: <Returns /> },
       { path: 'legal/consignment', element: <Consignment /> },
       { path: 'legal/contact', element: <Contact /> },
+      { path: 'signin', element: <SignIn /> },
     ],
   },
 ])
