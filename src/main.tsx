@@ -24,6 +24,7 @@ import Contact from '@/pages/legal/Contact'
 
 // 🧺 Wrap everything with this provider
 import { BasketProvider } from '@/context/basket'
+import { AuthProvider } from '@/context/auth'
 
 const router = createBrowserRouter([
   {
@@ -57,5 +58,14 @@ createRoot(document.getElementById('root')!).render(
     <BasketProvider>
       <RouterProvider router={router} />
     </BasketProvider>
+  </StrictMode>
+)
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <AuthProvider>
+      <BasketProvider>
+        <RouterProvider router={router} />
+      </BasketProvider>
+    </AuthProvider>
   </StrictMode>
 )
