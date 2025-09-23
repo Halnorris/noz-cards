@@ -55,8 +55,9 @@ export default function Header() {
 
         {/* Actions: Sign in + Basket */}
         <div className="flex items-center gap-3">
+          {/* ✅ now points to /signin */}
           <Link
-            to="/account"
+            to="/signin"
             className="text-sm px-3 py-1 rounded-full hover:bg-black/5"
           >
             Sign in
