@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 
@@ -93,7 +93,6 @@ export default function Home() {
         <div className="grid md:grid-cols-3 gap-8 items-center">
           {/* Image */}
           <div className="md:col-span-1">
-            {/* Replace the placeholder with your photo when ready */}
             {/* <img src="/about-hal.jpg" alt="About Noz Cards" className="rounded-2xl border border-black/10 w-full h-auto object-cover" /> */}
             <div className="aspect-[4/5] rounded-2xl border border-black/10 bg-black/10" />
           </div>
@@ -120,14 +119,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* EBAY SECTION */}
+      {/* EBAY SECTION (with carousel) */}
       <EbaySection />
 
       {/* RECENTLY UPLOADED */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-header text-2xl">Recently Uploaded</h2>
-          <Link
+        <Link
             to="/marketplace"
             className="text-sm underline opacity-80 hover:opacity-100"
           >
@@ -195,7 +194,7 @@ function HeroFeaturedCards() {
   )
 }
 
-/* 🔽 eBay Section 🔽 */
+/* 🔽 eBay Section (with carousel) 🔽 */
 function EbaySection() {
   const EBAY_USERNAME = 'noz_cards'
   return (
@@ -219,15 +218,20 @@ function EbaySection() {
         </a>
       </div>
 
-      <EbayFeedbackGrid />
+      <EbayFeedbackCarousel />
     </section>
   )
 }
 
-/* 🔽 eBay Feedback Grid (from Supabase) 🔽 */
-function EbayFeedbackGrid() {
-  const [feedback, setFeedback] = useState<{ id: number; text: string; user: string }[]>([])
+/* 🔽 eBay Feedback Carousel (auto-rotating, Supabase-backed) 🔽 */
+function EbayFeedbackCarousel() {
+  type Feedback = { id: number; text: string; user: string }
+
+  const [items, setItems] = useState<Feedback[]>([])
   const [loading, setLoading] = useState(true)
+  const [active, setActive] = useState(0)
+  const intervalRef = useRef<number | null>(null)
+  const [isHovered, setIsHovered] = useState(false)
 
   useEffect(() => {
     async function fetchFeedback() {
@@ -235,45 +239,102 @@ function EbayFeedbackGrid() {
         .from('ebay_feedback')
         .select('id, text, user')
         .order('id', { ascending: false })
-        .limit(6)
-      if (!error && data) setFeedback(data)
+        .limit(12)
+      if (!error && data) setItems(data as Feedback[])
       setLoading(false)
     }
     fetchFeedback()
   }, [])
 
+  // Auto-rotate every 4s (pause on hover)
+  useEffect(() => {
+    if (!items.length) return
+    if (isHovered) return
+
+    intervalRef.current = window.setInterval(() => {
+      setActive((prev) => (prev + 1) % items.length)
+    }, 4000)
+
+    return () => {
+      if (intervalRef.current) window.clearInterval(intervalRef.current)
+    }
+  }, [items.length, isHovered])
+
+  const goTo = (index: number) => {
+    if (!items.length) return
+    setActive((index + items.length) % items.length)
+  }
+
+  const next = () => goTo(active + 1)
+  const prev = () => goTo(active - 1)
+
   if (loading) {
     return (
-      <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div
-            key={i}
-            className="rounded-2xl bg-white p-4 border border-black/5 shadow-soft animate-pulse h-[100px]"
-          ></div>
-        ))}
+      <div className="mt-6 grid grid-cols-1 gap-4">
+        <div className="rounded-2xl bg-white p-4 border border-black/5 shadow-soft animate-pulse h-[110px]" />
       </div>
     )
   }
 
-  if (!feedback.length) {
+  if (!items.length) {
     return (
       <div className="mt-6 opacity-60 text-sm">
-        No feedback found yet — add some entries in Supabase to display them here.
+        No feedback yet — add entries in Supabase to show them here.
       </div>
     )
   }
 
   return (
-    <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {feedback.map((f) => (
-        <div
-          key={f.id}
-          className="rounded-2xl bg-white p-4 border border-black/5 shadow-soft"
-        >
-          <div className="text-sm leading-6">“{f.text}”</div>
-          <div className="mt-2 text-xs opacity-60">— {f.user}</div>
-        </div>
-      ))}
+    <div
+      className="mt-6 relative rounded-2xl border border-black/5 p-4 bg-white shadow-soft"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* Slides */}
+      <div className="relative h-[120px] sm:h-[140px]">
+        {items.map((f, i) => (
+          <div
+            key={f.id}
+            className={`absolute inset-0 transition-opacity duration-500 ${i === active ? 'opacity-100' : 'opacity-0'}`}
+            aria-hidden={i !== active}
+          >
+            <div className="h-full w-full rounded-xl border border-black/5 bg-white p-4 flex flex-col justify-center">
+              <div className="text-sm leading-6">“{f.text}”</div>
+              <div className="mt-2 text-xs opacity-60">— {f.user}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Controls */}
+      <button
+        type="button"
+        onClick={prev}
+        aria-label="Previous feedback"
+        className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full border border-black/10 bg-white/80 p-2 hover:bg-black/5"
+      >
+        ‹
+      </button>
+      <button
+        type="button"
+        onClick={next}
+        aria-label="Next feedback"
+        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-black/10 bg-white/80 p-2 hover:bg-black/5"
+      >
+        ›
+      </button>
+
+      {/* Dots */}
+      <div className="mt-3 flex items-center justify-center gap-2">
+        {items.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => goTo(i)}
+            aria-label={`Go to slide ${i + 1}`}
+            className={`h-2.5 w-2.5 rounded-full border border-black/10 ${i === active ? 'bg-primary' : 'bg-black/10'}`}
+          />
+        ))}
+      </div>
     </div>
   )
 }
