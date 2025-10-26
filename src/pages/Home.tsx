@@ -12,13 +12,11 @@ export default function Home() {
           <div>
             <h1 className="font-header leading-tight text-4xl md:text-5xl">
               Buy, Sell & Consign <span className="text-primary">Football Cards</span>
-              {/* ✅ removed the “Now with real-time Auctions” line */}
               <span className="block text-[clamp(22px,3vw,32px)] mt-1">
                 Fast, secure & hassle-free marketplace
               </span>
             </h1>
 
-            {/* ✅ simplified paragraph */}
             <p className="mt-4 opacity-80 max-w-xl">
               Submit a consignment in minutes and we’ll handle the rest — from professional scans
               to instant checkout and smooth payouts.
@@ -47,46 +45,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* MINI HOW IT WORKS STRIP */}
-      <section className="grid md:grid-cols-3 gap-3">
-        <div className="rounded-2xl bg-white p-5 shadow-soft border border-black/5">
-          <div className="text-xs uppercase tracking-wide opacity-70">Buyers</div>
-          <div className="text-2xl font-header">Collective Shipping</div>
-          <p className="text-sm opacity-80 mt-1">
-            Buy multiple items and ship them all at once.
-          </p>
-        </div>
-        <div className="rounded-2xl bg-white p-5 shadow-soft border border-black/5">
-          <div className="text-xs uppercase tracking-wide opacity-70">Sellers</div>
-          <div className="text-2xl font-header">Consign &amp; Sell</div>
-          <p className="text-sm opacity-80 mt-1">
-            Send us your cards and we&apos;ll do the rest.
-          </p>
-        </div>
-        <div className="rounded-2xl bg-white p-5 shadow-soft border border-black/5">
-          <div className="text-xs uppercase tracking-wide opacity-70">Security</div>
-          <div className="text-2xl font-header">Trusted Payments</div>
-          <p className="text-sm opacity-80 mt-1">
-            Stripe-powered checkout and payouts for a safe buying & selling experience.
-          </p>
-        </div>
-      </section>
-
-      {/* RECENTLY UPLOADED */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-header text-2xl">Recently Uploaded</h2>
-          <Link
-            to="/marketplace"
-            className="text-sm underline opacity-80 hover:opacity-100"
-          >
-            See all
-          </Link>
-        </div>
-        <RecentlyUploadedGrid />
-      </section>
-
-      {/* HOW IT WORKS (fuller section) */}
+      {/* HOW IT WORKS (moved up to 2nd section) */}
       <section className="space-y-8">
         <h2 className="font-header text-2xl text-center">How It Works</h2>
         <div className="grid md:grid-cols-3 gap-6">
@@ -129,28 +88,53 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA BAND */}
-      <section className="rounded-2xl border border-primary/30 bg-primary/5 p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h3 className="font-header text-xl">Ready to sell your first card?</h3>
-          <p className="opacity-80 text-sm">
-            Instant checkout for buyers, streamlined Stripe payouts for sellers.
-          </p>
+      {/* ABOUT US */}
+      <section className="rounded-2xl bg-white shadow-soft border border-black/5 p-6 md:p-10">
+        <div className="grid md:grid-cols-3 gap-8 items-center">
+          {/* Image */}
+          <div className="md:col-span-1">
+            {/* Replace the placeholder with your photo when ready */}
+            {/* <img src="/about-hal.jpg" alt="About Noz Cards" className="rounded-2xl border border-black/10 w-full h-auto object-cover" /> */}
+            <div className="aspect-[4/5] rounded-2xl border border-black/10 bg-black/10" />
+          </div>
+
+          {/* Text */}
+          <div className="md:col-span-2">
+            <h2 className="font-header text-2xl mb-2">About Noz Cards</h2>
+            <p className="opacity-80">
+              Hey! I’m Hal. I fell in love with football cards years ago and started Noz Cards to
+              make buying and selling safer, simpler, and way more fun. My goal is to build a
+              trusted community marketplace that puts collectors first — clean listings, transparent
+              fees, and fast payouts. Whether you’re picking up your first card or hunting grails,
+              you’re in the right place.
+            </p>
+            <div className="mt-4">
+              <Link
+                to="/marketplace"
+                className="inline-block px-4 py-2 rounded-xl bg-primary text-white hover:opacity-90 text-sm"
+              >
+                Visit Marketplace
+              </Link>
+            </div>
+          </div>
         </div>
-        <div className="flex gap-3">
+      </section>
+
+      {/* EBAY SECTION */}
+      <EbaySection />
+
+      {/* RECENTLY UPLOADED (final section) */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-header text-2xl">Recently Uploaded</h2>
           <Link
-            to="/account"
-            className="px-4 py-2 rounded-xl bg-primary text-white hover:opacity-90"
+            to="/marketplace"
+            className="text-sm underline opacity-80 hover:opacity-100"
           >
-            Go to Dashboard
-          </Link>
-          <Link
-            to="/account/pending"
-            className="px-4 py-2 rounded-xl border border-black/10 hover:bg-black/5"
-          >
-            Submit Cards
+            See all
           </Link>
         </div>
+        <RecentlyUploadedGrid />
       </section>
     </div>
   )
@@ -208,6 +192,53 @@ function HeroFeaturedCards() {
         </Link>
       ))}
     </div>
+  )
+}
+
+/* 🔽 eBay Section 🔽 */
+function EbaySection() {
+  // Swap this for your real eBay username
+  const EBAY_USERNAME = 'your-ebay-username'
+
+  // Placeholder “feedback” cards — easy to replace later
+  const feedback = [
+    { id: 1, text: 'Great seller, fast shipping, item exactly as described!', user: '*****a (200)' },
+    { id: 2, text: 'Perfect transaction. Will buy again.', user: '****12 (145)' },
+    { id: 3, text: 'Card arrived well packaged and mint. Thanks!', user: '***_uk (89)' },
+  ]
+
+  return (
+    <section className="rounded-2xl bg-white shadow-soft border border-black/5 p-6 md:p-10">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        <div>
+          <h2 className="font-header text-2xl">Shop My eBay</h2>
+          <p className="opacity-80 text-sm mt-1 max-w-xl">
+            Prefer eBay? No worries — you can also browse my active listings and check feedback
+            history over there.
+          </p>
+        </div>
+        <a
+          href={`https://www.ebay.co.uk/usr/${EBAY_USERNAME}`}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-block px-4 py-2 rounded-xl bg-primary text-white hover:opacity-90 text-sm"
+        >
+          View eBay Profile
+        </a>
+      </div>
+
+      <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {feedback.map((f) => (
+          <div
+            key={f.id}
+            className="rounded-2xl bg-white p-4 border border-black/5 shadow-soft"
+          >
+            <div className="text-sm leading-6">“{f.text}”</div>
+            <div className="mt-2 text-xs opacity-60">— {f.user}</div>
+          </div>
+        ))}
+      </div>
+    </section>
   )
 }
 
@@ -292,3 +323,4 @@ function RecentlyUploadedGrid() {
     </div>
   )
 }
+
