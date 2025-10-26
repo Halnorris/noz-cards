@@ -45,7 +45,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* HOW IT WORKS (moved up to 2nd section) */}
+      {/* HOW IT WORKS */}
       <section className="space-y-8">
         <h2 className="font-header text-2xl text-center">How It Works</h2>
         <div className="grid md:grid-cols-3 gap-6">
@@ -120,85 +120,22 @@ export default function Home() {
         </div>
       </section>
 
-      /* 🔽 eBay Section 🔽 */
-function EbaySection() {
-  const EBAY_USERNAME = 'noz_cards'
+      {/* EBAY SECTION */}
+      <EbaySection />
 
-  return (
-    <section className="rounded-2xl bg-white shadow-soft border border-black/5 p-6 md:p-10">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-        <div>
-          <h2 className="font-header text-2xl">Shop Noz Cards on eBay</h2>
-          <p className="opacity-80 text-sm mt-1 max-w-xl">
-            If you’re more of an eBay browser, you can check out our listings and feedback history there too.
-            Every card’s handled with the same care and consistency as what you’ll find right here on Noz Cards.
-          </p>
+      {/* RECENTLY UPLOADED */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-header text-2xl">Recently Uploaded</h2>
+          <Link
+            to="/marketplace"
+            className="text-sm underline opacity-80 hover:opacity-100"
+          >
+            See all
+          </Link>
         </div>
-        <a
-          href={`https://www.ebay.co.uk/usr/${EBAY_USERNAME}`}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-block px-4 py-2 rounded-xl bg-primary text-white hover:opacity-90 text-sm"
-        >
-          Visit eBay Store
-        </a>
-      </div>
-
-      <EbayFeedbackGrid />
-    </section>
-  )
-}
-
-/* 🔽 eBay Feedback Grid (dynamic via Supabase) 🔽 */
-function EbayFeedbackGrid() {
-  const [feedback, setFeedback] = useState<{ id: number; text: string; user: string }[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    async function fetchFeedback() {
-      const { data, error } = await supabase
-        .from('ebay_feedback')
-        .select('id, text, user')
-        .order('id', { ascending: false })
-        .limit(6)
-      if (!error && data) setFeedback(data)
-      setLoading(false)
-    }
-    fetchFeedback()
-  }, [])
-
-  if (loading) {
-    return (
-      <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div
-            key={i}
-            className="rounded-2xl bg-white p-4 border border-black/5 shadow-soft animate-pulse h-[100px]"
-          ></div>
-        ))}
-      </div>
-    )
-  }
-
-  if (!feedback.length) {
-    return (
-      <div className="mt-6 opacity-60 text-sm">
-        No feedback found yet — add some entries in Supabase to display them here.
-      </div>
-    )
-  }
-
-  return (
-    <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {feedback.map((f) => (
-        <div
-          key={f.id}
-          className="rounded-2xl bg-white p-4 border border-black/5 shadow-soft"
-        >
-          <div className="text-sm leading-6">“{f.text}”</div>
-          <div className="mt-2 text-xs opacity-60">— {f.user}</div>
-        </div>
-      ))}
+        <RecentlyUploadedGrid />
+      </section>
     </div>
   )
 }
@@ -260,24 +197,16 @@ function HeroFeaturedCards() {
 
 /* 🔽 eBay Section 🔽 */
 function EbaySection() {
-  // Swap this for your real eBay username
-  const EBAY_USERNAME = 'your-ebay-username'
-
-  // Placeholder “feedback” cards — easy to replace later
-  const feedback = [
-    { id: 1, text: 'Great seller, fast shipping, item exactly as described!', user: '*****a (200)' },
-    { id: 2, text: 'Perfect transaction. Will buy again.', user: '****12 (145)' },
-    { id: 3, text: 'Card arrived well packaged and mint. Thanks!', user: '***_uk (89)' },
-  ]
-
+  const EBAY_USERNAME = 'noz_cards'
   return (
     <section className="rounded-2xl bg-white shadow-soft border border-black/5 p-6 md:p-10">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
         <div>
-          <h2 className="font-header text-2xl">Shop My eBay</h2>
+          <h2 className="font-header text-2xl">Shop Noz Cards on eBay</h2>
           <p className="opacity-80 text-sm mt-1 max-w-xl">
-            Prefer eBay? No worries — you can also browse my active listings and check feedback
-            history over there.
+            If you’re more of an eBay browser, you can check out our listings and feedback history
+            there too. Every card’s handled with the same care and consistency as what you’ll find
+            right here on Noz Cards.
           </p>
         </div>
         <a
@@ -286,22 +215,66 @@ function EbaySection() {
           rel="noreferrer"
           className="inline-block px-4 py-2 rounded-xl bg-primary text-white hover:opacity-90 text-sm"
         >
-          View eBay Profile
+          Visit eBay Store
         </a>
       </div>
 
+      <EbayFeedbackGrid />
+    </section>
+  )
+}
+
+/* 🔽 eBay Feedback Grid (from Supabase) 🔽 */
+function EbayFeedbackGrid() {
+  const [feedback, setFeedback] = useState<{ id: number; text: string; user: string }[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchFeedback() {
+      const { data, error } = await supabase
+        .from('ebay_feedback')
+        .select('id, text, user')
+        .order('id', { ascending: false })
+        .limit(6)
+      if (!error && data) setFeedback(data)
+      setLoading(false)
+    }
+    fetchFeedback()
+  }, [])
+
+  if (loading) {
+    return (
       <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {feedback.map((f) => (
+        {Array.from({ length: 3 }).map((_, i) => (
           <div
-            key={f.id}
-            className="rounded-2xl bg-white p-4 border border-black/5 shadow-soft"
-          >
-            <div className="text-sm leading-6">“{f.text}”</div>
-            <div className="mt-2 text-xs opacity-60">— {f.user}</div>
-          </div>
+            key={i}
+            className="rounded-2xl bg-white p-4 border border-black/5 shadow-soft animate-pulse h-[100px]"
+          ></div>
         ))}
       </div>
-    </section>
+    )
+  }
+
+  if (!feedback.length) {
+    return (
+      <div className="mt-6 opacity-60 text-sm">
+        No feedback found yet — add some entries in Supabase to display them here.
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {feedback.map((f) => (
+        <div
+          key={f.id}
+          className="rounded-2xl bg-white p-4 border border-black/5 shadow-soft"
+        >
+          <div className="text-sm leading-6">“{f.text}”</div>
+          <div className="mt-2 text-xs opacity-60">— {f.user}</div>
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -386,4 +359,3 @@ function RecentlyUploadedGrid() {
     </div>
   )
 }
-
