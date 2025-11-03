@@ -223,13 +223,13 @@ function EbaySection() {
   )
 }
 
-/* 🔽 eBay Feedback Carousel (auto-rotating, Supabase-backed) — UPDATED for `username` column 🔽 */
+/* 🔽 eBay Feedback Carousel — shows 3 at a time, advances by 3 🔽 */
 function EbayFeedbackCarousel() {
   type Feedback = { id: number; text: string; username: string }
 
   const [items, setItems] = useState<Feedback[]>([])
   const [loading, setLoading] = useState(true)
-  const [active, setActive] = useState(0)
+  const [page, setPage] = useState(0) // page = group of 3
   const intervalRef = useRef<number | null>(null)
   const [isHovered, setIsHovered] = useState(false)
 
@@ -239,39 +239,46 @@ function EbayFeedbackCarousel() {
         .from('ebay_feedback')
         .select('id, text, username')
         .order('id', { ascending: false })
-        .limit(12)
+        .limit(24)
       if (!error && data) setItems(data as Feedback[])
       setLoading(false)
     }
     fetchFeedback()
   }, [])
 
+  const pageCount = Math.max(1, Math.ceil(items.length / 3))
+
   // Auto-rotate every 4s (pause on hover)
   useEffect(() => {
-    if (!items.length) return
-    if (isHovered) return
-
+    if (!items.length || isHovered) return
     intervalRef.current = window.setInterval(() => {
-      setActive((prev) => (prev + 1) % items.length)
+      setPage((prev) => (prev + 1) % pageCount)
     }, 4000)
-
     return () => {
       if (intervalRef.current) window.clearInterval(intervalRef.current)
     }
-  }, [items.length, isHovered])
+  }, [items.length, isHovered, pageCount])
 
-  const goTo = (index: number) => {
+  const goToPage = (p: number) => {
     if (!items.length) return
-    setActive((index + items.length) % items.length)
+    const normalized = ((p % pageCount) + pageCount) % pageCount
+    setPage(normalized)
   }
+  const next = () => goToPage(page + 1)
+  const prev = () => goToPage(page - 1)
 
-  const next = () => goTo(active + 1)
-  const prev = () => goTo(active - 1)
+  // Helper: get item at circular index
+  const at = (i: number) => items[i % items.length]
 
   if (loading) {
     return (
-      <div className="mt-6 grid grid-cols-1 gap-4">
-        <div className="rounded-2xl bg-white p-4 border border-black/5 shadow-soft animate-pulse h-[110px]" />
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div
+            key={i}
+            className="rounded-2xl bg-white p-4 border border-black/5 shadow-soft animate-pulse h-[110px]"
+          />
+        ))}
       </div>
     )
   }
@@ -284,24 +291,27 @@ function EbayFeedbackCarousel() {
     )
   }
 
+  // Visible group of up to 3 items, wrapping around
+  const startIndex = page * 3
+  const visible = items.length >= 3
+    ? [at(startIndex), at(startIndex + 1), at(startIndex + 2)]
+    : items // if <3, just show what we have
+
   return (
     <div
       className="mt-6 relative rounded-2xl border border-black/5 p-4 bg-white shadow-soft"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Slides */}
-      <div className="relative h-[120px] sm:h-[140px]">
-        {items.map((f, i) => (
+      {/* Slides (grid of 1/2/3) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {visible.map((f) => (
           <div
-            key={f.id}
-            className={`absolute inset-0 transition-opacity duration-500 ${i === active ? 'opacity-100' : 'opacity-0'}`}
-            aria-hidden={i !== active}
+            key={`${f.id}-${f.username}`}
+            className="h-full w-full rounded-xl border border-black/5 bg-white p-4 flex flex-col justify-center"
           >
-            <div className="h-full w-full rounded-xl border border-black/5 bg-white p-4 flex flex-col justify-center">
-              <div className="text-sm leading-6">“{f.text}”</div>
-              <div className="mt-2 text-xs opacity-60">— {f.username}</div>
-            </div>
+            <div className="text-sm leading-6">“{f.text}”</div>
+            <div className="mt-2 text-xs opacity-60">— {f.username}</div>
           </div>
         ))}
       </div>
@@ -324,14 +334,16 @@ function EbayFeedbackCarousel() {
         ›
       </button>
 
-      {/* Dots */}
+      {/* Dots = pages */}
       <div className="mt-3 flex items-center justify-center gap-2">
-        {items.map((_, i) => (
+        {Array.from({ length: pageCount }).map((_, i) => (
           <button
             key={i}
-            onClick={() => goTo(i)}
-            aria-label={`Go to slide ${i + 1}`}
-            className={`h-2.5 w-2.5 rounded-full border border-black/10 ${i === active ? 'bg-primary' : 'bg-black/10'}`}
+            onClick={() => goToPage(i)}
+            aria-label={`Go to page ${i + 1}`}
+            className={`h-2.5 w-2.5 rounded-full border border-black/10 ${
+              i === page ? 'bg-primary' : 'bg-black/10'
+            }`}
           />
         ))}
       </div>
