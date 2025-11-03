@@ -126,7 +126,7 @@ export default function Home() {
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-header text-2xl">Recently Uploaded</h2>
-        <Link
+          <Link
             to="/marketplace"
             className="text-sm underline opacity-80 hover:opacity-100"
           >
@@ -223,9 +223,9 @@ function EbaySection() {
   )
 }
 
-/* 🔽 eBay Feedback Carousel (auto-rotating, Supabase-backed) 🔽 */
+/* 🔽 eBay Feedback Carousel (auto-rotating, Supabase-backed) — UPDATED for `username` column 🔽 */
 function EbayFeedbackCarousel() {
-  type Feedback = { id: number; text: string; user: string }
+  type Feedback = { id: number; text: string; username: string }
 
   const [items, setItems] = useState<Feedback[]>([])
   const [loading, setLoading] = useState(true)
@@ -237,7 +237,7 @@ function EbayFeedbackCarousel() {
     async function fetchFeedback() {
       const { data, error } = await supabase
         .from('ebay_feedback')
-        .select('id, text, user')
+        .select('id, text, username')
         .order('id', { ascending: false })
         .limit(12)
       if (!error && data) setItems(data as Feedback[])
@@ -300,7 +300,7 @@ function EbayFeedbackCarousel() {
           >
             <div className="h-full w-full rounded-xl border border-black/5 bg-white p-4 flex flex-col justify-center">
               <div className="text-sm leading-6">“{f.text}”</div>
-              <div className="mt-2 text-xs opacity-60">— {f.user}</div>
+              <div className="mt-2 text-xs opacity-60">— {f.username}</div>
             </div>
           </div>
         ))}
