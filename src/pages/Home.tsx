@@ -88,12 +88,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ABOUT US */}
+      {/* ABOUT US (updated) */}
       <section className="rounded-2xl bg-white shadow-soft border border-black/5 p-6 md:p-10">
         <div className="grid md:grid-cols-3 gap-8 items-center">
           {/* Image */}
           <div className="md:col-span-1">
-            {/* <img src="/about-hal.jpg" alt="About Noz Cards" className="rounded-2xl border border-black/10 w-full h-auto object-cover" /> */}
+            {/* <img src="/about-harry.jpg" alt="About Noz Cards" className="rounded-2xl border border-black/10 w-full h-auto object-cover" /> */}
             <div className="aspect-[4/5] rounded-2xl border border-black/10 bg-black/10" />
           </div>
 
@@ -101,18 +101,21 @@ export default function Home() {
           <div className="md:col-span-2">
             <h2 className="font-header text-2xl mb-2">About Noz Cards</h2>
             <p className="opacity-80">
-              Hey! I’m Hal. I fell in love with football cards years ago and started Noz Cards to
-              make buying and selling safer, simpler, and way more fun. My goal is to build a
-              trusted community marketplace that puts collectors first — clean listings, transparent
-              fees, and fast payouts. Whether you’re picking up your first card or hunting grails,
-              you’re in the right place.
+              Hey! I&apos;m Harry, welcome to Noz Cards! I created this marketplace to be the easiest and
+              simplest place to buy cards for your collection. I started my Calvin Bassey (Fulham
+              Centre Back) PC back in January 2025 and have loved getting into the hobby ever since.
+              <br /><br />
+              I created Noz Cards to make buying and selling easier, more convenient and more
+              transparent. My goal is to create a community of card lovers that can rely on us to
+              provide an amazing service, showcase great cards and make collecting easy, reliable and
+              safe for everyone — all based in the UK!
             </p>
             <div className="mt-4">
               <Link
-                to="/marketplace"
+                to="/about"
                 className="inline-block px-4 py-2 rounded-xl bg-primary text-white hover:opacity-90 text-sm"
               >
-                Visit Marketplace
+                More About Us
               </Link>
             </div>
           </div>
