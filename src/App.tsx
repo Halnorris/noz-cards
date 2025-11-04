@@ -10,7 +10,6 @@ export default function App() {
   // Show sidebar only on these sections
   const showSidebar =
     pathname.startsWith('/account') ||
-    pathname.startsWith('/marketplace') ||
     pathname.startsWith('/auctions')
 
   return (
