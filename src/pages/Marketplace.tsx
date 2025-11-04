@@ -7,6 +7,7 @@ type Card = {
   title: string
   price: number | null
   image_url: string | null
+  image_orientation: 'portrait' | 'landscape' | null
   sport: string | null
   league: string | null
   team: string | null
@@ -25,7 +26,16 @@ type Filters = {
   sort: 'newest' | 'oldest' | 'price_asc' | 'price_desc'
 }
 
-const PAGE_SIZE = 24
+const PAGE_SIZE = 48
+
+// Normalize strings for deduping option lists
+function norm(s: string) {
+  return s.trim().toLowerCase().replace(/\s+/g, ' ')
+}
+// Nice display (optional): Title Case-ish
+function pretty(s: string) {
+  return s.replace(/\b\w/g, (c) => c.toUpperCase())
+}
 
 export default function Marketplace() {
   // Distinct option lists
@@ -46,29 +56,55 @@ export default function Marketplace() {
     sort: 'newest',
   })
 
-  // Data / pagination
+  // Data / pagination / counts
   const [cards, setCards] = useState<Card[]>([])
-  const [total, setTotal] = useState(0)
+  const [total, setTotal] = useState(0)          // filtered total (for pagination)
+  const [liveTotal, setLiveTotal] = useState(0)  // global live total (header)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
 
-  // Load distinct values for filters (from live cards only)
+  // Load distinct values for filters (from live cards only) — de-duplicated client-side
   useEffect(() => {
     async function loadFilterOptions() {
-      // Distinct works in supabase-js v2 with { distinct: true }
       const [sp, lg, tm, st] = await Promise.all([
-        supabase.from('cards').select('sport', { distinct: true }).eq('status', 'live').order('sport'),
-        supabase.from('cards').select('league', { distinct: true }).eq('status', 'live').order('league'),
-        supabase.from('cards').select('team', { distinct: true }).eq('status', 'live').order('team'),
-        supabase.from('cards').select('set', { distinct: true }).eq('status', 'live').order('set'),
+        supabase.from('cards').select('sport', { distinct: true }).eq('status', 'live'),
+        supabase.from('cards').select('league', { distinct: true }).eq('status', 'live'),
+        supabase.from('cards').select('team', { distinct: true }).eq('status', 'live'),
+        supabase.from('cards').select('set', { distinct: true }).eq('status', 'live'),
       ])
 
-      setSports((sp.data ?? []).map((r: any) => r.sport).filter(Boolean))
-      setLeagues((lg.data ?? []).map((r: any) => r.league).filter(Boolean))
-      setTeams((tm.data ?? []).map((r: any) => r.team).filter(Boolean))
-      setSets((st.data ?? []).map((r: any) => r.set).filter(Boolean))
+      const dedupe = (rows: any[], key: string) => {
+        const seen = new Set<string>()
+        const out: string[] = []
+        for (const r of rows ?? []) {
+          const raw = (r?.[key] ?? '').toString().trim()
+          if (!raw) continue
+          const k = norm(raw)
+          if (seen.has(k)) continue
+          seen.add(k)
+          out.push(pretty(raw))
+        }
+        return out.sort((a, b) => a.localeCompare(b))
+      }
+
+      setSports(dedupe(sp.data as any[], 'sport'))
+      setLeagues(dedupe(lg.data as any[], 'league'))
+      setTeams(dedupe(tm.data as any[], 'team'))
+      setSets(dedupe(st.data as any[], 'set'))
     }
     loadFilterOptions()
+  }, [])
+
+  // Load global live total (independent of filters)
+  useEffect(() => {
+    async function loadLiveTotal() {
+      const { count } = await supabase
+        .from('cards')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'live')
+      setLiveTotal(count ?? 0)
+    }
+    loadLiveTotal()
   }, [])
 
   // Build query whenever filters/page change
@@ -77,13 +113,13 @@ export default function Marketplace() {
       setLoading(true)
       let query = supabase
         .from('cards')
-        .select('id,title,price,image_url,sport,league,team,set,created_at', { count: 'exact' })
+        .select('id,title,price,image_url,image_orientation,sport,league,team,set,created_at', { count: 'exact' })
         .eq('status', 'live')
 
-      if (filters.sport) query = query.eq('sport', filters.sport)
-      if (filters.league) query = query.eq('league', filters.league)
-      if (filters.team) query = query.eq('team', filters.team)
-      if (filters.set) query = query.eq('set', filters.set)
+      if (filters.sport) query = query.ilike('sport', filters.sport)   // ilike to be forgiving vs pretty()
+      if (filters.league) query = query.ilike('league', filters.league)
+      if (filters.team) query = query.ilike('team', filters.team)
+      if (filters.set) query = query.ilike('set', filters.set)
       if (filters.minPrice) query = query.gte('price', Number(filters.minPrice))
       if (filters.maxPrice) query = query.lte('price', Number(filters.maxPrice))
       if (filters.search) query = query.ilike('title', `%${filters.search}%`)
@@ -112,7 +148,16 @@ export default function Marketplace() {
   // Reset pagination when filters change (except page)
   useEffect(() => {
     setPage(1)
-  }, [filters.sport, filters.league, filters.team, filters.set, filters.minPrice, filters.maxPrice, filters.search, filters.sort])
+  }, [
+    filters.sport,
+    filters.league,
+    filters.team,
+    filters.set,
+    filters.minPrice,
+    filters.maxPrice,
+    filters.search,
+    filters.sort,
+  ])
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / PAGE_SIZE)), [total])
 
@@ -135,7 +180,7 @@ export default function Marketplace() {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-6">
-      {/* Sidebar Filters */}
+      {/* Sidebar Filters (marketplace-only sidebar; NOT the global Account sidebar) */}
       <aside className="rounded-2xl bg-white p-4 border border-black/5 shadow-soft h-fit sticky top-20">
         <h2 className="font-header text-lg mb-3">Filters</h2>
 
@@ -264,11 +309,10 @@ export default function Marketplace() {
 
       {/* Main content */}
       <section className="space-y-4">
-        {/* Header bar with count + pagination */}
+        {/* Header bar with global live total + pagination */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div className="text-sm opacity-70">
-            Showing <span className="font-medium">{cards.length}</span> of{' '}
-            <span className="font-medium">{total}</span> live cards
+            <span className="font-medium">{liveTotal}</span> cards live
           </div>
 
           {/* Pagination controls */}
@@ -281,11 +325,11 @@ export default function Marketplace() {
               Prev
             </button>
             <span className="text-sm opacity-70">
-              Page <span className="font-medium">{page}</span> / {totalPages}
+              Page <span className="font-medium">{page}</span> / {Math.max(1, Math.ceil(total / PAGE_SIZE))}
             </span>
             <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(Math.max(1, Math.ceil(total / PAGE_SIZE)), p + 1))}
+              disabled={page >= Math.max(1, Math.ceil(total / PAGE_SIZE))}
               className="px-3 py-1 rounded-xl border border-black/10 hover:bg-black/5 text-sm disabled:opacity-50"
             >
               Next
@@ -308,37 +352,40 @@ export default function Marketplace() {
           <div className="opacity-70 text-sm">No matching cards. Try clearing a filter.</div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {cards.map((card) => (
-              <Link
-                key={card.id}
-                to={`/card/${card.id}`}
-                className="group rounded-2xl bg-white p-3 shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition block"
-              >
-                <div className="aspect-[3/4] rounded-xl bg-black/5 mb-2 border border-black/10 overflow-hidden">
-                  {card.image_url ? (
-                    <img
-                      src={card.image_url}
-                      alt={card.title}
-                      className="object-cover w-full h-full"
-                    />
-                  ) : null}
-                </div>
-                <h3 className="text-sm font-medium truncate">
-                  {card.title ?? 'Untitled card'}
-                </h3>
-                {card.price != null && (
-                  <p className="text-sm opacity-70">£{card.price}</p>
-                )}
-                {/* Tiny meta row (sport • league) */}
-                <p className="mt-1 text-[11px] opacity-60 truncate">
-                  {[card.sport, card.league].filter(Boolean).join(' • ')}
-                </p>
-              </Link>
-            ))}
+            {cards.map((card) => {
+              const aspect =
+                card.image_orientation === 'landscape' ? 'aspect-[4/3]' : 'aspect-[3/4]'
+              return (
+                <Link
+                  key={card.id}
+                  to={`/card/${card.id}`}
+                  className="group rounded-2xl bg-white p-3 shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition block"
+                >
+                  <div className={`${aspect} rounded-xl bg-black/5 mb-2 border border-black/10 overflow-hidden`}>
+                    {card.image_url ? (
+                      <img
+                        src={card.image_url}
+                        alt={card.title}
+                        className="object-cover w-full h-full"
+                      />
+                    ) : null}
+                  </div>
+                  <h3 className="text-sm font-medium truncate">
+                    {card.title ?? 'Untitled card'}
+                  </h3>
+                  {card.price != null && (
+                    <p className="text-sm opacity-70">£{card.price}</p>
+                  )}
+                  {/* Tiny meta row (sport • league) */}
+                  <p className="mt-1 text-[11px] opacity-60 truncate">
+                    {[card.sport, card.league].filter(Boolean).join(' • ')}
+                  </p>
+                </Link>
+              )
+            })}
           </div>
         )}
       </section>
     </div>
   )
 }
-
