@@ -26,7 +26,7 @@ type Filters = {
   sort: 'newest' | 'oldest' | 'price_asc' | 'price_desc'
 }
 
-const PAGE_SIZE = 48
+const PAGE_SIZE = 96
 
 // Normalizer (for client-side de-dupe only)
 function normKey(s: string) {
