@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 
 type Card = {
@@ -28,42 +28,63 @@ type Filters = {
 
 const PAGE_SIZE = 48
 
-// Normalize strings for deduping option lists
-function norm(s: string) {
+// Normalizer (for client-side de-dupe only)
+function normKey(s: string) {
   return s.trim().toLowerCase().replace(/\s+/g, ' ')
 }
-// Nice display (optional): Title Case-ish
+
+// Pretty label (display only)
 function pretty(s: string) {
   return s.replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 export default function Marketplace() {
-  // Distinct option lists
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // Distinct option lists (store as raw strings that exist in DB)
   const [sports, setSports] = useState<string[]>([])
   const [leagues, setLeagues] = useState<string[]>([])
   const [teams, setTeams] = useState<string[]>([])
   const [sets, setSets] = useState<string[]>([])
 
-  // Filters / UI
-  const [filters, setFilters] = useState<Filters>({
-    sport: '',
-    league: '',
-    team: '',
-    set: '',
-    minPrice: '',
-    maxPrice: '',
-    search: '',
-    sort: 'newest',
-  })
+  // Filters / UI (initialize from URL)
+  const [filters, setFilters] = useState<Filters>(() => ({
+    sport: searchParams.get('sport') ?? '',
+    league: searchParams.get('league') ?? '',
+    team: searchParams.get('team') ?? '',
+    set: searchParams.get('set') ?? '',
+    minPrice: searchParams.get('min') ?? '',
+    maxPrice: searchParams.get('max') ?? '',
+    search: searchParams.get('q') ?? '',
+    sort: (searchParams.get('sort') as Filters['sort']) ?? 'newest',
+  }))
 
   // Data / pagination / counts
   const [cards, setCards] = useState<Card[]>([])
   const [total, setTotal] = useState(0)          // filtered total (for pagination)
   const [liveTotal, setLiveTotal] = useState(0)  // global live total (header)
-  const [page, setPage] = useState(1)
+  const [page, setPage] = useState<number>(() => {
+    const p = Number(searchParams.get('page') ?? '1')
+    return Number.isFinite(p) && p >= 1 ? p : 1
+  })
   const [loading, setLoading] = useState(true)
 
-  // Load distinct values for filters (from live cards only) — de-duplicated client-side
+  // Keep URL in sync whenever filters/page change
+  useEffect(() => {
+    const params: Record<string, string> = {}
+    if (filters.sport) params.sport = filters.sport
+    if (filters.league) params.league = filters.league
+    if (filters.team) params.team = filters.team
+    if (filters.set) params.set = filters.set
+    if (filters.minPrice) params.min = filters.minPrice
+    if (filters.maxPrice) params.max = filters.maxPrice
+    if (filters.search) params.q = filters.search
+    if (filters.sort && filters.sort !== 'newest') params.sort = filters.sort
+    if (page !== 1) params.page = String(page)
+    setSearchParams(params, { replace: true })
+  }, [filters, page, setSearchParams])
+
+  // Load distinct values for filters (live cards only) — dedupe client-side; keep a raw value
   useEffect(() => {
     async function loadFilterOptions() {
       const [sp, lg, tm, st] = await Promise.all([
@@ -74,17 +95,15 @@ export default function Marketplace() {
       ])
 
       const dedupe = (rows: any[], key: string) => {
-        const seen = new Set<string>()
-        const out: string[] = []
+        const seen = new Map<string, string>() // normKey -> raw
         for (const r of rows ?? []) {
-          const raw = (r?.[key] ?? '').toString().trim()
-          if (!raw) continue
-          const k = norm(raw)
-          if (seen.has(k)) continue
-          seen.add(k)
-          out.push(pretty(raw))
+          const raw = (r?.[key] ?? '').toString()
+          const trimmed = raw.trim()
+          if (!trimmed) continue
+          const k = normKey(trimmed)
+          if (!seen.has(k)) seen.set(k, trimmed) // preserve the first raw we see
         }
-        return out.sort((a, b) => a.localeCompare(b))
+        return Array.from(seen.values()).sort((a, b) => a.localeCompare(b))
       }
 
       setSports(dedupe(sp.data as any[], 'sport'))
@@ -113,13 +132,17 @@ export default function Marketplace() {
       setLoading(true)
       let query = supabase
         .from('cards')
-        .select('id,title,price,image_url,image_orientation,sport,league,team,set,created_at', { count: 'exact' })
+        .select(
+          'id,title,price,image_url,image_orientation,sport,league,team,set,created_at',
+          { count: 'exact' }
+        )
         .eq('status', 'live')
 
-      if (filters.sport) query = query.ilike('sport', filters.sport)   // ilike to be forgiving vs pretty()
-      if (filters.league) query = query.ilike('league', filters.league)
-      if (filters.team) query = query.ilike('team', filters.team)
-      if (filters.set) query = query.ilike('set', filters.set)
+      // ✅ Exact-match filters using raw DB values (Option A)
+      if (filters.sport) query = query.eq('sport', filters.sport)
+      if (filters.league) query = query.eq('league', filters.league)
+      if (filters.team) query = query.eq('team', filters.team)
+      if (filters.set) query = query.eq('set', filters.set)
       if (filters.minPrice) query = query.gte('price', Number(filters.minPrice))
       if (filters.maxPrice) query = query.lte('price', Number(filters.maxPrice))
       if (filters.search) query = query.ilike('title', `%${filters.search}%`)
@@ -178,9 +201,31 @@ export default function Marketplace() {
     })
   }
 
+  const Pager = () => (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => setPage((p) => Math.max(1, p - 1))}
+        disabled={page <= 1}
+        className="px-3 py-1 rounded-xl border border-black/10 hover:bg-black/5 text-sm disabled:opacity-50"
+      >
+        Prev
+      </button>
+      <span className="text-sm opacity-70">
+        Page <span className="font-medium">{page}</span> / {totalPages}
+      </span>
+      <button
+        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+        disabled={page >= totalPages}
+        className="px-3 py-1 rounded-xl border border-black/10 hover:bg-black/5 text-sm disabled:opacity-50"
+      >
+        Next
+      </button>
+    </div>
+  )
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-6">
-      {/* Sidebar Filters (marketplace-only sidebar; NOT the global Account sidebar) */}
+      {/* Sidebar Filters (marketplace-only sidebar) */}
       <aside className="rounded-2xl bg-white p-4 border border-black/5 shadow-soft h-fit sticky top-20">
         <h2 className="font-header text-lg mb-3">Filters</h2>
 
@@ -205,7 +250,7 @@ export default function Marketplace() {
           >
             <option value="">All</option>
             {sports.map((s) => (
-              <option key={s} value={s}>{s}</option>
+              <option key={s} value={s}>{pretty(s)}</option>
             ))}
           </select>
         </label>
@@ -220,7 +265,7 @@ export default function Marketplace() {
           >
             <option value="">All</option>
             {leagues.map((l) => (
-              <option key={l} value={l}>{l}</option>
+              <option key={l} value={l}>{pretty(l)}</option>
             ))}
           </select>
         </label>
@@ -309,32 +354,12 @@ export default function Marketplace() {
 
       {/* Main content */}
       <section className="space-y-4">
-        {/* Header bar with global live total + pagination */}
+        {/* Header: global live total + top pager */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div className="text-sm opacity-70">
             <span className="font-medium">{liveTotal}</span> cards live
           </div>
-
-          {/* Pagination controls */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              className="px-3 py-1 rounded-xl border border-black/10 hover:bg-black/5 text-sm disabled:opacity-50"
-            >
-              Prev
-            </button>
-            <span className="text-sm opacity-70">
-              Page <span className="font-medium">{page}</span> / {Math.max(1, Math.ceil(total / PAGE_SIZE))}
-            </span>
-            <button
-              onClick={() => setPage((p) => Math.min(Math.max(1, Math.ceil(total / PAGE_SIZE)), p + 1))}
-              disabled={page >= Math.max(1, Math.ceil(total / PAGE_SIZE))}
-              className="px-3 py-1 rounded-xl border border-black/10 hover:bg-black/5 text-sm disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
+          <Pager />
         </div>
 
         {/* Grid */}
@@ -351,39 +376,45 @@ export default function Marketplace() {
         ) : cards.length === 0 ? (
           <div className="opacity-70 text-sm">No matching cards. Try clearing a filter.</div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {cards.map((card) => {
-              const aspect =
-                card.image_orientation === 'landscape' ? 'aspect-[4/3]' : 'aspect-[3/4]'
-              return (
-                <Link
-                  key={card.id}
-                  to={`/card/${card.id}`}
-                  className="group rounded-2xl bg-white p-3 shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition block"
-                >
-                  <div className={`${aspect} rounded-xl bg-black/5 mb-2 border border-black/10 overflow-hidden`}>
-                    {card.image_url ? (
-                      <img
-                        src={card.image_url}
-                        alt={card.title}
-                        className="object-cover w-full h-full"
-                      />
-                    ) : null}
-                  </div>
-                  <h3 className="text-sm font-medium truncate">
-                    {card.title ?? 'Untitled card'}
-                  </h3>
-                  {card.price != null && (
-                    <p className="text-sm opacity-70">£{card.price}</p>
-                  )}
-                  {/* Tiny meta row (sport • league) */}
-                  <p className="mt-1 text-[11px] opacity-60 truncate">
-                    {[card.sport, card.league].filter(Boolean).join(' • ')}
-                  </p>
-                </Link>
-              )
-            })}
-          </div>
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {cards.map((card) => {
+                const aspect =
+                  card.image_orientation === 'landscape' ? 'aspect-[4/3]' : 'aspect-[3/4]'
+                return (
+                  <Link
+                    key={card.id}
+                    to={`/card/${card.id}`}
+                    className="group rounded-2xl bg-white p-3 shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition block"
+                  >
+                    <div className={`${aspect} rounded-xl bg-black/5 mb-2 border border-black/10 overflow-hidden`}>
+                      {card.image_url ? (
+                        <img
+                          src={card.image_url}
+                          alt={card.title}
+                          className="object-cover w-full h-full"
+                        />
+                      ) : null}
+                    </div>
+                    <h3 className="text-sm font-medium truncate">
+                      {card.title ?? 'Untitled card'}
+                    </h3>
+                    {card.price != null && (
+                      <p className="text-sm opacity-70">£{card.price}</p>
+                    )}
+                    <p className="mt-1 text-[11px] opacity-60 truncate">
+                      {[card.sport, card.league].filter(Boolean).join(' • ')}
+                    </p>
+                  </Link>
+                )
+              })}
+            </div>
+
+            {/* Bottom pager */}
+            <div className="flex items-center justify-end">
+              <Pager />
+            </div>
+          </>
         )}
       </section>
     </div>
