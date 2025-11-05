@@ -135,6 +135,29 @@ export default function CardPage() {
     // TODO: persist to Supabase when auth is in
   }
 
+  async function handleCopyTitle() {
+    if (!card?.title) return
+    try {
+      await navigator.clipboard.writeText(card.title)
+      // Optional: toast
+    } catch {}
+  }
+
+  async function handleShare() {
+    try {
+      const shareData = {
+        title: card?.title ?? 'Noz Cards',
+        text: card?.title ?? 'Noz Cards',
+        url: window.location.href,
+      }
+      if (navigator.share) {
+        await navigator.share(shareData)
+      } else {
+        await navigator.clipboard.writeText(window.location.href)
+      }
+    } catch {}
+  }
+
   // Back to where I was
   function handleBack() {
     if (window.history.length > 1) navigate(-1)
@@ -179,8 +202,16 @@ export default function CardPage() {
       </Link>
     ) : null
 
+  // Derived "specs" (only show if present)
+  const specs: Array<{ k: string; v: string | null | undefined }> = [
+    { k: 'Sport', v: card.sport },
+    { k: 'League', v: card.league },
+    { k: 'Team', v: card.team },
+    { k: 'Set', v: card.set },
+  ]
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20 md:pb-0">{/* pb for sticky mobile bar */}
       {/* Breadcrumbs + Back */}
       <div className="flex items-center justify-between gap-3">
         <nav className="text-sm opacity-70 truncate">
@@ -300,7 +331,26 @@ export default function CardPage() {
 
         {/* INFO COLUMN (sticky) */}
         <div className="space-y-4 md:sticky md:top-20">
-          <h1 className="font-header text-2xl">{card.title ?? 'Untitled card'}</h1>
+          {/* Title + quick actions */}
+          <div className="flex items-start justify-between gap-3">
+            <h1 className="font-header text-2xl pr-2">{card.title ?? 'Untitled card'}</h1>
+            <div className="shrink-0 flex items-center gap-1">
+              <button
+                onClick={handleCopyTitle}
+                title="Copy title"
+                className="px-2 py-1 rounded-lg border border-black/10 hover:bg-black/5 text-xs"
+              >
+                Copy
+              </button>
+              <button
+                onClick={handleShare}
+                title="Share"
+                className="px-2 py-1 rounded-lg border border-black/10 hover:bg-black/5 text-xs"
+              >
+                Share
+              </button>
+            </div>
+          </div>
 
           {/* Price + actions */}
           <div className="rounded-2xl bg-white p-4 border border-black/5 shadow-soft space-y-3">
@@ -331,9 +381,7 @@ export default function CardPage() {
                 onClick={handleToggleWishlist}
                 aria-label={wishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
                 title={wishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
-                className={`p-3 rounded-xl border ${
-                  wishlisted ? 'border-red-300 bg-red-50' : 'border-black/10 hover:bg-black/5'
-                }`}
+                className={`p-3 rounded-xl border ${wishlisted ? 'border-red-300 bg-red-50' : 'border-black/10 hover:bg-black/5'}`}
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -344,9 +392,29 @@ export default function CardPage() {
                 </svg>
               </button>
             </div>
+
+            {/* Trust strip */}
+            <div className="pt-2 grid grid-cols-2 gap-2 text-[11px] opacity-80">
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-2 h-2 rounded-full bg-primary" />
+                UK-based
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-2 h-2 rounded-full bg-primary" />
+                Tracked shipping
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-2 h-2 rounded-full bg-primary" />
+                Stripe checkout
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-2 h-2 rounded-full bg-primary" />
+                Secure payouts
+              </div>
+            </div>
           </div>
 
-          {/* Spec chips */}
+          {/* Spec chips (quick filter links) */}
           <div className="rounded-2xl bg-white p-4 border border-black/5 shadow-soft space-y-2">
             <div className="text-sm font-header">Details</div>
             <div className="flex flex-wrap gap-2">
@@ -355,6 +423,68 @@ export default function CardPage() {
               {chip('Team', 'team', card.team ?? undefined)}
               {chip('Set', 'set', card.set ?? undefined)}
             </div>
+          </div>
+
+          {/* Specs grid (auto-hide empties) */}
+          <div className="rounded-2xl bg-white p-4 border border-black/5 shadow-soft">
+            <div className="text-sm font-header mb-2">Card Specs</div>
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              {specs.filter(s => s.v && String(s.v).trim()).map(({ k, v }) => (
+                <div key={k} className="flex items-center justify-between gap-3">
+                  <dt className="opacity-60">{k}</dt>
+                  <dd className="text-right">{v}</dd>
+                </div>
+              ))}
+              {specs.every(s => !s.v) && (
+                <div className="opacity-60 text-sm">No additional specs.</div>
+              )}
+            </dl>
+          </div>
+
+          {/* Shipping & Returns accordion */}
+          <div className="rounded-2xl bg-white p-2 border border-black/5 shadow-soft">
+            <details className="group p-2 rounded-xl">
+              <summary className="cursor-pointer list-none font-header text-sm flex items-center justify-between">
+                Shipping
+                <span className="opacity-60 group-open:rotate-180 transition">⌃</span>
+              </summary>
+              <div className="mt-2 text-sm opacity-80">
+                Orders are shipped from the UK with tracking. Packaging is card-safe and secure.
+                Dispatch typically within 2–3 business days.
+              </div>
+            </details>
+            <hr className="border-black/5 my-2" />
+            <details className="group p-2 rounded-xl">
+              <summary className="cursor-pointer list-none font-header text-sm flex items-center justify-between">
+                Returns & Refunds
+                <span className="opacity-60 group-open:rotate-180 transition">⌃</span>
+              </summary>
+              <div className="mt-2 text-sm opacity-80">
+                For details, see our{' '}
+                <Link to="/returns" className="underline">Returns & Refunds Policy</Link>.
+              </div>
+            </details>
+            <hr className="border-black/5 my-2" />
+            <details className="group p-2 rounded-xl">
+              <summary className="cursor-pointer list-none font-header text-sm flex items-center justify-between">
+                Consignment
+                <span className="opacity-60 group-open:rotate-180 transition">⌃</span>
+              </summary>
+              <div className="mt-2 text-sm opacity-80">
+                These listings may be on consignment. Learn more in our{' '}
+                <Link to="/consignment-policy" className="underline">Consignment Policy</Link>.
+              </div>
+            </details>
+            <hr className="border-black/5 my-2" />
+            <details className="group p-2 rounded-xl">
+              <summary className="cursor-pointer list-none font-header text-sm flex items-center justify-between">
+                Authenticity
+                <span className="opacity-60 group-open:rotate-180 transition">⌃</span>
+              </summary>
+              <div className="mt-2 text-sm opacity-80">
+                Cards are visually inspected and scanned. If something looks off, contact us and we’ll make it right.
+              </div>
+            </details>
           </div>
         </div>
       </div>
@@ -455,6 +585,29 @@ export default function CardPage() {
           title={card.title ?? 'Card'}
         />
       )}
+
+      {/* Sticky mobile purchase bar */}
+      <div className="fixed md:hidden bottom-3 left-0 right-0 px-3">
+        <div className="mx-auto max-w-3xl rounded-2xl bg-white/95 backdrop-blur border border-black/10 shadow-soft p-3 flex items-center justify-between gap-3">
+          <div className="text-base font-header">
+            {card.price != null ? `£${card.price}` : '—'}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleAddToBasket}
+              className="px-3 py-2 rounded-xl border border-black/10 hover:bg-black/5 text-sm"
+            >
+              Add to Basket
+            </button>
+            <button
+              onClick={handleBuyNow}
+              className="px-4 py-2 rounded-xl bg-primary text-white text-sm"
+            >
+              Buy Now
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -493,8 +646,6 @@ function Lightbox({
     const el = containerRef.current
     if (!el) return { x: nextTx, y: nextTy }
     const rect = el.getBoundingClientRect()
-    // Assume image fits exactly inside container at scale=1 (object-contain)
-    // Allow panning roughly within extra scaled area
     const maxX = (rect.width * (scale - 1)) / 2
     const maxY = (rect.height * (scale - 1)) / 2
     return {
@@ -509,15 +660,13 @@ function Lightbox({
     if (!el) return
 
     const delta = -e.deltaY
-    const zoomFactor = 1 + delta * 0.0015 // gentle zoom
+    const zoomFactor = 1 + delta * 0.0015
     const newScale = Math.min(6, Math.max(1, scale * zoomFactor))
 
-    // Zoom around cursor: adjust translate so the point under cursor stays put
     const rect = el.getBoundingClientRect()
     const cx = e.clientX - rect.left - rect.width / 2
     const cy = e.clientY - rect.top - rect.height / 2
 
-    // formula: newT = oldT - p * (newScale - oldScale) / newScale
     const k = (newScale - scale) / newScale
     let nextTx = tx - cx * k
     let nextTy = ty - cy * k
@@ -550,7 +699,6 @@ function Lightbox({
   function onDoubleClick(e: React.MouseEvent) {
     e.preventDefault()
     if (scale === 1) {
-      // Zoom in at click
       const el = containerRef.current
       if (!el) return
       const rect = el.getBoundingClientRect()
@@ -565,7 +713,6 @@ function Lightbox({
       setTx(clamped.x)
       setTy(clamped.y)
     } else {
-      // Reset
       setScale(1)
       setTx(0)
       setTy(0)
@@ -575,14 +722,11 @@ function Lightbox({
   function zoomStep(dir: 1 | -1) {
     const el = containerRef.current
     if (!el) return
-    const rect = el.getBoundingClientRect()
     // zoom around center
-    const cx = 0
-    const cy = 0
     const newScale = Math.min(6, Math.max(1, scale * (dir === 1 ? 1.25 : 0.8)))
     const k = (newScale - scale) / newScale
-    let nextTx = tx - cx * k
-    let nextTy = ty - cy * k
+    let nextTx = tx - 0 * k
+    let nextTy = ty - 0 * k
     const clamped = clampTranslate(nextTx, nextTy)
     setScale(newScale)
     setTx(clamped.x)
