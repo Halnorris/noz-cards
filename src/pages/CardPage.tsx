@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useBasket } from '@/context/basket'
 
@@ -38,16 +38,16 @@ export default function CardPage() {
   const [error, setError] = useState<string | null>(null)
   const [wishlisted, setWishlisted] = useState(false)
 
-  // Gallery state
-  const [activeIndex, setActiveIndex] = useState(0) // 0 = first image
+  // Gallery
+  const [activeIndex, setActiveIndex] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
 
-  // Related cards
+  // Related
   const [related, setRelated] = useState<SimpleCard[]>([])
   const [relatedLoading, setRelatedLoading] = useState(true)
+  const relatedRef = useRef<HTMLDivElement | null>(null)
 
   const navigate = useNavigate()
-  const location = useLocation()
 
   // Fetch primary card
   useEffect(() => {
@@ -100,13 +100,10 @@ export default function CardPage() {
         .select('id,title,price,image_url,image_orientation,sport,league,team,set')
         .eq('status', 'live')
         .neq('id', card.id)
-        .limit(12)
+        .limit(24)
 
-      if (card.team) {
-        query = query.eq('team', card.team)
-      } else if (card.league) {
-        query = query.eq('league', card.league)
-      }
+      if (card.team) query = query.eq('team', card.team)
+      else if (card.league) query = query.eq('league', card.league)
 
       const { data, error } = await query
       if (!error && data) setRelated(data as SimpleCard[])
@@ -138,9 +135,8 @@ export default function CardPage() {
     // TODO: persist to Supabase when auth is in
   }
 
-  // Preserve “back to where I was” (returns to previous page with filters)
+  // Back to where I was
   function handleBack() {
-    // If history has somewhere to go back, do that; else send to marketplace
     if (window.history.length > 1) navigate(-1)
     else navigate('/marketplace')
   }
@@ -207,7 +203,7 @@ export default function CardPage() {
         <div className="rounded-2xl bg-white p-3 shadow-soft border border-black/5">
           <div className="flex gap-3">
             {/* Thumbs (vertical on sm+) */}
-            <div className="hidden sm:flex flex-col gap-2 w-16">
+            <div className="hidden sm:flex flex-col gap-2 w-14">
               {images.map((img, idx) => (
                 <button
                   key={img.src}
@@ -230,10 +226,10 @@ export default function CardPage() {
               ))}
             </div>
 
-            {/* Main image with lightbox trigger */}
+            {/* Main image with lightbox trigger — capped height */}
             <div className="relative flex-1">
               <div
-                className={`${orientation} mx-auto rounded-xl bg-black/5 overflow-hidden cursor-zoom-in`}
+                className={`${orientation} mx-auto max-h-[56vh] rounded-xl bg-black/5 overflow-hidden cursor-zoom-in`}
                 onClick={() => main && setLightboxOpen(true)}
                 aria-label="Open full image"
                 role="button"
@@ -279,7 +275,7 @@ export default function CardPage() {
             </div>
           </div>
 
-          {/* Gallery controls */}
+          {/* Flip / Zoom buttons */}
           <div className="mt-3 flex items-center gap-2">
             {images.length > 1 && (
               <button
@@ -348,9 +344,6 @@ export default function CardPage() {
                 </svg>
               </button>
             </div>
-            <div className="text-xs opacity-70">
-              Instant checkout. Buyer pays +10% at checkout. Seller payout via Stripe (15% fee).
-            </div>
           </div>
 
           {/* Spec chips */}
@@ -366,9 +359,38 @@ export default function CardPage() {
         </div>
       </div>
 
-      {/* RELATED CARDS */}
+      {/* RELATED CARDS — carousel */}
       <section className="space-y-2">
-        <h2 className="font-header text-lg">Related cards</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="font-header text-lg">Related cards</h2>
+          {!relatedLoading && related.length > 0 && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  const el = relatedRef.current
+                  if (!el) return
+                  el.scrollBy({ left: -el.clientWidth, behavior: 'smooth' })
+                }}
+                className="px-3 py-1 rounded-xl border border-black/10 hover:bg-black/5 text-sm"
+                aria-label="Previous"
+              >
+                ‹
+              </button>
+              <button
+                onClick={() => {
+                  const el = relatedRef.current
+                  if (!el) return
+                  el.scrollBy({ left: el.clientWidth, behavior: 'smooth' })
+                }}
+                className="px-3 py-1 rounded-xl border border-black/10 hover:bg-black/5 text-sm"
+                aria-label="Next"
+              >
+                ›
+              </button>
+            </div>
+          )}
+        </div>
+
         {relatedLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {Array.from({ length: 12 }).map((_, i) => (
@@ -382,91 +404,277 @@ export default function CardPage() {
         ) : related.length === 0 ? (
           <div className="opacity-60 text-sm">No related cards yet.</div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {related.map((rc) => {
-              const aspect =
-                rc.image_orientation === 'landscape' ? 'aspect-[4/3]' : 'aspect-[3/4]'
-              return (
-                <Link
-                  key={rc.id}
-                  to={`/card/${rc.id}`}
-                  className="group rounded-2xl bg-white p-3 shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition block"
-                >
-                  <div className={`${aspect} rounded-xl bg-black/5 mb-2 border border-black/10 overflow-hidden`}>
-                    {rc.image_url ? (
-                      <img
-                        src={rc.image_url}
-                        alt={rc.title ?? 'Card'}
-                        className="object-cover w-full h-full"
-                      />
-                    ) : null}
-                  </div>
-                  <h3 className="text-[13px] leading-tight line-clamp-2 min-h-[2.2em]">
-                    {rc.title ?? 'Untitled card'}
-                  </h3>
-                  {rc.price != null && (
-                    <p className="text-sm opacity-70">£{rc.price}</p>
-                  )}
-                  <p className="mt-1 text-[11px] opacity-60 truncate">
-                    {[rc.sport, rc.league].filter(Boolean).join(' • ')}
-                  </p>
-                </Link>
-              )
-            })}
+          <div
+            ref={relatedRef}
+            className="overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory"
+          >
+            <div className="flex gap-4">
+              {related.map((rc) => {
+                const aspect =
+                  rc.image_orientation === 'landscape' ? 'aspect-[4/3]' : 'aspect-[3/4]'
+                return (
+                  <Link
+                    key={rc.id}
+                    to={`/card/${rc.id}`}
+                    className="snap-start shrink-0 basis-1/2 sm:basis-1/3 lg:basis-1/6 rounded-2xl bg-white p-3 shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition block"
+                  >
+                    <div className={`${aspect} rounded-xl bg-black/5 mb-2 border border-black/10 overflow-hidden`}>
+                      {rc.image_url ? (
+                        <img
+                          src={rc.image_url}
+                          alt={rc.title ?? 'Card'}
+                          className="object-cover w-full h-full"
+                        />
+                      ) : null}
+                    </div>
+                    <h3 className="text-[13px] leading-tight line-clamp-2 min-h-[2.2em]">
+                      {rc.title ?? 'Untitled card'}
+                    </h3>
+                    {rc.price != null && (
+                      <p className="text-sm opacity-70">£{rc.price}</p>
+                    )}
+                    <p className="mt-1 text-[11px] opacity-60 truncate">
+                      {[rc.sport, rc.league].filter(Boolean).join(' • ')}
+                    </p>
+                  </Link>
+                )
+              })}
+            </div>
           </div>
         )}
       </section>
 
-      {/* LIGHTBOX */}
+      {/* LIGHTBOX with PAN + ZOOM */}
       {lightboxOpen && main && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setLightboxOpen(false)}
-        >
-          <div
-            className="relative max-w-5xl w-full"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              className="absolute -top-10 right-0 text-white/80 hover:text-white text-sm underline"
-              onClick={() => setLightboxOpen(false)}
-            >
-              Close
-            </button>
-            <div className="relative w-full">
-              <img
-                src={images[activeIndex]!.src}
-                alt={`${card.title ?? 'Card'} (zoom)`}
-                className="w-full h-auto rounded-xl shadow-2xl"
-              />
-              {images.length > 1 && (
-                <>
-                  <button
-                    className="absolute left-0 top-1/2 -translate-y-1/2 p-3 text-white/90 hover:text-white"
-                    onClick={() =>
-                      setActiveIndex((i) => (i - 1 + images.length) % images.length)
-                    }
-                    aria-label="Previous image"
-                  >
-                    ‹
-                  </button>
-                  <button
-                    className="absolute right-0 top-1/2 -translate-y-1/2 p-3 text-white/90 hover:text-white"
-                    onClick={() =>
-                      setActiveIndex((i) => (i + 1) % images.length)
-                    }
-                    aria-label="Next image"
-                  >
-                    ›
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+        <Lightbox
+          src={images[activeIndex]!.src}
+          onClose={() => setLightboxOpen(false)}
+          onPrev={() => setActiveIndex((i) => (i - 1 + images.length) % images.length)}
+          onNext={() => setActiveIndex((i) => (i + 1) % images.length)}
+          multiple={images.length > 1}
+          title={card.title ?? 'Card'}
+        />
       )}
+    </div>
+  )
+}
+
+/* ---------- Pan & Zoom Lightbox ---------- */
+function Lightbox({
+  src,
+  title,
+  multiple,
+  onClose,
+  onPrev,
+  onNext,
+}: {
+  src: string
+  title?: string
+  multiple?: boolean
+  onClose: () => void
+  onPrev: () => void
+  onNext: () => void
+}) {
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const [scale, setScale] = useState(1)
+  const [tx, setTx] = useState(0)
+  const [ty, setTy] = useState(0)
+  const [dragging, setDragging] = useState(false)
+  const lastPos = useRef<{ x: number; y: number } | null>(null)
+
+  useEffect(() => {
+    // Reset when image changes
+    setScale(1)
+    setTx(0)
+    setTy(0)
+  }, [src])
+
+  function clampTranslate(nextTx: number, nextTy: number) {
+    const el = containerRef.current
+    if (!el) return { x: nextTx, y: nextTy }
+    const rect = el.getBoundingClientRect()
+    // Assume image fits exactly inside container at scale=1 (object-contain)
+    // Allow panning roughly within extra scaled area
+    const maxX = (rect.width * (scale - 1)) / 2
+    const maxY = (rect.height * (scale - 1)) / 2
+    return {
+      x: Math.max(-maxX, Math.min(maxX, nextTx)),
+      y: Math.max(-maxY, Math.min(maxY, nextTy)),
+    }
+  }
+
+  function handleWheel(e: React.WheelEvent) {
+    e.preventDefault()
+    const el = containerRef.current
+    if (!el) return
+
+    const delta = -e.deltaY
+    const zoomFactor = 1 + delta * 0.0015 // gentle zoom
+    const newScale = Math.min(6, Math.max(1, scale * zoomFactor))
+
+    // Zoom around cursor: adjust translate so the point under cursor stays put
+    const rect = el.getBoundingClientRect()
+    const cx = e.clientX - rect.left - rect.width / 2
+    const cy = e.clientY - rect.top - rect.height / 2
+
+    // formula: newT = oldT - p * (newScale - oldScale) / newScale
+    const k = (newScale - scale) / newScale
+    let nextTx = tx - cx * k
+    let nextTy = ty - cy * k
+    const clamped = clampTranslate(nextTx, nextTy)
+
+    setScale(newScale)
+    setTx(clamped.x)
+    setTy(clamped.y)
+  }
+
+  function onMouseDown(e: React.MouseEvent) {
+    e.preventDefault()
+    setDragging(true)
+    lastPos.current = { x: e.clientX, y: e.clientY }
+  }
+  function onMouseMove(e: React.MouseEvent) {
+    if (!dragging || !lastPos.current) return
+    const dx = e.clientX - lastPos.current.x
+    const dy = e.clientY - lastPos.current.y
+    const clamped = clampTranslate(tx + dx, ty + dy)
+    setTx(clamped.x)
+    setTy(clamped.y)
+    lastPos.current = { x: e.clientX, y: e.clientY }
+  }
+  function onMouseUp() {
+    setDragging(false)
+    lastPos.current = null
+  }
+
+  function onDoubleClick(e: React.MouseEvent) {
+    e.preventDefault()
+    if (scale === 1) {
+      // Zoom in at click
+      const el = containerRef.current
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      const cx = e.clientX - rect.left - rect.width / 2
+      const cy = e.clientY - rect.top - rect.height / 2
+      const newScale = 2
+      const k = (newScale - scale) / newScale
+      let nextTx = tx - cx * k
+      let nextTy = ty - cy * k
+      const clamped = clampTranslate(nextTx, nextTy)
+      setScale(newScale)
+      setTx(clamped.x)
+      setTy(clamped.y)
+    } else {
+      // Reset
+      setScale(1)
+      setTx(0)
+      setTy(0)
+    }
+  }
+
+  function zoomStep(dir: 1 | -1) {
+    const el = containerRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    // zoom around center
+    const cx = 0
+    const cy = 0
+    const newScale = Math.min(6, Math.max(1, scale * (dir === 1 ? 1.25 : 0.8)))
+    const k = (newScale - scale) / newScale
+    let nextTx = tx - cx * k
+    let nextTy = ty - cy * k
+    const clamped = clampTranslate(nextTx, nextTy)
+    setScale(newScale)
+    setTx(clamped.x)
+    setTy(clamped.y)
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      onMouseUp={onMouseUp}
+      onMouseLeave={onMouseUp}
+      onClick={onClose}
+    >
+      <div
+        className="relative max-w-5xl w-full"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="absolute -top-10 right-0 flex items-center gap-2">
+          <button
+            className="text-white/80 hover:text-white text-sm underline"
+            onClick={onClose}
+          >
+            Close
+          </button>
+        </div>
+
+        {/* Controls */}
+        <div className="absolute -top-10 left-0 flex items-center gap-2">
+          <button
+            className="text-white/80 hover:text-white text-sm underline"
+            onClick={() => zoomStep(-1)}
+          >
+            −
+          </button>
+          <span className="text-white/70 text-sm">Zoom</span>
+          <button
+            className="text-white/80 hover:text-white text-sm underline"
+            onClick={() => zoomStep(1)}
+          >
+            +
+          </button>
+          <button
+            className="text-white/80 hover:text-white text-sm underline ml-3"
+            onClick={() => { setScale(1); setTx(0); setTy(0); }}
+          >
+            Reset
+          </button>
+        </div>
+
+        <div
+          ref={containerRef}
+          className="relative w-full rounded-xl bg-black/20 overflow-hidden shadow-2xl"
+          style={{ aspectRatio: '3 / 4' }}
+          onWheel={handleWheel}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onDoubleClick={onDoubleClick}
+        >
+          <img
+            src={src}
+            alt={`${title ?? 'Card'} (zoom)`}
+            className="w-full h-full object-contain select-none"
+            draggable={false}
+            style={{
+              transform: `translate(${tx}px, ${ty}px) scale(${scale})`,
+              transition: dragging ? 'none' : 'transform 0.05s linear',
+              willChange: 'transform',
+            }}
+          />
+
+          {multiple && (
+            <>
+              <button
+                className="absolute left-0 top-1/2 -translate-y-1/2 p-3 text-white/90 hover:text-white"
+                onClick={onPrev}
+                aria-label="Previous image"
+              >
+                ‹
+              </button>
+              <button
+                className="absolute right-0 top-1/2 -translate-y-1/2 p-3 text-white/90 hover:text-white"
+                onClick={onNext}
+                aria-label="Next image"
+              >
+                ›
+              </button>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
