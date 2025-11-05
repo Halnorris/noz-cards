@@ -138,7 +138,7 @@ export default function Marketplace() {
         )
         .eq('status', 'live')
 
-      // ✅ Exact-match filters using raw DB values (Option A)
+      // Exact-match filters using raw DB values
       if (filters.sport) query = query.eq('sport', filters.sport)
       if (filters.league) query = query.eq('league', filters.league)
       if (filters.team) query = query.eq('team', filters.team)
@@ -396,9 +396,12 @@ export default function Marketplace() {
                         />
                       ) : null}
                     </div>
-                    <h3 className="text-sm font-medium truncate">
+
+                    {/* ⬇️ Smaller font + 2-line clamp with consistent height */}
+                    <h3 className="text-xs font-medium leading-snug line-clamp-2 min-h-[2.25rem]">
                       {card.title ?? 'Untitled card'}
                     </h3>
+
                     {card.price != null && (
                       <p className="text-sm opacity-70">£{card.price}</p>
                     )}
