@@ -3,18 +3,17 @@ import Header from './components/Header'
 import Sidebar from './components/Sidebar'
 import ScrollToTop from './components/ScrollToTop'
 import Footer from './components/Footer'
+import MiniCartDrawer from '@/components/MiniCartDrawer'
 
 export default function App() {
   const { pathname } = useLocation()
 
-  // Show sidebar only on these sections
   const showSidebar =
     pathname.startsWith('/account') ||
     pathname.startsWith('/auctions')
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Header (with cart badge now handled inside Header.tsx) */}
       <ScrollToTop />
       <Header />
 
@@ -33,7 +32,10 @@ export default function App() {
         )}
       </div>
 
-      <Footer/>
+      <Footer />
+
+      {/* 🔽 Global mini-cart drawer (no launcher button here) */}
+      <MiniCartDrawer />
     </div>
   )
 }
