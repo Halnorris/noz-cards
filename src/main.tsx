@@ -22,6 +22,7 @@ import Returns from '@/pages/legal/Returns'
 import Consignment from '@/pages/legal/Consignment'
 import Contact from '@/pages/legal/Contact'
 import SignIn from '@/pages/SignIn'
+import BasketPage from '@/pages/Basket'
 
 // 🧺 Wrap everything with this provider
 import { BasketProvider } from '@/context/basket'
