@@ -204,14 +204,6 @@ export default function CardPage() {
       </Link>
     ) : null
 
-  // Derived "specs" (only show if present)
-  const specs: Array<{ k: string; v: string | null | undefined }> = [
-    { k: 'Sport', v: card.sport },
-    { k: 'League', v: card.league },
-    { k: 'Team', v: card.team },
-    { k: 'Set', v: card.set },
-  ]
-
   return (
     <div className="space-y-6 pb-20 md:pb-0">
       {/* Breadcrumbs + Back */}
@@ -235,7 +227,7 @@ export default function CardPage() {
         {/* IMAGE COLUMN */}
         <div className="rounded-2xl bg-white p-3 shadow-soft border border-black/5">
           <div className="flex gap-3">
-            {/* Thumbs (vertical on sm+) */}
+            {/* Thumbs */}
             <div className="hidden sm:flex flex-col gap-2 w-14">
               {images.map((img, idx) => (
                 <button
@@ -259,7 +251,7 @@ export default function CardPage() {
               ))}
             </div>
 
-            {/* Main image with lightbox trigger — capped height */}
+            {/* Main image */}
             <div className="relative flex-1">
               <div
                 className={`${orientation} mx-auto max-h-[56vh] rounded-xl bg-black/5 overflow-hidden cursor-zoom-in`}
@@ -436,22 +428,6 @@ export default function CardPage() {
             </div>
           </div>
 
-          {/* Specs grid (auto-hide empties) */}
-          <div className="rounded-2xl bg-white p-4 border border-black/5 shadow-soft">
-            <div className="text-sm font-header mb-2">Card Specs</div>
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-              {specs.filter(s => s.v && String(s.v).trim()).map(({ k, v }) => (
-                <div key={k} className="flex items-center justify-between gap-3">
-                  <dt className="opacity-60">{k}</dt>
-                  <dd className="text-right">{v}</dd>
-                </div>
-              ))}
-              {specs.every(s => !s.v) && (
-                <div className="opacity-60 text-sm">No additional specs.</div>
-              )}
-            </dl>
-          </div>
-
           {/* Shipping & Returns accordion */}
           <div className="rounded-2xl bg-white p-2 border border-black/5 shadow-soft">
             <details className="group p-2 rounded-xl">
@@ -504,7 +480,7 @@ export default function CardPage() {
       <section className="space-y-2">
         <div className="flex items-center justify-between">
           <h2 className="font-header text-lg">Related cards</h2>
-        {!relatedLoading && related.length > 0 && (
+          {!relatedLoading && related.length > 0 && (
             <div className="flex gap-2">
               <button
                 onClick={() => {
@@ -604,7 +580,6 @@ export default function CardPage() {
           askingPrice={card.price ?? null}
           onClose={() => setOfferOpen(false)}
           onSubmit={(offer) => {
-            // Placeholder for wiring later
             console.log('Offer submitted:', {
               cardId: card.id,
               offerPrice: offer.price,
@@ -676,7 +651,7 @@ function Lightbox({
     if (!el) return { x: nextTx, y: nextTy }
     const rect = el.getBoundingClientRect()
     const maxX = (rect.width * (scale - 1)) / 2
-       const maxY = (rect.height * (scale - 1)) / 2
+    const maxY = (rect.height * (scale - 1)) / 2
     return {
       x: Math.max(-maxX, Math.min(maxX, nextTx)),
       y: Math.max(-maxY, Math.min(maxY, nextTy)),
