@@ -22,9 +22,8 @@ import Returns from '@/pages/legal/Returns'
 import Consignment from '@/pages/legal/Consignment'
 import Contact from '@/pages/legal/Contact'
 import SignIn from '@/pages/SignIn'
-import BasketPage from '@/pages/Basket'
 
-// 🧺 Wrap everything with this provider
+// Providers
 import { BasketProvider } from '@/context/basket'
 import { AuthProvider } from '@/context/auth'
 
@@ -37,12 +36,11 @@ const router = createBrowserRouter([
       { path: 'marketplace', element: <Marketplace /> },
       { path: 'account', element: <Account /> },
       { path: 'account/pending', element: <Pending /> },
-      { path: 'how-it-works', element: <HowItWorks /> },
       { path: 'account/live', element: <Live /> },
+      { path: 'how-it-works', element: <HowItWorks /> },
       { path: 'auctions/:id', element: <Auction /> },
       { path: 'card/:id', element: <CardPage /> },
       { path: 'basket', element: <BasketPage /> },
-      { path: '*', element: <NotFound /> },
       { path: 'legal/terms', element: <Terms /> },
       { path: 'legal/privacy', element: <Privacy /> },
       { path: 'legal/cookies', element: <Cookies /> },
@@ -51,18 +49,11 @@ const router = createBrowserRouter([
       { path: 'legal/consignment', element: <Consignment /> },
       { path: 'legal/contact', element: <Contact /> },
       { path: 'signin', element: <SignIn /> },
+      { path: '*', element: <NotFound /> },
     ],
   },
 ])
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    {/* ⬇️ This MUST wrap RouterProvider so Header/App/Pages are inside it */}
-    <BasketProvider>
-      <RouterProvider router={router} />
-    </BasketProvider>
-  </StrictMode>
-)
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AuthProvider>
