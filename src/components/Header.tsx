@@ -1,10 +1,8 @@
 import { NavLink, Link } from 'react-router-dom'
-import MiniCartDrawer from '@/components/MiniCartDrawer'   // ⬅️ add this
 import { useBasket } from '@/context/basket'
 
 export default function Header() {
-  // You can keep this if you want the count elsewhere later, but MiniCart shows its own badge
-  const { count } = useBasket()
+  const { count, openMiniCart } = useBasket()
 
   const linkBase = 'px-3 py-1 rounded-full text-sm transition'
   const linkInactive = 'hover:bg-black/5'
@@ -52,7 +50,7 @@ export default function Header() {
           </NavLink>
         </nav>
 
-        {/* Actions: Sign in + Mini-cart drawer */}
+        {/* Actions: Sign in + Basket button */}
         <div className="flex items-center gap-3">
           <Link
             to="/signin"
@@ -61,8 +59,28 @@ export default function Header() {
             Sign in
           </Link>
 
-          {/* 🛒 Replaces the old /basket icon link */}
-          <MiniCartDrawer />
+          <button
+            onClick={openMiniCart}
+            aria-label="Basket"
+            className="relative p-2 rounded-lg border border-black/10 hover:bg-black/5"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="w-5 h-5 stroke-current"
+              fill="none"
+              strokeWidth="2"
+            >
+              <path d="M6 6h15l-1.5 9H7.5L6 6Z" />
+              <path d="M6 6H3" />
+              <circle cx="9" cy="20" r="1.5" />
+              <circle cx="18" cy="20" r="1.5" />
+            </svg>
+            {count > 0 && (
+              <span className="absolute -top-1 -right-1 text-[10px] px-1.5 py-0.5 rounded-full bg-primary text-white">
+                {count}
+              </span>
+            )}
+          </button>
         </div>
       </div>
     </header>
