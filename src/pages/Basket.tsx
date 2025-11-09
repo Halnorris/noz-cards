@@ -1,4 +1,3 @@
-// src/pages/Basket.tsx
 import { Link, useNavigate } from 'react-router-dom'
 import { useMemo } from 'react'
 import { useBasket } from '@/context/basket'
@@ -8,7 +7,7 @@ type BasketItem = {
   title: string
   price: number | null
   image_url: string | null
-  qty?: number
+  qty: number
 }
 
 function formatPrice(n: number | null | undefined) {
@@ -18,10 +17,10 @@ function formatPrice(n: number | null | undefined) {
 
 export default function BasketPage() {
   const navigate = useNavigate()
-  const { items = [], removeItem, setQty } = useBasket() as any
+  const { items, removeItem, setQty } = useBasket()
 
   const subtotal = useMemo(
-    () => items.reduce((s: number, it: BasketItem) => s + ((it.qty ?? 1) * (it.price ?? 0)), 0),
+    () => items.reduce((s, it) => s + it.qty * (it.price ?? 0), 0),
     [items]
   )
 
@@ -43,7 +42,7 @@ export default function BasketPage() {
         <div className="grid lg:grid-cols-[1fr_320px] gap-6">
           {/* Items list */}
           <div className="space-y-3">
-            {items.map((it: BasketItem) => (
+            {items.map((it) => (
               <div key={it.id} className="rounded-2xl bg-white p-3 border border-black/5 shadow-soft flex gap-3">
                 <div className="w-20 h-20 rounded-xl overflow-hidden bg-black/5 border border-black/10">
                   {it.image_url ? (
@@ -59,33 +58,32 @@ export default function BasketPage() {
                     <div className="flex items-center gap-1">
                       <button
                         className="px-2 py-1 rounded-lg border border-black/10 hover:bg-black/5 text-xs"
-                        onClick={() => setQty?.(it.id, Math.max(1, (it.qty ?? 1) - 1))}
-                        disabled={!setQty}
-                        title={setQty ? 'Decrease' : 'Qty editing coming soon'}
+                        onClick={() => setQty(it.id, Math.max(1, it.qty - 1))}
+                        title="Decrease"
                       >
                         −
                       </button>
-                      <span className="text-sm w-8 text-center">{it.qty ?? 1}</span>
+                      <span className="text-sm w-8 text-center">{it.qty}</span>
                       <button
                         className="px-2 py-1 rounded-lg border border-black/10 hover:bg-black/5 text-xs"
-                        onClick={() => setQty?.(it.id, (it.qty ?? 1) + 1)}
-                        disabled={!setQty}
-                        title={setQty ? 'Increase' : 'Qty editing coming soon'}
+                        onClick={() => setQty(it.id, it.qty + 1)}
+                        title="Increase"
                       >
                         +
                       </button>
                     </div>
                     <button
                       className="ml-2 text-xs px-2 py-1 rounded-lg border border-black/10 hover:bg-black/5"
-                      onClick={() => removeItem?.(it.id)}
-                      disabled={!removeItem}
-                      title={removeItem ? 'Remove' : 'Remove coming soon'}
+                      onClick={() => removeItem(it.id)}
+                      title="Remove"
                     >
                       Remove
                     </button>
                   </div>
                 </div>
-                <div className="text-sm font-header">{formatPrice((it.price ?? 0) * (it.qty ?? 1))}</div>
+                <div className="text-sm font-header">
+                  {formatPrice((it.price ?? 0) * it.qty)}
+                </div>
               </div>
             ))}
           </div>
