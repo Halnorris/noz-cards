@@ -469,7 +469,7 @@ export default function CardPage() {
                 <span className="opacity-60 group-open:rotate-180 transition">⌃</span>
               </summary>
               <div className="mt-2 text-sm opacity-80">
-                Cards are visually inspected and scanned. If something looks off, contact us and we’ll make it right.
+                Cards are visually inspected and scanned. If something looks off, contact us and we'll make it right.
               </div>
             </details>
           </div>
@@ -632,6 +632,7 @@ function Lightbox({
   onPrev: () => void
   onNext: () => void
 }) {
+  const imgRef = useRef<HTMLImageElement | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [scale, setScale] = useState(1)
   const [tx, setTx] = useState(0)
@@ -640,18 +641,25 @@ function Lightbox({
   const lastPos = useRef<{ x: number; y: number } | null>(null)
 
   useEffect(() => {
-    // Reset when image changes
     setScale(1)
     setTx(0)
     setTy(0)
   }, [src])
 
-  function clampTranslate(nextTx: number, nextTy: number) {
-    const el = containerRef.current
-    if (!el) return { x: nextTx, y: nextTy }
-    const rect = el.getBoundingClientRect()
-    const maxX = (rect.width * (scale - 1)) / 2
-    const maxY = (rect.height * (scale - 1)) / 2
+  function clampTranslate(nextTx: number, nextTy: number, currentScale: number) {
+    const img = imgRef.current
+    const container = containerRef.current
+    if (!img || !container) return { x: nextTx, y: nextTy }
+
+    const containerRect = container.getBoundingClientRect()
+    const imgRect = img.getBoundingClientRect()
+
+    const scaledWidth = imgRect.width * currentScale
+    const scaledHeight = imgRect.height * currentScale
+
+    const maxX = Math.max(0, (scaledWidth - containerRect.width) / 2)
+    const maxY = Math.max(0, (scaledHeight - containerRect.height) / 2)
+
     return {
       x: Math.max(-maxX, Math.min(maxX, nextTx)),
       y: Math.max(-maxY, Math.min(maxY, nextTy)),
@@ -660,21 +668,26 @@ function Lightbox({
 
   function handleWheel(e: React.WheelEvent) {
     e.preventDefault()
-    const el = containerRef.current
-    if (!el) return
+    const container = containerRef.current
+    if (!container) return
 
     const delta = -e.deltaY
-    const zoomFactor = 1 + delta * 0.0015
-    const newScale = Math.min(6, Math.max(1, scale * zoomFactor))
+    const zoomFactor = 1 + delta * 0.002
+    const newScale = Math.min(8, Math.max(1, scale * zoomFactor))
 
-    const rect = el.getBoundingClientRect()
-    const cx = e.clientX - rect.left - rect.width / 2
-    const cy = e.clientY - rect.top - rect.height / 2
+    const rect = container.getBoundingClientRect()
+    const mouseX = e.clientX - rect.left
+    const mouseY = e.clientY - rect.top
+    const centerX = rect.width / 2
+    const centerY = rect.height / 2
+    const offsetX = mouseX - centerX
+    const offsetY = mouseY - centerY
 
-    const k = (newScale - scale) / newScale
-    let nextTx = tx - cx * k
-    let nextTy = ty - cy * k
-    const clamped = clampTranslate(nextTx, nextTy)
+    const scaleDiff = newScale / scale
+    let nextTx = tx * scaleDiff - offsetX * (scaleDiff - 1)
+    let nextTy = ty * scaleDiff - offsetY * (scaleDiff - 1)
+
+    const clamped = clampTranslate(nextTx, nextTy, newScale)
 
     setScale(newScale)
     setTx(clamped.x)
@@ -682,19 +695,22 @@ function Lightbox({
   }
 
   function onMouseDown(e: React.MouseEvent) {
+    if (scale === 1) return
     e.preventDefault()
     setDragging(true)
     lastPos.current = { x: e.clientX, y: e.clientY }
   }
+
   function onMouseMove(e: React.MouseEvent) {
     if (!dragging || !lastPos.current) return
     const dx = e.clientX - lastPos.current.x
     const dy = e.clientY - lastPos.current.y
-    const clamped = clampTranslate(tx + dx, ty + dy)
+    const clamped = clampTranslate(tx + dx, ty + dy, scale)
     setTx(clamped.x)
     setTy(clamped.y)
     lastPos.current = { x: e.clientX, y: e.clientY }
   }
+
   function onMouseUp() {
     setDragging(false)
     lastPos.current = null
@@ -703,16 +719,22 @@ function Lightbox({
   function onDoubleClick(e: React.MouseEvent) {
     e.preventDefault()
     if (scale === 1) {
-      const el = containerRef.current
-      if (!el) return
-      const rect = el.getBoundingClientRect()
-      const cx = e.clientX - rect.left - rect.width / 2
-      const cy = e.clientY - rect.top - rect.height / 2
-      const newScale = 2
-      const k = (newScale - scale) / newScale
-      let nextTx = tx - cx * k
-      let nextTy = ty - cy * k
-      const clamped = clampTranslate(nextTx, nextTy)
+      const container = containerRef.current
+      if (!container) return
+      
+      const rect = container.getBoundingClientRect()
+      const mouseX = e.clientX - rect.left
+      const mouseY = e.clientY - rect.top
+      const centerX = rect.width / 2
+      const centerY = rect.height / 2
+      const offsetX = mouseX - centerX
+      const offsetY = mouseY - centerY
+
+      const newScale = 3
+      const nextTx = -offsetX * (newScale - 1)
+      const nextTy = -offsetY * (newScale - 1)
+      const clamped = clampTranslate(nextTx, nextTy, newScale)
+
       setScale(newScale)
       setTx(clamped.x)
       setTy(clamped.y)
@@ -721,240 +743,3 @@ function Lightbox({
       setTx(0)
       setTy(0)
     }
-  }
-
-  function zoomStep(dir: 1 | -1) {
-    const el = containerRef.current
-    if (!el) return
-    const newScale = Math.min(6, Math.max(1, scale * (dir === 1 ? 1.25 : 0.8)))
-    const k = (newScale - scale) / newScale
-    let nextTx = tx - 0 * k
-    let nextTy = ty - 0 * k
-    const clamped = clampTranslate(nextTx, nextTy)
-    setScale(newScale)
-    setTx(clamped.x)
-    setTy(clamped.y)
-  }
-
-  return (
-    <div
-      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      onMouseUp={onMouseUp}
-      onMouseLeave={onMouseUp}
-      onClick={onClose}
-    >
-      <div
-        className="relative max-w-5xl w-full"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="absolute -top-10 right-0 flex items-center gap-2">
-          <button
-            className="text-white/80 hover:text-white text-sm underline"
-            onClick={onClose}
-          >
-            Close
-          </button>
-        </div>
-
-        {/* Controls */}
-        <div className="absolute -top-10 left-0 flex items-center gap-2">
-          <button
-            className="text-white/80 hover:text-white text-sm underline"
-            onClick={() => zoomStep(-1)}
-          >
-            −
-          </button>
-          <span className="text-white/70 text-sm">Zoom</span>
-          <button
-            className="text-white/80 hover:text-white text-sm underline"
-            onClick={() => zoomStep(1)}
-          >
-            +
-          </button>
-          <button
-            className="text-white/80 hover:text-white text-sm underline ml-3"
-            onClick={() => { setScale(1); setTx(0); setTy(0); }}
-          >
-            Reset
-          </button>
-        </div>
-
-        <div
-          ref={containerRef}
-          className="relative w-full rounded-xl bg-black/20 overflow-hidden shadow-2xl"
-          style={{ aspectRatio: '3 / 4' }}
-          onWheel={handleWheel}
-          onMouseDown={onMouseDown}
-          onMouseMove={onMouseMove}
-          onDoubleClick={onDoubleClick}
-        >
-          <img
-            src={src}
-            alt={`${title ?? 'Card'} (zoom)`}
-            className="w-full h-full object-contain select-none"
-            draggable={false}
-            style={{
-              transform: `translate(${tx}px, ${ty}px) scale(${scale})`,
-              transition: dragging ? 'none' : 'transform 0.05s linear',
-              willChange: 'transform',
-            }}
-          />
-
-          {multiple && (
-            <>
-              <button
-                className="absolute left-0 top-1/2 -translate-y-1/2 p-3 text-white/90 hover:text-white"
-                onClick={onPrev}
-                aria-label="Previous image"
-              >
-                ‹
-              </button>
-              <button
-                className="absolute right-0 top-1/2 -translate-y-1/2 p-3 text-white/90 hover:text-white"
-                onClick={onNext}
-                aria-label="Next image"
-              >
-                ›
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/* ---------- Make Offer Modal (UI-only) ---------- */
-function MakeOfferModal({
-  cardTitle,
-  askingPrice,
-  onClose,
-  onSubmit,
-}: {
-  cardTitle: string
-  askingPrice: number | null
-  onClose: () => void
-  onSubmit: (payload: { price: number; note?: string }) => void
-}) {
-  const [price, setPrice] = useState<string>(askingPrice ? String(Math.max(1, Math.floor(askingPrice * 0.9))) : '')
-  const [note, setNote] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [sent, setSent] = useState(false)
-
-  function validate(): number | null {
-    const n = Number(price)
-    if (!price || Number.isNaN(n)) {
-      setError('Enter a valid offer amount.')
-      return null
-    }
-    if (n < 1) {
-      setError('Minimum offer is £1.')
-      return null
-    }
-    if (n > 1000000) {
-      setError('That amount seems too high.')
-      return null
-    }
-    setError(null)
-    return n
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    const valid = validate()
-    if (valid == null) return
-    setSubmitting(true)
-
-    // Stub only — replace with Supabase insert later
-    await new Promise((r) => setTimeout(r, 500))
-    setSubmitting(false)
-    setSent(true)
-
-    setTimeout(() => {
-      onSubmit({ price: valid, note: note.trim() || undefined })
-    }, 600)
-  }
-
-  return (
-    <div
-      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px] flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl border border-black/10"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h3 className="font-header text-lg">Make an Offer</h3>
-            <p className="text-sm opacity-70">{cardTitle}</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-sm px-2 py-1 rounded-lg border border-black/10 hover:bg-black/5"
-            aria-label="Close"
-          >
-            Close
-          </button>
-        </div>
-
-        <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
-          <label className="block text-sm">
-            Your offer (£)
-            <input
-              inputMode="decimal"
-              type="number"
-              min={1}
-              step="1"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder={askingPrice != null ? `e.g. ${Math.max(1, Math.floor(askingPrice * 0.9))}` : 'Enter amount'}
-              className="mt-1 w-full rounded-xl border border-black/10 p-2"
-              required
-            />
-          </label>
-
-          <label className="block text-sm">
-            Message to seller (optional)
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-black/10 p-2 min-h-[90px]"
-              placeholder="Add context, shipping notes, etc."
-            />
-          </label>
-
-          {askingPrice != null && (
-            <div className="text-xs opacity-70">
-              Current asking price: <span className="font-medium">£{askingPrice}</span>
-            </div>
-          )}
-
-          {error && <div className="text-xs text-red-600">{error}</div>}
-
-          <div className="pt-1 flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl border border-black/10 hover:bg-black/5 text-sm"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-4 py-2 rounded-xl bg-primary text-white hover:opacity-90 disabled:opacity-60 text-sm"
-            >
-              {submitting ? 'Sending…' : sent ? 'Sent!' : 'Send Offer'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
