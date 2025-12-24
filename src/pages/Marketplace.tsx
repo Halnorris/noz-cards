@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 
@@ -38,17 +38,12 @@ function pretty(s: string) {
 
 export default function Marketplace() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const observerTarget = useRef<HTMLDivElement>(null)
 
   // Filter options
   const [sports, setSports] = useState<string[]>([])
   const [leagues, setLeagues] = useState<string[]>([])
   const [teams, setTeams] = useState<string[]>([])
   const [sets, setSets] = useState<string[]>([])
-
-  // Search suggestions
-  const [suggestions, setSuggestions] = useState<string[]>([])
-  const [showSuggestions, setShowSuggestions] = useState(false)
 
   // Mobile filter drawer
   const [showFilters, setShowFilters] = useState(false)
@@ -129,35 +124,12 @@ export default function Marketplace() {
     loadLiveTotal()
   }, [])
 
-  // Load search suggestions
-  useEffect(() => {
-    if (!filters.search || filters.search.length < 2) {
-      setSuggestions([])
-      return
-    }
-
-    const timer = setTimeout(async () => {
-      const { data } = await supabase
-        .from('cards')
-        .select('title')
-        .eq('status', 'live')
-        .ilike('title', `%${filters.search}%`)
-        .limit(5)
-
-      const unique = Array.from(new Set(data?.map(c => c.title) || []))
-      setSuggestions(unique)
-    }, 300)
-
-    return () => clearTimeout(timer)
-  }, [filters.search])
-
   // Load cards function
-  const loadCards = useCallback(async (pageNum: number, isInitial = false) => {
-    if (isInitial) {
+  const loadCards = useCallback(async (pageNum: number, append: boolean = false) => {
+    if (!append) {
       setInitialLoading(true)
-    } else {
-      setLoading(true)
     }
+    setLoading(true)
 
     let query = supabase
       .from('cards')
@@ -184,10 +156,10 @@ export default function Marketplace() {
     const { data, error } = await query
 
     if (!error && data) {
-      if (pageNum === 0) {
-        setCards(data as Card[])
-      } else {
+      if (append) {
         setCards(prev => [...prev, ...(data as Card[])])
+      } else {
+        setCards(data as Card[])
       }
       setHasMore(data.length === PAGE_SIZE)
     }
@@ -201,28 +173,29 @@ export default function Marketplace() {
     setPage(0)
     setCards([])
     setHasMore(true)
-    loadCards(0, true)
-  }, [filters, loadCards])
+    loadCards(0, false)
+  }, [filters.sport, filters.league, filters.team, filters.set, filters.minPrice, filters.maxPrice, filters.search, filters.sort])
 
-  // Infinite scroll observer
+  // Scroll event listener for infinite scroll
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      entries => {
-        if (entries[0].isIntersecting && hasMore && !loading) {
-          const nextPage = page + 1
-          setPage(nextPage)
-          loadCards(nextPage)
-        }
-      },
-      { threshold: 0.1 }
-    )
+    const handleScroll = () => {
+      if (loading || !hasMore) return
 
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current)
+      const scrollTop = window.scrollY
+      const windowHeight = window.innerHeight
+      const documentHeight = document.documentElement.scrollHeight
+
+      // Load more when 500px from bottom
+      if (scrollTop + windowHeight >= documentHeight - 500) {
+        const nextPage = page + 1
+        setPage(nextPage)
+        loadCards(nextPage, true)
+      }
     }
 
-    return () => observer.disconnect()
-  }, [hasMore, loading, page, loadCards])
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [loading, hasMore, page, loadCards])
 
   function update<K extends keyof Filters>(key: K, value: Filters[K]) {
     setFilters(f => ({ ...f, [key]: value }))
@@ -270,36 +243,15 @@ export default function Marketplace() {
         )}
       </div>
 
-      {/* Search with autocomplete */}
-      <label className="block text-sm mb-3 relative">
+      {/* Search */}
+      <label className="block text-sm mb-3">
         Search
         <input
           value={filters.search}
-          onChange={(e) => {
-            update('search', e.target.value)
-            setShowSuggestions(true)
-          }}
-          onFocus={() => setShowSuggestions(true)}
-          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+          onChange={(e) => update('search', e.target.value)}
           placeholder="Card title…"
           className="mt-1 w-full rounded-xl border border-black/10 p-2"
         />
-        {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-black/10 rounded-xl shadow-lg max-h-48 overflow-y-auto">
-            {suggestions.map((suggestion, i) => (
-              <button
-                key={i}
-                onClick={() => {
-                  update('search', suggestion)
-                  setShowSuggestions(false)
-                }}
-                className="w-full text-left px-3 py-2 hover:bg-black/5 text-sm"
-              >
-                {suggestion}
-              </button>
-            ))}
-          </div>
-        )}
       </label>
 
       <label className="block text-sm mb-3">
@@ -569,13 +521,11 @@ export default function Marketplace() {
 
               {/* Loading more indicator */}
               {loading && (
-                <div className="text-center py-4 opacity-70">
-                  <div className="inline-block w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <div className="text-center py-8">
+                  <div className="inline-block w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  <p className="mt-2 text-sm opacity-70">Loading more cards...</p>
                 </div>
               )}
-
-              {/* Intersection observer target */}
-              <div ref={observerTarget} className="h-4" />
 
               {!hasMore && cards.length > 0 && (
                 <div className="text-center py-8 opacity-70 text-sm">
