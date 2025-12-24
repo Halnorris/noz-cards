@@ -1,24 +1,28 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { useNavigate } from 'react-router-dom'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/context/auth'
 
 export default function Account() {
+  const { user, loading: authLoading } = useAuth()
+  const navigate = useNavigate()
+  
   const [liveCount, setLiveCount] = useState(0)
   const [pendingCount, setPendingCount] = useState(0)
   const [soldCount, setSoldCount] = useState(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // If not logged in, redirect to sign in page
+    if (!authLoading && !user) {
+      navigate('/signin')
+      return
+    }
+
+    if (!user) return
+
     async function fetchCardCounts() {
       try {
-        // Get the current user
-        const { data: { user } } = await supabase.auth.getUser()
-        
-        if (!user) {
-          console.log('No user logged in')
-          setLoading(false)
-          return
-        }
-
         // Count live cards
         const { count: live } = await supabase
           .from('cards')
@@ -43,21 +47,21 @@ export default function Account() {
         setLiveCount(live || 0)
         setPendingCount(pending || 0)
         setSoldCount(sold || 0)
-        setLoading(false)
       } catch (error) {
         console.error('Error fetching card counts:', error)
+      } finally {
         setLoading(false)
       }
     }
 
     fetchCardCounts()
-  }, [])
+  }, [user, authLoading, navigate])
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <section className="space-y-4">
         <h1 className="font-header text-2xl">Account Dashboard</h1>
-        <div className="text-center py-8 opacity-70">Loading your cards...</div>
+        <div className="text-center py-8 opacity-70">Loading your account...</div>
       </section>
     )
   }
