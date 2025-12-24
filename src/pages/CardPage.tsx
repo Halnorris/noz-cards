@@ -743,3 +743,246 @@ function Lightbox({
       setTx(0)
       setTy(0)
     }
+  }
+
+  function zoomStep(dir: 1 | -1) {
+    const newScale = Math.min(8, Math.max(1, scale * (dir === 1 ? 1.4 : 0.7)))
+    const clamped = clampTranslate(tx, ty, newScale)
+    setScale(newScale)
+    setTx(clamped.x)
+    setTy(clamped.y)
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      onMouseUp={onMouseUp}
+      onMouseLeave={onMouseUp}
+      onClick={onClose}
+    >
+      <div
+        className="relative max-w-6xl w-full h-full flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <button
+              className="text-white/80 hover:text-white px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-sm"
+              onClick={() => zoomStep(-1)}
+              disabled={scale <= 1}
+            >
+              Zoom Out
+            </button>
+            <span className="text-white/70 text-sm">
+              {Math.round(scale * 100)}%
+            </span>
+            <button
+              className="text-white/80 hover:text-white px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-sm"
+              onClick={() => zoomStep(1)}
+              disabled={scale >= 8}
+            >
+              Zoom In
+            </button>
+            <button
+              className="text-white/80 hover:text-white px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-sm"
+              onClick={() => { setScale(1); setTx(0); setTy(0); }}
+              disabled={scale === 1}
+            >
+              Reset
+            </button>
+          </div>
+          <button
+            className="text-white/80 hover:text-white px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-sm"
+            onClick={onClose}
+          >
+            Close (Esc)
+          </button>
+        </div>
+
+        <div
+          ref={containerRef}
+          className="relative flex-1 rounded-xl bg-black/40 overflow-hidden"
+          onWheel={handleWheel}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onDoubleClick={onDoubleClick}
+          style={{ cursor: scale > 1 ? (dragging ? 'grabbing' : 'grab') : 'zoom-in' }}
+        >
+          <div className="w-full h-full flex items-center justify-center">
+            <img
+              ref={imgRef}
+              src={src}
+              alt={`${title ?? 'Card'} (zoom)`}
+              className="max-w-full max-h-full select-none"
+              draggable={false}
+              style={{
+                transform: `translate(${tx}px, ${ty}px) scale(${scale})`,
+                transition: dragging ? 'none' : 'transform 0.1s ease-out',
+                transformOrigin: 'center center',
+              }}
+            />
+          </div>
+
+          {multiple && (
+            <>
+              <button
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur text-white text-2xl flex items-center justify-center"
+                onClick={onPrev}
+                aria-label="Previous image"
+              >
+                ‹
+              </button>
+              <button
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur text-white text-2xl flex items-center justify-center"
+                onClick={onNext}
+                aria-label="Next image"
+              >
+                ›
+              </button>
+            </>
+          )}
+
+          {scale === 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/60 text-sm bg-black/40 px-3 py-1.5 rounded-full backdrop-blur">
+              Double-click or scroll to zoom • Drag to pan when zoomed
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ---------- Make Offer Modal (UI-only) ---------- */
+function MakeOfferModal({
+  cardTitle,
+  askingPrice,
+  onClose,
+  onSubmit,
+}: {
+  cardTitle: string
+  askingPrice: number | null
+  onClose: () => void
+  onSubmit: (payload: { price: number; note?: string }) => void
+}) {
+  const [price, setPrice] = useState<string>(askingPrice ? String(Math.max(1, Math.floor(askingPrice * 0.9))) : '')
+  const [note, setNote] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [sent, setSent] = useState(false)
+
+  function validate(): number | null {
+    const n = Number(price)
+    if (!price || Number.isNaN(n)) {
+      setError('Enter a valid offer amount.')
+      return null
+    }
+    if (n < 1) {
+      setError('Minimum offer is £1.')
+      return null
+    }
+    if (n > 1000000) {
+      setError('That amount seems too high.')
+      return null
+    }
+    setError(null)
+    return n
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const valid = validate()
+    if (valid == null) return
+    setSubmitting(true)
+
+    await new Promise((r) => setTimeout(r, 500))
+    setSubmitting(false)
+    setSent(true)
+
+    setTimeout(() => {
+      onSubmit({ price: valid, note: note.trim() || undefined })
+    }, 600)
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px] flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl border border-black/10"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="font-header text-lg">Make an Offer</h3>
+            <p className="text-sm opacity-70">{cardTitle}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-sm px-2 py-1 rounded-lg border border-black/10 hover:bg-black/5"
+            aria-label="Close"
+          >
+            Close
+          </button>
+        </div>
+
+        <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
+          <label className="block text-sm">
+            Your offer (£)
+            <input
+              inputMode="decimal"
+              type="number"
+              min={1}
+              step="1"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder={askingPrice != null ? `e.g. ${Math.max(1, Math.floor(askingPrice * 0.9))}` : 'Enter amount'}
+              className="mt-1 w-full rounded-xl border border-black/10 p-2"
+              required
+            />
+          </label>
+
+          <label className="block text-sm">
+            Message to seller (optional)
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-black/10 p-2 min-h-[90px]"
+              placeholder="Add context, shipping notes, etc."
+            />
+          </label>
+
+          {askingPrice != null && (
+            <div className="text-xs opacity-70">
+              Current asking price: <span className="font-medium">£{askingPrice}</span>
+            </div>
+          )}
+
+          {error && <div className="text-xs text-red-600">{error}</div>}
+
+          <div className="pt-1 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-xl border border-black/10 hover:bg-black/5 text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-4 py-2 rounded-xl bg-primary text-white hover:opacity-90 disabled:opacity-60 text-sm"
+            >
+              {submitting ? 'Sending…' : sent ? 'Sent!' : 'Send Offer'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
