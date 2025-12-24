@@ -1,61 +1,118 @@
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/auth'
 
 export default function SignIn() {
+  const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
-  const [sent, setSent] = useState(false)
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const { user } = useAuth()
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  
+  const { signIn, signUp } = useAuth()
   const navigate = useNavigate()
 
-  if (user) {
-    // already signed in
-    navigate('/account')
-  }
-
-  async function sendMagicLink(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('')
+    setSuccess('')
     setLoading(true)
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.origin }
-    })
-    setLoading(false)
-    if (!error) setSent(true)
-    else alert(error.message)
+
+    if (isSignUp) {
+      // Sign Up
+      const { error } = await signUp(email, password)
+      setLoading(false)
+      
+      if (error) {
+        setError(error.message)
+      } else {
+        setSuccess('Account created! Check your email to verify your account.')
+      }
+    } else {
+      // Sign In
+      const { error } = await signIn(email, password)
+      setLoading(false)
+      
+      if (error) {
+        setError(error.message)
+      } else {
+        // Redirect to account page on success
+        navigate('/account')
+      }
+    }
   }
 
   return (
-    <div className="max-w-md mx-auto space-y-4">
-      <h1 className="font-header text-2xl">Sign in</h1>
-      <div className="rounded-2xl bg-white p-6 border border-black/5 shadow-soft space-y-4 text-sm">
-        {sent ? (
-          <p>We’ve sent a sign-in link to <strong>{email}</strong>. Check your inbox.</p>
-        ) : (
-          <form onSubmit={sendMagicLink} className="space-y-3">
-            <label className="block text-sm">
-              Email
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-black/10 p-2"
-                placeholder="you@example.com"
-              />
-            </label>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full px-4 py-2 rounded-xl bg-primary text-white hover:opacity-90"
-            >
-              {loading ? 'Sending…' : 'Send magic link'}
-            </button>
-          </form>
-        )}
+    <section className="max-w-md mx-auto py-12">
+      <div className="rounded-2xl bg-white p-8 shadow-soft border border-black/5">
+        <h1 className="font-header text-2xl mb-6 text-center">
+          {isSignUp ? 'Create Account' : 'Sign In'}
+        </h1>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full px-4 py-2 border border-black/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="you@example.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              className="w-full px-4 py-2 border border-black/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="••••••••"
+            />
+            <p className="text-xs text-black/50 mt-1">At least 6 characters</p>
+          </div>
+
+          {error && (
+            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+              {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="p-3 rounded-xl bg-green-50 border border-green-200 text-green-700 text-sm">
+              {success}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full px-4 py-2 rounded-xl bg-primary text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Loading...' : isSignUp ? 'Create Account' : 'Sign In'}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <button
+            onClick={() => {
+              setIsSignUp(!isSignUp)
+              setError('')
+              setSuccess('')
+            }}
+            className="text-sm text-primary hover:underline"
+          >
+            {isSignUp
+              ? 'Already have an account? Sign in'
+              : "Don't have an account? Sign up"}
+          </button>
+        </div>
       </div>
-    </div>
+    </section>
   )
 }
