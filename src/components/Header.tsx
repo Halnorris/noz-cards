@@ -1,9 +1,11 @@
 import { NavLink, Link } from 'react-router-dom'
 import { useBasket } from '@/context/basket'
+import { useAuth } from '@/context/auth'
 
 export default function Header() {
   const { count, openMiniCart } = useBasket()
-
+  const { user, signOut } = useAuth()
+  
   const linkBase = 'px-3 py-1 rounded-full text-sm transition'
   const linkInactive = 'hover:bg-black/5'
   const linkActive = 'bg-primary text-white'
@@ -18,7 +20,7 @@ export default function Header() {
           </span>
           <span className="font-header text-xl">Noz Cards</span>
         </Link>
-
+        
         {/* Nav */}
         <nav className="flex items-center gap-5">
           <NavLink
@@ -30,7 +32,6 @@ export default function Header() {
           >
             Home
           </NavLink>
-
           <NavLink
             to="/marketplace"
             className={({ isActive }) =>
@@ -39,7 +40,6 @@ export default function Header() {
           >
             Marketplace
           </NavLink>
-
           <NavLink
             to="/account"
             className={({ isActive }) =>
@@ -49,16 +49,25 @@ export default function Header() {
             Account
           </NavLink>
         </nav>
-
-        {/* Actions: Sign in + Basket button */}
+        
+        {/* Actions: Sign in/out + Basket button */}
         <div className="flex items-center gap-3">
-          <Link
-            to="/signin"
-            className="text-sm px-3 py-1 rounded-full hover:bg-black/5"
-          >
-            Sign in
-          </Link>
-
+          {user ? (
+            <button
+              onClick={() => signOut()}
+              className="text-sm px-3 py-1 rounded-full hover:bg-black/5"
+            >
+              Sign out
+            </button>
+          ) : (
+            <Link
+              to="/signin"
+              className="text-sm px-3 py-1 rounded-full hover:bg-black/5"
+            >
+              Sign in
+            </Link>
+          )}
+          
           <button
             onClick={openMiniCart}
             aria-label="Basket"
