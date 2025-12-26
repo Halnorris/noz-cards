@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/auth'
+import { useBasket } from '@/context/basket'
 
-type Tab = 'dashboard' | 'live' | 'pending' | 'orders' | 'wishlist' | 'submit'
+type Tab = 'dashboard' | 'live' | 'pending' | 'stored' | 'orders' | 'wishlist' | 'submit'
 
 type Card = {
   id: string
@@ -14,6 +15,8 @@ type Card = {
   image_url: string
   status: string
   created_at: string
+  view_count?: number
+  wishlist_count?: number
 }
 
 type Order = {
@@ -22,7 +25,7 @@ type Order = {
   total: number
   status: string
   created_at: string
-  card_count?: number
+  order_items?: any[]
 }
 
 type WishlistItem = {
@@ -77,7 +80,7 @@ export default function Account() {
     }
 
     fetchStats()
-  }, [user, authLoading, navigate])
+  }, [user, authLoading, navigate, activeTab]) // Refresh when tab changes
 
   if (authLoading || loading) {
     return (
@@ -92,6 +95,7 @@ export default function Account() {
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'live', label: 'Live Cards', count: stats.liveCount },
     { id: 'pending', label: 'Pending', count: stats.pendingCount },
+    { id: 'stored', label: 'Stored Cards', count: stats.storedCount },
     { id: 'orders', label: 'Orders', count: stats.ordersCount },
     { id: 'wishlist', label: 'Wishlist', count: stats.wishlistCount },
     { id: 'submit', label: 'Submit Cards' },
@@ -102,7 +106,7 @@ export default function Account() {
       {/* Header with stats */}
       <div className="rounded-2xl bg-white p-6 shadow-soft border border-black/5">
         <h1 className="font-header text-2xl mb-4">Account Dashboard</h1>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           <div className="p-3 rounded-xl border border-black/5 bg-black/[0.02]">
             <div className="text-xs opacity-70">Live Cards</div>
             <div className="text-2xl font-header">{stats.liveCount}</div>
@@ -112,7 +116,7 @@ export default function Account() {
             <div className="text-2xl font-header">{stats.pendingCount}</div>
           </div>
           <div className="p-3 rounded-xl border border-black/5 bg-black/[0.02]">
-            <div className="text-xs opacity-70">Stored Cards</div>
+            <div className="text-xs opacity-70">Stored</div>
             <div className="text-2xl font-header">{stats.storedCount}</div>
           </div>
           <div className="p-3 rounded-xl border border-black/5 bg-black/[0.02]">
@@ -155,6 +159,7 @@ export default function Account() {
         {activeTab === 'dashboard' && <DashboardTab stats={stats} />}
         {activeTab === 'live' && <LiveCardsTab />}
         {activeTab === 'pending' && <PendingCardsTab />}
+        {activeTab === 'stored' && <StoredCardsTab />}
         {activeTab === 'orders' && <OrdersTab />}
         {activeTab === 'wishlist' && <WishlistTab />}
         {activeTab === 'submit' && <SubmitCardsTab />}
@@ -205,13 +210,18 @@ function DashboardTab({ stats }: { stats: any }) {
 function LiveCardsTab() {
   const { user } = useAuth()
   const [cards, setCards] = useState<Card[]>([])
+  const [filteredCards, setFilteredCards] = useState<Card[]>([])
   const [loading, setLoading] = useState(true)
   const [editingPrice, setEditingPrice] = useState<{ [key: string]: string }>({})
   const [updating, setUpdating] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'price_asc' | 'price_desc'>('newest')
 
   useEffect(() => {
     if (!user) return
     async function fetchCards() {
+      // TODO: Add view_count and wishlist_count to cards table
+      // For now we'll show placeholder data
       const { data } = await supabase
         .from('cards')
         .select('*')
@@ -219,11 +229,32 @@ function LiveCardsTab() {
         .eq('status', 'live')
         .order('created_at', { ascending: false })
       
-      setCards(data || [])
+      setCards((data || []).map(card => ({
+        ...card,
+        view_count: Math.floor(Math.random() * 50), // Placeholder
+        wishlist_count: Math.floor(Math.random() * 10), // Placeholder
+      })))
       setLoading(false)
     }
     fetchCards()
   }, [user])
+
+  // Filter and sort
+  useEffect(() => {
+    let filtered = cards.filter(card => 
+      (card.title || card.text || '').toLowerCase().includes(searchTerm.toLowerCase())
+    )
+
+    filtered.sort((a, b) => {
+      if (sortBy === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      if (sortBy === 'oldest') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      if (sortBy === 'price_asc') return (a.price || 0) - (b.price || 0)
+      if (sortBy === 'price_desc') return (b.price || 0) - (a.price || 0)
+      return 0
+    })
+
+    setFilteredCards(filtered)
+  }, [cards, searchTerm, sortBy])
 
   const updatePrice = async (cardId: string) => {
     const newPrice = parseFloat(editingPrice[cardId])
@@ -245,34 +276,75 @@ function LiveCardsTab() {
     setUpdating(null)
   }
 
+  const requestBack = async (cardId: string) => {
+    if (!confirm('Remove this card from the marketplace?')) return
+
+    const { error } = await supabase
+      .from('cards')
+      .update({ status: 'pending' })
+      .eq('id', cardId)
+
+    if (!error) {
+      setCards(prev => prev.filter(c => c.id !== cardId))
+      alert('Card removed from marketplace')
+    }
+  }
+
   if (loading) return <div className="text-center py-8 opacity-70">Loading...</div>
 
   if (cards.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="opacity-70 mb-4">You don't have any live cards yet.</p>
-        <p className="text-sm opacity-60">Cards you approve will appear here.</p>
       </div>
     )
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="font-header text-lg">Your Live Cards ({cards.length})</h2>
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <h2 className="font-header text-lg">Your Live Cards ({filteredCards.length})</h2>
+        
+        <div className="flex gap-2 w-full sm:w-auto">
+          <input
+            type="text"
+            placeholder="Search cards..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex-1 sm:w-48 px-3 py-1.5 border rounded-xl text-sm"
+          />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className="px-3 py-1.5 border rounded-xl text-sm bg-white"
+          >
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="price_asc">Price: Low-High</option>
+            <option value="price_desc">Price: High-Low</option>
+          </select>
+        </div>
       </div>
       
       <div className="grid sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-        {cards.map((card) => (
+        {filteredCards.map((card) => (
           <div key={card.id} className="rounded-xl border border-black/5 p-2 hover:shadow-md transition">
-            <div className="aspect-[3/4] rounded-lg bg-black/5 mb-2 overflow-hidden">
+            <div className="aspect-[3/4] rounded-lg bg-black/5 mb-2 overflow-hidden relative">
               {card.image_url && <img src={card.image_url} alt={card.title} className="w-full h-full object-cover" />}
+              <div className="absolute top-1 right-1 flex gap-1">
+                <span className="px-1.5 py-0.5 rounded bg-black/60 text-white text-[9px]">
+                  👁 {card.view_count}
+                </span>
+                <span className="px-1.5 py-0.5 rounded bg-black/60 text-white text-[9px]">
+                  ♥ {card.wishlist_count}
+                </span>
+              </div>
             </div>
             <h3 className="text-xs font-medium line-clamp-2 mb-2 min-h-[2rem]">{card.title || card.text}</h3>
             
             <div className="text-[10px] opacity-70 mb-1">Current: £{card.price?.toFixed(2) || '0.00'}</div>
             
-            <div className="flex gap-1 items-center">
+            <div className="flex gap-1 items-center mb-1">
               <input
                 type="number"
                 step="0.01"
@@ -291,6 +363,13 @@ function LiveCardsTab() {
                 {updating === card.id ? '...' : '✓'}
               </button>
             </div>
+
+            <button
+              onClick={() => requestBack(card.id)}
+              className="w-full px-2 py-1 rounded bg-red-50 border border-red-200 text-red-700 text-[10px] hover:bg-red-100"
+            >
+              Request Back
+            </button>
           </div>
         ))}
       </div>
@@ -302,9 +381,12 @@ function LiveCardsTab() {
 function PendingCardsTab() {
   const { user } = useAuth()
   const [cards, setCards] = useState<Card[]>([])
+  const [filteredCards, setFilteredCards] = useState<Card[]>([])
   const [loading, setLoading] = useState(true)
   const [prices, setPrices] = useState<{ [key: string]: string }>({})
   const [updating, setUpdating] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'price_asc' | 'price_desc'>('newest')
 
   useEffect(() => {
     if (!user) return
@@ -330,6 +412,23 @@ function PendingCardsTab() {
     fetchCards()
   }, [user])
 
+  // Filter and sort
+  useEffect(() => {
+    let filtered = cards.filter(card => 
+      (card.title || card.text || '').toLowerCase().includes(searchTerm.toLowerCase())
+    )
+
+    filtered.sort((a, b) => {
+      if (sortBy === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      if (sortBy === 'oldest') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      if (sortBy === 'price_asc') return (a.price || 0) - (b.price || 0)
+      if (sortBy === 'price_desc') return (b.price || 0) - (a.price || 0)
+      return 0
+    })
+
+    setFilteredCards(filtered)
+  }, [cards, searchTerm, sortBy])
+
   const approveCard = async (cardId: string) => {
     const price = parseFloat(prices[cardId])
     if (!price || price <= 0) {
@@ -345,9 +444,37 @@ function PendingCardsTab() {
 
     if (!error) {
       setCards(prev => prev.filter(c => c.id !== cardId))
-      alert('Card is now live!')
     }
     setUpdating(null)
+  }
+
+  const bulkApproveSuggested = async () => {
+    if (!confirm(`Approve all ${filteredCards.length} cards with suggested prices?`)) return
+
+    setUpdating('bulk')
+    const updates = filteredCards
+      .filter(card => card.price && card.price > 0)
+      .map(card => 
+        supabase.from('cards').update({ status: 'live' }).eq('id', card.id)
+      )
+
+    await Promise.all(updates)
+    setCards([])
+    setUpdating(null)
+    alert('All cards approved!')
+  }
+
+  const requestBack = async (cardId: string) => {
+    if (!confirm('Remove this card from pending?')) return
+
+    const { error } = await supabase
+      .from('cards')
+      .delete()
+      .eq('id', cardId)
+
+    if (!error) {
+      setCards(prev => prev.filter(c => c.id !== cardId))
+    }
   }
 
   if (loading) return <div className="text-center py-8 opacity-70">Loading...</div>
@@ -356,42 +483,206 @@ function PendingCardsTab() {
     return (
       <div className="text-center py-12">
         <p className="opacity-70 mb-4">No pending cards.</p>
-        <p className="text-sm opacity-60">Submit new cards to get started!</p>
       </div>
     )
   }
 
   return (
     <div className="space-y-4">
-      <h2 className="font-header text-lg">Pending Approval ({cards.length})</h2>
-      <p className="text-sm opacity-70">Review and adjust prices, then approve to make them live.</p>
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <h2 className="font-header text-lg">Pending Approval ({filteredCards.length})</h2>
+        
+        <div className="flex gap-2 w-full sm:w-auto flex-wrap">
+          <input
+            type="text"
+            placeholder="Search cards..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex-1 sm:w-48 px-3 py-1.5 border rounded-xl text-sm"
+          />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className="px-3 py-1.5 border rounded-xl text-sm bg-white"
+          >
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="price_asc">Price: Low-High</option>
+            <option value="price_desc">Price: High-Low</option>
+          </select>
+          <button
+            onClick={bulkApproveSuggested}
+            disabled={updating === 'bulk' || filteredCards.length === 0}
+            className="px-4 py-1.5 rounded-xl bg-primary text-white text-sm hover:opacity-90 disabled:opacity-50"
+          >
+            {updating === 'bulk' ? 'Approving...' : 'Approve All'}
+          </button>
+        </div>
+      </div>
       
       <div className="grid sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-        {cards.map((card) => (
+        {filteredCards.map((card) => (
           <div key={card.id} className="rounded-xl border border-black/5 p-2 hover:shadow-md transition">
             <div className="aspect-[3/4] rounded-lg bg-black/5 mb-2 overflow-hidden">
               {card.image_url && <img src={card.image_url} alt={card.title} className="w-full h-full object-cover" />}
             </div>
             <h3 className="text-xs font-medium line-clamp-2 mb-2 min-h-[2rem]">{card.title || card.text}</h3>
             
-            <div className="text-xs opacity-70 mb-1">Suggested: £{card.price?.toFixed(2) || '0.00'}</div>
+            <div className="text-[10px] opacity-70 mb-1">Suggested: £{card.price?.toFixed(2) || '0.00'}</div>
             
             <input
               type="number"
               step="0.01"
               min="0"
-              placeholder="Adjust price (£)"
+              placeholder="Adjust price"
               value={prices[card.id] || ''}
               onChange={(e) => setPrices(prev => ({ ...prev, [card.id]: e.target.value }))}
-              className="w-full px-2 py-1.5 border rounded-lg text-sm mb-2"
+              className="w-full px-1.5 py-1 border rounded text-[11px] mb-1"
             />
             <button
               onClick={() => approveCard(card.id)}
               disabled={updating === card.id || !prices[card.id]}
-              className="w-full px-2 py-1.5 rounded-lg bg-primary text-white text-xs hover:opacity-90 disabled:opacity-50"
+              className="w-full px-2 py-1 rounded bg-primary text-white text-[10px] hover:opacity-90 disabled:opacity-50 mb-1"
             >
-              {updating === card.id ? 'Approving...' : 'Approve'}
+              {updating === card.id ? '...' : 'Approve'}
             </button>
+            <button
+              onClick={() => requestBack(card.id)}
+              className="w-full px-2 py-1 rounded bg-red-50 border border-red-200 text-red-700 text-[10px] hover:bg-red-100"
+            >
+              Remove
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ===== STORED CARDS TAB ===== */
+function StoredCardsTab() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const [orders, setOrders] = useState<Order[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    if (!user) return
+    async function fetchStoredOrders() {
+      const { data } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          order_items(
+            id,
+            card:cards(id, title, image_url, price)
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'stored')
+        .order('created_at', { ascending: false })
+      
+      setOrders(data || [])
+      setLoading(false)
+    }
+    fetchStoredOrders()
+  }, [user])
+
+  const toggleOrder = (orderId: string) => {
+    setSelectedOrders(prev => {
+      const next = new Set(prev)
+      if (next.has(orderId)) {
+        next.delete(orderId)
+      } else {
+        next.add(orderId)
+      }
+      return next
+    })
+  }
+
+  const toggleAll = () => {
+    if (selectedOrders.size === orders.length) {
+      setSelectedOrders(new Set())
+    } else {
+      setSelectedOrders(new Set(orders.map(o => o.id)))
+    }
+  }
+
+  const shipSelected = () => {
+    if (selectedOrders.size === 0) {
+      alert('Please select cards to ship')
+      return
+    }
+    // TODO: Navigate to shipping page with selected orders
+    alert(`Shipping ${selectedOrders.size} order(s)...`)
+  }
+
+  if (loading) return <div className="text-center py-8 opacity-70">Loading...</div>
+
+  if (orders.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <p className="opacity-70 mb-4">No stored cards.</p>
+        <p className="text-sm opacity-60">Cards you choose to store will appear here.</p>
+      </div>
+    )
+  }
+
+  const totalCards = orders.reduce((sum, order) => sum + (order.order_items?.length || 0), 0)
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-header text-lg">Stored Cards</h2>
+          <p className="text-sm opacity-70">{totalCards} cards waiting to ship</p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={toggleAll}
+            className="px-4 py-2 rounded-xl border border-black/10 text-sm hover:bg-black/5"
+          >
+            {selectedOrders.size === orders.length ? 'Deselect All' : 'Select All'}
+          </button>
+          <button
+            onClick={shipSelected}
+            disabled={selectedOrders.size === 0}
+            className="px-4 py-2 rounded-xl bg-primary text-white text-sm hover:opacity-90 disabled:opacity-50"
+          >
+            Ship Selected ({selectedOrders.size})
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {orders.map((order) => (
+          <div key={order.id} className="p-4 rounded-xl border border-black/5 hover:shadow-md transition">
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                checked={selectedOrders.has(order.id)}
+                onChange={() => toggleOrder(order.id)}
+                className="mt-1"
+              />
+              <div className="flex-1">
+                <div className="font-medium mb-2">
+                  Order #{order.id.slice(0, 8)} • {order.order_items?.length || 0} cards
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                  {order.order_items?.map((item: any) => (
+                    <div key={item.id} className="rounded-lg border border-black/5 p-2">
+                      <div className="aspect-[3/4] rounded bg-black/5 mb-1 overflow-hidden">
+                        {item.card?.image_url && (
+                          <img src={item.card.image_url} alt={item.card.title} className="w-full h-full object-cover" />
+                        )}
+                      </div>
+                      <div className="text-[10px] truncate">{item.card?.title}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         ))}
       </div>
@@ -432,7 +723,6 @@ function OrdersTab() {
     return (
       <div className="text-center py-12">
         <p className="opacity-70 mb-4">No orders yet.</p>
-        <p className="text-sm opacity-60">Start shopping to see your orders here!</p>
       </div>
     )
   }
@@ -463,11 +753,6 @@ function OrdersTab() {
                 }`}>
                   {order.status}
                 </span>
-                {order.shipping_method === 'store' && order.status === 'stored' && (
-                  <button className="block mt-2 text-xs text-primary hover:underline">
-                    Ship Now
-                  </button>
-                )}
               </div>
             </div>
           </div>
@@ -480,6 +765,8 @@ function OrdersTab() {
 /* ===== WISHLIST TAB ===== */
 function WishlistTab() {
   const { user } = useAuth()
+  const { addItem } = useBasket()
+  const navigate = useNavigate()
   const [items, setItems] = useState<WishlistItem[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -512,6 +799,23 @@ function WishlistTab() {
     }
   }
 
+  const buyAll = () => {
+    if (items.length === 0) return
+    
+    // Add all wishlist items to basket
+    items.forEach(item => {
+      addItem({
+        id: item.card.id,
+        title: item.card.title,
+        price: item.card.price,
+        image_url: item.card.image_url,
+      })
+    })
+    
+    // Navigate to checkout
+    navigate('/checkout')
+  }
+
   if (loading) return <div className="text-center py-8 opacity-70">Loading...</div>
 
   if (items.length === 0) {
@@ -523,11 +827,24 @@ function WishlistTab() {
     )
   }
 
+  const total = items.reduce((sum, item) => sum + (item.card.price || 0), 0)
+
   return (
     <div className="space-y-4">
-      <h2 className="font-header text-lg">Your Wishlist ({items.length})</h2>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-header text-lg">Your Wishlist ({items.length})</h2>
+          <p className="text-sm opacity-70">Total: £{total.toFixed(2)}</p>
+        </div>
+        <button
+          onClick={buyAll}
+          className="px-4 py-2 rounded-xl bg-primary text-white hover:opacity-90"
+        >
+          Buy All ({items.length})
+        </button>
+      </div>
       
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {items.map((item) => (
           <div key={item.id} className="rounded-xl border border-black/5 p-3 hover:shadow-md transition group">
             <div className="aspect-[3/4] rounded-lg bg-black/5 mb-2 overflow-hidden">
@@ -537,12 +854,22 @@ function WishlistTab() {
             <div className="text-sm font-header mb-2">£{item.card.price?.toFixed(2)}</div>
             
             <div className="flex gap-2">
-              <button className="flex-1 px-3 py-1 rounded-lg bg-primary text-white text-sm hover:opacity-90">
+              <button
+                onClick={() => {
+                  addItem({
+                    id: item.card.id,
+                    title: item.card.title,
+                    price: item.card.price,
+                    image_url: item.card.image_url,
+                  })
+                }}
+                className="flex-1 px-3 py-1 rounded-lg bg-primary text-white text-sm hover:opacity-90"
+              >
                 Add to Basket
               </button>
               <button
                 onClick={() => removeItem(item.id)}
-                className="px-3 py-1 rounded-lg border border-black/10 text-sm hover:bg-black/5"
+                className="px-3 py-1 rounded-lg border border-red-300 bg-red-50 text-red-700 text-sm hover:bg-red-100"
                 title="Remove from wishlist"
               >
                 ♥
