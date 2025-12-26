@@ -7,16 +7,14 @@ import MiniCartDrawer from '@/components/MiniCartDrawer'
 
 export default function App() {
   const { pathname } = useLocation()
-
-  const showSidebar =
-    pathname.startsWith('/account') ||
-    pathname.startsWith('/auctions')
-
+  
+  // Only show sidebar for auction pages now (removed account pages)
+  const showSidebar = pathname.startsWith('/auctions')
+  
   return (
     <div className="min-h-screen bg-background text-foreground">
       <ScrollToTop />
       <Header />
-
       <div className="max-w-7xl mx-auto px-4">
         {showSidebar ? (
           <div className="flex gap-6">
@@ -31,10 +29,7 @@ export default function App() {
           </main>
         )}
       </div>
-
       <Footer />
-
-      {/* 🔽 Global mini-cart drawer (no launcher button here) */}
       <MiniCartDrawer />
     </div>
   )
