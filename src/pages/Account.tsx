@@ -222,8 +222,6 @@ function LiveCardsTab() {
   useEffect(() => {
     if (!user) return
     async function fetchCards() {
-      // TODO: Add view_count and wishlist_count to cards table
-      // For now we'll show placeholder data
       const { data } = await supabase
         .from('cards')
         .select('*')
@@ -231,11 +229,7 @@ function LiveCardsTab() {
         .eq('status', 'live')
         .order('created_at', { ascending: false })
       
-      setCards((data || []).map(card => ({
-        ...card,
-        view_count: Math.floor(Math.random() * 50), // Placeholder
-        wishlist_count: Math.floor(Math.random() * 10), // Placeholder
-      })))
+      setCards(data || [])
       setLoading(false)
     }
     fetchCards()
