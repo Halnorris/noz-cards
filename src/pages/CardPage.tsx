@@ -33,10 +33,12 @@ type SimpleCard = {
 export default function CardPage() {
   const { id } = useParams<{ id: string }>()
   const { addItem } = useBasket()
+  const { user } = useAuth()
   const [card, setCard] = useState<Card | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [wishlisted, setWishlisted] = useState(false)
+  const [wishlistId, setWishlistId] = useState<string | null>(null)
 
   // Offer modal
   const [offerOpen, setOfferOpen] = useState(false)
@@ -80,6 +82,29 @@ export default function CardPage() {
     }
     fetchCard()
   }, [id])
+
+  // Check if card is wishlisted
+  useEffect(() => {
+    async function checkWishlist() {
+      if (!user || !id) return
+
+      const { data } = await supabase
+        .from('wishlists')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('card_id', id)
+        .single()
+
+      if (data) {
+        setWishlisted(true)
+        setWishlistId(data.id)
+      } else {
+        setWishlisted(false)
+        setWishlistId(null)
+      }
+    }
+    checkWishlist()
+  }, [user, id])
 
   // Build images array
   const images = useMemo(() => {
@@ -143,8 +168,43 @@ export default function CardPage() {
   }
 
   function handleToggleWishlist() {
-    setWishlisted((w) => !w)
-    // TODO: persist to Supabase when auth is in
+    if (!user) {
+      alert('Please sign in to add cards to your wishlist')
+      navigate('/signin')
+      return
+    }
+
+    if (!card) return
+
+    if (wishlisted && wishlistId) {
+      // Remove from wishlist
+      supabase
+        .from('wishlists')
+        .delete()
+        .eq('id', wishlistId)
+        .then(({ error }) => {
+          if (!error) {
+            setWishlisted(false)
+            setWishlistId(null)
+          }
+        })
+    } else {
+      // Add to wishlist
+      supabase
+        .from('wishlists')
+        .insert({
+          user_id: user.id,
+          card_id: card.id,
+        })
+        .select('id')
+        .single()
+        .then(({ data, error }) => {
+          if (!error && data) {
+            setWishlisted(true)
+            setWishlistId(data.id)
+          }
+        })
+    }
   }
 
   async function handleCopyTitle() {
