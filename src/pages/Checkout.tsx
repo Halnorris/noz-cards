@@ -7,7 +7,7 @@ type ShippingMethod = 'ship_now' | 'store'
 
 export default function Checkout() {
   const navigate = useNavigate()
-  const { items, clear, removeItem, setQty } = useBasket()
+  const { items, clear, removeItem } = useBasket()
   const { user } = useAuth()
 
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>('ship_now')
@@ -26,7 +26,7 @@ export default function Checkout() {
   })
 
   const subtotal = useMemo(
-    () => items.reduce((s, it) => s + (it.qty * (it.price ?? 0)), 0),
+    () => items.reduce((s, it) => s + (it.price ?? 0), 0),
     [items]
   )
 
@@ -309,30 +309,15 @@ export default function Checkout() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">{item.title}</div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <button
-                          onClick={() => setQty(item.id, Math.max(1, item.qty - 1))}
-                          className="w-5 h-5 rounded border border-black/10 hover:bg-black/5 text-xs flex items-center justify-center"
-                        >
-                          −
-                        </button>
-                        <span className="text-xs w-6 text-center">{item.qty}</span>
-                        <button
-                          onClick={() => setQty(item.id, item.qty + 1)}
-                          className="w-5 h-5 rounded border border-black/10 hover:bg-black/5 text-xs flex items-center justify-center"
-                        >
-                          +
-                        </button>
-                        <button
-                          onClick={() => removeItem(item.id)}
-                          className="ml-auto text-xs text-red-600 hover:underline opacity-0 group-hover:opacity-100 transition"
-                        >
-                          Remove
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => removeItem(item.id)}
+                        className="text-xs text-red-600 hover:underline mt-1"
+                      >
+                        Remove
+                      </button>
                     </div>
                     <div className="text-sm font-header">
-                      £{((item.price ?? 0) * item.qty).toFixed(2)}
+                      £{(item.price ?? 0).toFixed(2)}
                     </div>
                   </div>
                 ))}
