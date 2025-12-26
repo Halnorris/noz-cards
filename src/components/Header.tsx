@@ -1,10 +1,11 @@
-import { NavLink, Link } from 'react-router-dom'
+import { NavLink, Link, useNavigate } from 'react-router-dom'
 import { useBasket } from '@/context/basket'
 import { useAuth } from '@/context/auth'
 
 export default function Header() {
   const { count, openMiniCart } = useBasket()
   const { user, signOut } = useAuth()
+  const navigate = useNavigate()
   
   const linkBase = 'px-3 py-1 rounded-full text-sm transition'
   const linkInactive = 'hover:bg-black/5'
@@ -69,7 +70,7 @@ export default function Header() {
           )}
           
           <button
-            onClick={() => navigate('/basket')}
+            onClick={openMiniCart}
             aria-label="Basket"
             className="relative p-2 rounded-lg border border-black/10 hover:bg-black/5"
           >
