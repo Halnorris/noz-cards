@@ -270,20 +270,23 @@ function LiveCardsTab() {
             </div>
             <h3 className="text-xs font-medium line-clamp-2 mb-2 min-h-[2rem]">{card.title || card.text}</h3>
             
-            <div className="flex gap-1 items-center mb-2">
+            <div className="text-[10px] opacity-70 mb-1">Current: £{card.price?.toFixed(2) || '0.00'}</div>
+            
+            <div className="flex gap-1 items-center">
               <input
                 type="number"
                 step="0.01"
                 min="0"
-                placeholder={`£${card.price?.toFixed(2) || '0.00'}`}
+                placeholder="New price"
                 value={editingPrice[card.id] || ''}
                 onChange={(e) => setEditingPrice(prev => ({ ...prev, [card.id]: e.target.value }))}
-                className="flex-1 px-2 py-1 border rounded-lg text-xs"
+                className="flex-1 min-w-0 px-1.5 py-1 border rounded text-[11px]"
               />
               <button
                 onClick={() => updatePrice(card.id)}
                 disabled={updating === card.id || !editingPrice[card.id]}
-                className="px-2 py-1 rounded-lg bg-primary text-white text-xs hover:opacity-90 disabled:opacity-50"
+                className="shrink-0 w-6 h-6 rounded bg-primary text-white text-xs hover:opacity-90 disabled:opacity-50 flex items-center justify-center"
+                title="Update price"
               >
                 {updating === card.id ? '...' : '✓'}
               </button>
