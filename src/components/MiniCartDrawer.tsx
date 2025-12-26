@@ -3,10 +3,10 @@ import { useBasket } from '@/context/basket'
 import { useMemo } from 'react'
 
 export default function MiniCartDrawer() {
-  const { items, miniCartOpen, closeMiniCart, removeItem, setQty } = useBasket()
+  const { items, miniCartOpen, closeMiniCart, removeItem } = useBasket()
 
   const subtotal = useMemo(
-    () => items.reduce((s, it) => s + (it.qty * (it.price ?? 0)), 0),
+    () => items.reduce((s, it) => s + (it.price ?? 0), 0),
     [items]
   )
 
@@ -24,7 +24,7 @@ export default function MiniCartDrawer() {
       <div className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white z-50 shadow-2xl flex flex-col animate-slideInRight">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-black/10">
-          <h2 className="font-header text-xl">Your Basket</h2>
+          <h2 className="font-header text-xl">Your Basket ({items.length})</h2>
           <button
             onClick={closeMiniCart}
             className="w-8 h-8 rounded-lg hover:bg-black/5 flex items-center justify-center"
@@ -79,36 +79,15 @@ export default function MiniCartDrawer() {
                     >
                       {item.title}
                     </Link>
-                    <div className="text-xs opacity-70 mt-0.5">
-                      £{(item.price ?? 0).toFixed(2)} each
+                    <div className="text-sm font-header mt-1">
+                      £{(item.price ?? 0).toFixed(2)}
                     </div>
-
-                    {/* Quantity controls */}
-                    <div className="flex items-center gap-2 mt-2">
-                      <button
-                        onClick={() => setQty(item.id, Math.max(1, item.qty - 1))}
-                        className="w-6 h-6 rounded-lg border border-black/10 hover:bg-black/5 flex items-center justify-center text-sm"
-                      >
-                        −
-                      </button>
-                      <span className="text-sm w-8 text-center font-medium">{item.qty}</span>
-                      <button
-                        onClick={() => setQty(item.id, item.qty + 1)}
-                        className="w-6 h-6 rounded-lg border border-black/10 hover:bg-black/5 flex items-center justify-center text-sm"
-                      >
-                        +
-                      </button>
-                      <button
-                        onClick={() => removeItem(item.id)}
-                        className="ml-auto text-xs text-red-600 hover:underline opacity-0 group-hover:opacity-100 transition"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="text-sm font-header shrink-0">
-                    £{((item.price ?? 0) * item.qty).toFixed(2)}
+                    <button
+                      onClick={() => removeItem(item.id)}
+                      className="text-xs text-red-600 hover:underline mt-1"
+                    >
+                      Remove
+                    </button>
                   </div>
                 </div>
               ))}
@@ -117,7 +96,7 @@ export default function MiniCartDrawer() {
             {/* Footer */}
             <div className="border-t border-black/10 p-4 space-y-3">
               <div className="flex items-center justify-between text-sm">
-                <span className="opacity-70">Subtotal</span>
+                <span className="opacity-70">Subtotal ({items.length} {items.length === 1 ? 'card' : 'cards'})</span>
                 <span className="font-header text-lg">£{subtotal.toFixed(2)}</span>
               </div>
 
