@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useBasket } from '@/context/basket'
-import { useAuth } from '@/context/auth'
 
 type Card = {
   id: string
@@ -78,6 +77,13 @@ export default function CardPage() {
       } else {
         setCard(data as Card)
         setActiveIndex(0)
+        
+        // Increment view count
+        supabase
+          .from('cards')
+          .update({ view_count: (data.view_count || 0) + 1 })
+          .eq('id', id)
+          .then(() => {})
       }
       setLoading(false)
     }
