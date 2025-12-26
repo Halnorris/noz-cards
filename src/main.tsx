@@ -22,6 +22,7 @@ import Returns from '@/pages/legal/Returns'
 import Consignment from '@/pages/legal/Consignment'
 import Contact from '@/pages/legal/Contact'
 import SignIn from '@/pages/SignIn'
+import Checkout from '@/pages/Checkout'
 
 // Providers
 import { BasketProvider } from '@/context/basket'
