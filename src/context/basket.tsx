@@ -13,7 +13,6 @@ type BasketCtx = {
   count: number
   addItem: (item: Omit<BasketItem, 'qty'>, qty?: number) => void
   removeItem: (id: string) => void
-  setQty: (id: string, qty: number) => void
   clear: () => void
   openMiniCart: () => void
   closeMiniCart: () => void
@@ -46,12 +45,12 @@ export function BasketProvider({ children }: { children: React.ReactNode }) {
   const addItem = (item: Omit<BasketItem, 'qty'>, qty = 1) => {
     setItems((prev) => {
       const idx = prev.findIndex((p) => p.id === item.id)
+      // If item already exists, don't add it again (can't have 2 of the same card)
       if (idx !== -1) {
-        const next = [...prev]
-        next[idx] = { ...next[idx], qty: next[idx].qty + qty }
-        return next
+        return prev
       }
-      return [...prev, { ...item, qty }]
+      // Always add with qty=1 since cards are unique
+      return [...prev, { ...item, qty: 1 }]
     })
     // Auto-open mini cart when item is added
     setMiniCartOpen(true)
@@ -59,26 +58,12 @@ export function BasketProvider({ children }: { children: React.ReactNode }) {
 
   const removeItem = (id: string) => setItems((prev) => prev.filter((p) => p.id !== id))
 
-  const setQty = (id: string, qty: number) => {
-    if (qty < 1) {
-      removeItem(id)
-      return
-    }
-    setItems((prev) => {
-      const idx = prev.findIndex((p) => p.id === id)
-      if (idx === -1) return prev
-      const next = [...prev]
-      next[idx] = { ...next[idx], qty }
-      return next
-    })
-  }
-
   const clear = () => setItems([])
 
   const openMiniCart = () => setMiniCartOpen(true)
   const closeMiniCart = () => setMiniCartOpen(false)
 
-  const count = useMemo(() => items.reduce((t, i) => t + i.qty, 0), [items])
+  const count = useMemo(() => items.length, [items])
 
   const value = useMemo(
     () => ({ 
@@ -86,7 +71,6 @@ export function BasketProvider({ children }: { children: React.ReactNode }) {
       count, 
       addItem, 
       removeItem, 
-      setQty, 
       clear, 
       openMiniCart, 
       closeMiniCart, 
