@@ -18,17 +18,17 @@ function formatPrice(n: number | null | undefined) {
 
 export default function BasketPage() {
   const navigate = useNavigate()
-  const { items = [], removeItem, setQty, clear } = useBasket()
+  const { items = [], removeItem, clear } = useBasket()
 
   const subtotal = useMemo(
-    () => items.reduce((s: number, it: BasketItem) => s + (it.qty * (it.price ?? 0)), 0),
+    () => items.reduce((s: number, it: BasketItem) => s + (it.price ?? 0), 0),
     [items]
   )
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="font-header text-2xl">Your Basket</h1>
+        <h1 className="font-header text-2xl">Your Basket ({items.length})</h1>
         <Link to="/marketplace" className="underline text-sm">Continue shopping</Link>
       </div>
 
@@ -45,53 +45,29 @@ export default function BasketPage() {
           <div className="space-y-3">
             {items.map((it) => (
               <div key={it.id} className="rounded-2xl bg-white p-3 border border-black/5 shadow-soft flex gap-3">
-                <div className="w-20 h-20 rounded-xl overflow-hidden bg-black/5 border border-black/10">
+                <Link to={`/card/${it.id}`} className="w-20 h-20 rounded-xl overflow-hidden bg-black/5 border border-black/10">
                   {it.image_url ? (
                     <img src={it.image_url} alt={it.title} className="w-full h-full object-cover" />
                   ) : null}
-                </div>
+                </Link>
 
                 <div className="flex-1 min-w-0">
-                  <Link to={`/card/${it.id}`} className="font-medium text-sm hover:underline truncate">
+                  <Link to={`/card/${it.id}`} className="font-medium text-sm hover:underline block truncate">
                     {it.title}
                   </Link>
-                  <div className="text-xs opacity-70">{formatPrice(it.price)}</div>
+                  <div className="text-sm font-header mt-1">{formatPrice(it.price)}</div>
 
-                  <div className="mt-2 flex items-center gap-2">
-                    {/* Qty control */}
-                    <div className="flex items-center gap-1">
-                      <button
-                        className="px-2 py-1 rounded-lg border border-black/10 hover:bg-black/5 text-xs"
-                        onClick={() => setQty?.(it.id, Math.max(1, it.qty - 1))}
-                        disabled={!setQty}
-                        title={setQty ? 'Decrease' : 'Qty editing coming soon'}
-                      >
-                        −
-                      </button>
-                      <span className="text-sm w-8 text-center">{it.qty}</span>
-                      <button
-                        className="px-2 py-1 rounded-lg border border-black/10 hover:bg-black/5 text-xs"
-                        onClick={() => setQty?.(it.id, it.qty + 1)}
-                        disabled={!setQty}
-                        title={setQty ? 'Increase' : 'Qty editing coming soon'}
-                      >
-                        +
-                      </button>
-                    </div>
-
-                    <button
-                      className="ml-2 text-xs px-2 py-1 rounded-lg border border-black/10 hover:bg-black/5"
-                      onClick={() => removeItem?.(it.id)}
-                      disabled={!removeItem}
-                      title={removeItem ? 'Remove' : 'Remove coming soon'}
-                    >
-                      Remove
-                    </button>
-                  </div>
+                  <button
+                    className="mt-2 text-xs text-red-600 hover:underline"
+                    onClick={() => removeItem?.(it.id)}
+                    disabled={!removeItem}
+                  >
+                    Remove
+                  </button>
                 </div>
 
                 <div className="text-sm font-header">
-                  {formatPrice((it.price ?? 0) * it.qty)}
+                  {formatPrice(it.price)}
                 </div>
               </div>
             ))}
@@ -102,7 +78,7 @@ export default function BasketPage() {
             <div className="text-lg font-header">Order Summary</div>
             <div className="mt-2 space-y-2 text-sm">
               <div className="flex items-center justify-between">
-                <span className="opacity-70">Subtotal</span>
+                <span className="opacity-70">Subtotal ({items.length} {items.length === 1 ? 'card' : 'cards'})</span>
                 <span className="font-header">{formatPrice(subtotal)}</span>
               </div>
               <div className="flex items-center justify-between">
