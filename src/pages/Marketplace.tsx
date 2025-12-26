@@ -495,7 +495,7 @@ export default function Marketplace() {
                       to={`/card/${card.id}`}
                       className="group rounded-2xl bg-white p-3 shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition block"
                     >
-                      <div className={`${aspect} rounded-xl bg-black/5 mb-2 border border-black/10 overflow-hidden`}>
+                      <div className={`${aspect} rounded-xl bg-black/5 mb-2 border border-black/10 overflow-hidden relative`}>
                         {card.image_url && (
                           <img
                             src={card.image_url}
@@ -503,6 +503,20 @@ export default function Marketplace() {
                             loading="lazy"
                             className="object-cover w-full h-full"
                           />
+                        )}
+                        {(card.view_count > 0 || card.wishlist_count > 0) && (
+                          <div className="absolute top-1 right-1 flex gap-1">
+                            {card.view_count > 0 && (
+                              <span className="px-1.5 py-0.5 rounded bg-black/60 text-white text-[9px]">
+                                👁 {card.view_count}
+                              </span>
+                            )}
+                            {card.wishlist_count > 0 && (
+                              <span className="px-1.5 py-0.5 rounded bg-black/60 text-white text-[9px]">
+                                ♥ {card.wishlist_count}
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
                       <h3 className="text-xs font-medium leading-snug line-clamp-2 min-h-[2.25rem]">
