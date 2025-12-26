@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/auth'
 import { useBasket } from '@/context/basket'
 
-type Tab = 'dashboard' | 'live' | 'pending' | 'stored' | 'orders' | 'wishlist' | 'submit'
+type Tab = 'dashboard' | 'live' | 'pending' | 'stored' | 'orders' | 'wishlist' | 'settings' | 'submit'
 
 type Card = {
   id: string
@@ -98,6 +98,7 @@ export default function Account() {
     { id: 'stored', label: 'Stored Cards', count: stats.storedCount },
     { id: 'orders', label: 'Orders', count: stats.ordersCount },
     { id: 'wishlist', label: 'Wishlist', count: stats.wishlistCount },
+    { id: 'settings', label: 'Settings' },
     { id: 'submit', label: 'Submit Cards' },
   ]
 
@@ -162,6 +163,7 @@ export default function Account() {
         {activeTab === 'stored' && <StoredCardsTab />}
         {activeTab === 'orders' && <OrdersTab />}
         {activeTab === 'wishlist' && <WishlistTab />}
+        {activeTab === 'settings' && <SettingsTab />}
         {activeTab === 'submit' && <SubmitCardsTab />}
       </div>
     </div>
@@ -878,6 +880,283 @@ function WishlistTab() {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+/* ===== SETTINGS TAB ===== */
+function SettingsTab() {
+  const { user } = useAuth()
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  
+  // Profile data
+  const [profile, setProfile] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address_line1: '',
+    address_line2: '',
+    city: '',
+    postcode: '',
+    country: 'United Kingdom',
+  })
+
+  // Password change
+  const [passwords, setPasswords] = useState({
+    current: '',
+    new: '',
+    confirm: '',
+  })
+  const [passwordError, setPasswordError] = useState('')
+
+  useEffect(() => {
+    if (!user) return
+    async function fetchProfile() {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+      
+      if (data) {
+        setProfile({
+          name: data.name || '',
+          email: data.email || user.email || '',
+          phone: data.phone || '',
+          address_line1: data.address_line1 || '',
+          address_line2: data.address_line2 || '',
+          city: data.city || '',
+          postcode: data.postcode || '',
+          country: data.country || 'United Kingdom',
+        })
+      }
+      setLoading(false)
+    }
+    fetchProfile()
+  }, [user])
+
+  const saveProfile = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        name: profile.name,
+        phone: profile.phone || null,
+        address_line1: profile.address_line1,
+        address_line2: profile.address_line2 || null,
+        city: profile.city,
+        postcode: profile.postcode,
+        country: profile.country,
+      })
+      .eq('id', user!.id)
+
+    setSaving(false)
+    if (!error) {
+      alert('Profile updated successfully!')
+    } else {
+      alert('Failed to update profile')
+    }
+  }
+
+  const changePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPasswordError('')
+
+    if (passwords.new !== passwords.confirm) {
+      setPasswordError('New passwords do not match')
+      return
+    }
+
+    if (passwords.new.length < 6) {
+      setPasswordError('Password must be at least 6 characters')
+      return
+    }
+
+    setSaving(true)
+    const { error } = await supabase.auth.updateUser({
+      password: passwords.new
+    })
+
+    setSaving(false)
+    if (!error) {
+      alert('Password changed successfully!')
+      setPasswords({ current: '', new: '', confirm: '' })
+    } else {
+      setPasswordError(error.message)
+    }
+  }
+
+  if (loading) return <div className="text-center py-8 opacity-70">Loading...</div>
+
+  return (
+    <div className="max-w-3xl space-y-8">
+      <div>
+        <h2 className="font-header text-xl mb-2">Account Settings</h2>
+        <p className="text-sm opacity-70">Manage your profile and preferences</p>
+      </div>
+
+      {/* Profile Information */}
+      <form onSubmit={saveProfile} className="space-y-6">
+        <div className="p-6 rounded-xl border border-black/5 bg-black/[0.02] space-y-4">
+          <h3 className="font-header text-lg">Profile Information</h3>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Name *</label>
+              <input
+                type="text"
+                required
+                value={profile.name}
+                onChange={(e) => setProfile(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full px-3 py-2 border rounded-xl"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Email</label>
+              <input
+                type="email"
+                value={profile.email}
+                disabled
+                className="w-full px-3 py-2 border rounded-xl bg-black/5 opacity-70"
+              />
+              <p className="text-xs opacity-60 mt-1">Email cannot be changed here</p>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Phone (optional)</label>
+            <input
+              type="tel"
+              value={profile.phone}
+              onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
+              className="w-full px-3 py-2 border rounded-xl"
+              placeholder="07123 456789"
+            />
+          </div>
+
+          <h4 className="font-medium text-sm pt-4">Default Shipping Address</h4>
+          <p className="text-xs opacity-70">This address will be pre-filled at checkout</p>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Address Line 1 *</label>
+            <input
+              type="text"
+              required
+              value={profile.address_line1}
+              onChange={(e) => setProfile(prev => ({ ...prev, address_line1: e.target.value }))}
+              className="w-full px-3 py-2 border rounded-xl"
+              placeholder="123 High Street"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Address Line 2</label>
+            <input
+              type="text"
+              value={profile.address_line2}
+              onChange={(e) => setProfile(prev => ({ ...prev, address_line2: e.target.value }))}
+              className="w-full px-3 py-2 border rounded-xl"
+              placeholder="Apartment, suite, etc."
+            />
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">City *</label>
+              <input
+                type="text"
+                required
+                value={profile.city}
+                onChange={(e) => setProfile(prev => ({ ...prev, city: e.target.value }))}
+                className="w-full px-3 py-2 border rounded-xl"
+                placeholder="London"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Postcode *</label>
+              <input
+                type="text"
+                required
+                value={profile.postcode}
+                onChange={(e) => setProfile(prev => ({ ...prev, postcode: e.target.value }))}
+                className="w-full px-3 py-2 border rounded-xl"
+                placeholder="SW1A 1AA"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Country *</label>
+            <select
+              required
+              value={profile.country}
+              onChange={(e) => setProfile(prev => ({ ...prev, country: e.target.value }))}
+              className="w-full px-3 py-2 border rounded-xl bg-white"
+            >
+              <option value="United Kingdom">United Kingdom</option>
+              <option value="Ireland">Ireland</option>
+            </select>
+          </div>
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="px-6 py-2 rounded-xl bg-primary text-white hover:opacity-90 disabled:opacity-50"
+          >
+            {saving ? 'Saving...' : 'Save Profile'}
+          </button>
+        </div>
+      </form>
+
+      {/* Change Password */}
+      <form onSubmit={changePassword} className="p-6 rounded-xl border border-black/5 bg-black/[0.02] space-y-4">
+        <h3 className="font-header text-lg">Change Password</h3>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">New Password *</label>
+          <input
+            type="password"
+            required
+            minLength={6}
+            value={passwords.new}
+            onChange={(e) => setPasswords(prev => ({ ...prev, new: e.target.value }))}
+            className="w-full px-3 py-2 border rounded-xl"
+            placeholder="At least 6 characters"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Confirm New Password *</label>
+          <input
+            type="password"
+            required
+            minLength={6}
+            value={passwords.confirm}
+            onChange={(e) => setPasswords(prev => ({ ...prev, confirm: e.target.value }))}
+            className="w-full px-3 py-2 border rounded-xl"
+            placeholder="Re-enter new password"
+          />
+        </div>
+
+        {passwordError && (
+          <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+            {passwordError}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={saving}
+          className="px-6 py-2 rounded-xl bg-primary text-white hover:opacity-90 disabled:opacity-50"
+        >
+          {saving ? 'Changing...' : 'Change Password'}
+        </button>
+      </form>
     </div>
   )
 }
