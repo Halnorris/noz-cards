@@ -69,7 +69,7 @@ export default function Header() {
           )}
           
           <button
-            onClick={openMiniCart}
+            onClick={() => navigate('/basket')}
             aria-label="Basket"
             className="relative p-2 rounded-lg border border-black/10 hover:bg-black/5"
           >
