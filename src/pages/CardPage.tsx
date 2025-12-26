@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useBasket } from '@/context/basket'
+import { useAuth } from '@/context/auth'
 
 type Card = {
   id: string
