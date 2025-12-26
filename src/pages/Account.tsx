@@ -846,16 +846,16 @@ function WishlistTab() {
         </button>
       </div>
       
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
         {items.map((item) => (
-          <div key={item.id} className="rounded-xl border border-black/5 p-3 hover:shadow-md transition group">
+          <div key={item.id} className="rounded-xl border border-black/5 p-2 hover:shadow-md transition group">
             <div className="aspect-[3/4] rounded-lg bg-black/5 mb-2 overflow-hidden">
               {item.card.image_url && <img src={item.card.image_url} alt={item.card.title} className="w-full h-full object-cover" />}
             </div>
-            <h3 className="text-sm font-medium line-clamp-2 mb-1">{item.card.title}</h3>
+            <h3 className="text-xs font-medium line-clamp-2 mb-2 min-h-[2rem]">{item.card.title}</h3>
             <div className="text-sm font-header mb-2">£{item.card.price?.toFixed(2)}</div>
             
-            <div className="flex gap-2">
+            <div className="flex gap-1">
               <button
                 onClick={() => {
                   addItem({
@@ -865,13 +865,13 @@ function WishlistTab() {
                     image_url: item.card.image_url,
                   })
                 }}
-                className="flex-1 px-3 py-1 rounded-lg bg-primary text-white text-sm hover:opacity-90"
+                className="flex-1 px-2 py-1 rounded-lg bg-primary text-white text-[10px] hover:opacity-90"
               >
                 Add to Basket
               </button>
               <button
                 onClick={() => removeItem(item.id)}
-                className="px-3 py-1 rounded-lg border border-red-300 bg-red-50 text-red-700 text-sm hover:bg-red-100"
+                className="px-2 py-1 rounded-lg border border-red-300 bg-red-50 text-red-700 text-xs hover:bg-red-100"
                 title="Remove from wishlist"
               >
                 ♥
