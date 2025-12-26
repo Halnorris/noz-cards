@@ -116,8 +116,17 @@ export default function CardPage() {
   }, [card])
 
   function handleBuyNow() {
-    // TODO: route to /checkout or Stripe Checkout
-    console.log('Buy Now', card?.id)
+    if (!card) return
+    addItem(
+      {
+        id: card.id,
+        title: card.title ?? 'Card',
+        price: card.price,
+        image_url: (card.image_url ?? card.image_back_url) ?? null,
+      },
+      1
+    )
+    navigate('/checkout')
   }
 
   function handleAddToBasket() {
