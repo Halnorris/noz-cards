@@ -262,15 +262,15 @@ function LiveCardsTab() {
         <h2 className="font-header text-lg">Your Live Cards ({cards.length})</h2>
       </div>
       
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
         {cards.map((card) => (
-          <div key={card.id} className="rounded-xl border border-black/5 p-3 hover:shadow-md transition">
+          <div key={card.id} className="rounded-xl border border-black/5 p-2 hover:shadow-md transition">
             <div className="aspect-[3/4] rounded-lg bg-black/5 mb-2 overflow-hidden">
               {card.image_url && <img src={card.image_url} alt={card.title} className="w-full h-full object-cover" />}
             </div>
-            <h3 className="text-sm font-medium line-clamp-2 mb-2">{card.title || card.text}</h3>
+            <h3 className="text-xs font-medium line-clamp-2 mb-2 min-h-[2rem]">{card.title || card.text}</h3>
             
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-1 items-center mb-2">
               <input
                 type="number"
                 step="0.01"
@@ -278,14 +278,14 @@ function LiveCardsTab() {
                 placeholder={`£${card.price?.toFixed(2) || '0.00'}`}
                 value={editingPrice[card.id] || ''}
                 onChange={(e) => setEditingPrice(prev => ({ ...prev, [card.id]: e.target.value }))}
-                className="flex-1 px-2 py-1 border rounded-lg text-sm"
+                className="flex-1 px-2 py-1 border rounded-lg text-xs"
               />
               <button
                 onClick={() => updatePrice(card.id)}
                 disabled={updating === card.id || !editingPrice[card.id]}
-                className="px-3 py-1 rounded-lg bg-primary text-white text-sm hover:opacity-90 disabled:opacity-50"
+                className="px-2 py-1 rounded-lg bg-primary text-white text-xs hover:opacity-90 disabled:opacity-50"
               >
-                {updating === card.id ? '...' : 'Update'}
+                {updating === card.id ? '...' : '✓'}
               </button>
             </div>
           </div>
@@ -314,6 +314,14 @@ function PendingCardsTab() {
         .order('created_at', { ascending: false })
       
       setCards(data || [])
+      // Pre-fill prices with existing values
+      const initialPrices: { [key: string]: string } = {}
+      data?.forEach(card => {
+        if (card.price) {
+          initialPrices[card.id] = card.price.toString()
+        }
+      })
+      setPrices(initialPrices)
       setLoading(false)
     }
     fetchCards()
@@ -353,31 +361,33 @@ function PendingCardsTab() {
   return (
     <div className="space-y-4">
       <h2 className="font-header text-lg">Pending Approval ({cards.length})</h2>
-      <p className="text-sm opacity-70">Set prices for these cards to make them live on the marketplace.</p>
+      <p className="text-sm opacity-70">Review and adjust prices, then approve to make them live.</p>
       
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
         {cards.map((card) => (
-          <div key={card.id} className="rounded-xl border border-black/5 p-3">
+          <div key={card.id} className="rounded-xl border border-black/5 p-2 hover:shadow-md transition">
             <div className="aspect-[3/4] rounded-lg bg-black/5 mb-2 overflow-hidden">
               {card.image_url && <img src={card.image_url} alt={card.title} className="w-full h-full object-cover" />}
             </div>
-            <h3 className="text-sm font-medium line-clamp-2 mb-2">{card.title || card.text}</h3>
+            <h3 className="text-xs font-medium line-clamp-2 mb-2 min-h-[2rem]">{card.title || card.text}</h3>
+            
+            <div className="text-xs opacity-70 mb-1">Suggested: £{card.price?.toFixed(2) || '0.00'}</div>
             
             <input
               type="number"
               step="0.01"
               min="0"
-              placeholder="Set price (£)"
+              placeholder="Adjust price (£)"
               value={prices[card.id] || ''}
               onChange={(e) => setPrices(prev => ({ ...prev, [card.id]: e.target.value }))}
-              className="w-full px-3 py-2 border rounded-lg mb-2"
+              className="w-full px-2 py-1.5 border rounded-lg text-sm mb-2"
             />
             <button
               onClick={() => approveCard(card.id)}
               disabled={updating === card.id || !prices[card.id]}
-              className="w-full px-3 py-2 rounded-lg bg-primary text-white hover:opacity-90 disabled:opacity-50"
+              className="w-full px-2 py-1.5 rounded-lg bg-primary text-white text-xs hover:opacity-90 disabled:opacity-50"
             >
-              {updating === card.id ? 'Approving...' : 'Approve & Go Live'}
+              {updating === card.id ? 'Approving...' : 'Approve'}
             </button>
           </div>
         ))}
