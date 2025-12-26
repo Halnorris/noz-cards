@@ -892,7 +892,7 @@ function SettingsTab() {
   
   // Profile data
   const [profile, setProfile] = useState({
-    name: '',
+    full_name: '',
     email: '',
     phone: '',
     address_line1: '',
@@ -921,7 +921,7 @@ function SettingsTab() {
       
       if (data) {
         setProfile({
-          name: data.name || '',
+          full_name: data.full_name || '',
           email: data.email || user.email || '',
           phone: data.phone || '',
           address_line1: data.address_line1 || '',
@@ -943,7 +943,7 @@ function SettingsTab() {
     const { error } = await supabase
       .from('profiles')
       .update({
-        name: profile.name,
+        full_name: profile.full_name,
         phone: profile.phone || null,
         address_line1: profile.address_line1,
         address_line2: profile.address_line2 || null,
@@ -1005,12 +1005,12 @@ function SettingsTab() {
 
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Name *</label>
+              <label className="block text-sm font-medium mb-1">Full Name *</label>
               <input
                 type="text"
                 required
-                value={profile.name}
-                onChange={(e) => setProfile(prev => ({ ...prev, name: e.target.value }))}
+                value={profile.full_name}
+                onChange={(e) => setProfile(prev => ({ ...prev, full_name: e.target.value }))}
                 className="w-full px-3 py-2 border rounded-xl"
               />
             </div>
