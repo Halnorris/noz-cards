@@ -50,6 +50,7 @@ const router = createBrowserRouter([
       { path: 'legal/contact', element: <Contact /> },
       { path: 'signin', element: <SignIn /> },
       { path: '*', element: <NotFound /> },
+      { path: 'checkout', element: <Checkout /> },
     ],
   },
 ])
