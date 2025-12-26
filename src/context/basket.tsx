@@ -13,14 +13,20 @@ type BasketCtx = {
   count: number
   addItem: (item: Omit<BasketItem, 'qty'>, qty?: number) => void
   removeItem: (id: string) => void
+  setQty: (id: string, qty: number) => void
   clear: () => void
+  openMiniCart: () => void
+  closeMiniCart: () => void
+  miniCartOpen: boolean
 }
 
 const BasketContext = createContext<BasketCtx | undefined>(undefined)
+
 const STORAGE_KEY = 'noz_basket_v1'
 
 export function BasketProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<BasketItem[]>([])
+  const [miniCartOpen, setMiniCartOpen] = useState(false)
 
   // Load from localStorage once
   useEffect(() => {
@@ -47,14 +53,47 @@ export function BasketProvider({ children }: { children: React.ReactNode }) {
       }
       return [...prev, { ...item, qty }]
     })
+    // Auto-open mini cart when item is added
+    setMiniCartOpen(true)
   }
 
   const removeItem = (id: string) => setItems((prev) => prev.filter((p) => p.id !== id))
+
+  const setQty = (id: string, qty: number) => {
+    if (qty < 1) {
+      removeItem(id)
+      return
+    }
+    setItems((prev) => {
+      const idx = prev.findIndex((p) => p.id === id)
+      if (idx === -1) return prev
+      const next = [...prev]
+      next[idx] = { ...next[idx], qty }
+      return next
+    })
+  }
+
   const clear = () => setItems([])
+
+  const openMiniCart = () => setMiniCartOpen(true)
+  const closeMiniCart = () => setMiniCartOpen(false)
 
   const count = useMemo(() => items.reduce((t, i) => t + i.qty, 0), [items])
 
-  const value = useMemo(() => ({ items, count, addItem, removeItem, clear }), [items, count])
+  const value = useMemo(
+    () => ({ 
+      items, 
+      count, 
+      addItem, 
+      removeItem, 
+      setQty, 
+      clear, 
+      openMiniCart, 
+      closeMiniCart, 
+      miniCartOpen 
+    }),
+    [items, count, miniCartOpen]
+  )
 
   return <BasketContext.Provider value={value}>{children}</BasketContext.Provider>
 }
