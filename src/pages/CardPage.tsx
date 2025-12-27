@@ -92,14 +92,14 @@ export default function CardPage() {
     async function checkWishlist() {
       if (!user || !id) return
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('wishlists')
         .select('id')
         .eq('user_id', user.id)
         .eq('card_id', id)
-        .single()
+        .maybeSingle()
 
-      if (data) {
+      if (data && !error) {
         setWishlisted(true)
         setWishlistId(data.id)
       } else {
