@@ -72,17 +72,17 @@ const FilterSidebar = React.memo(({
     {/* Search */}
     <label className="block text-sm mb-3">
       Search
-      <div className="flex gap-2 mt-1">
+      <div className="relative mt-1">
         <input
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           onKeyPress={handleSearchKeyPress}
           placeholder="Card title… (press Enter)"
-          className="flex-1 rounded-xl border border-black/10 p-2 text-sm"
+          className="w-full rounded-xl border border-black/10 pl-3 pr-11 py-2 text-sm"
         />
         <button
           onClick={triggerSearch}
-          className="px-3 py-2 rounded-xl bg-primary text-white hover:opacity-90 text-sm shrink-0"
+          className="absolute right-1 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-primary text-white hover:opacity-90 transition"
           title="Search"
         >
           🔍
