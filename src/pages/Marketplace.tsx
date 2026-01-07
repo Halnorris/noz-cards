@@ -48,7 +48,7 @@ export default function Marketplace() {
   // Mobile filter drawer
   const [showFilters, setShowFilters] = useState(false)
 
-  // Local search input (debounced)
+  // Local search input (NOT automatically synced - user must press Enter or click Search)
   const [searchInput, setSearchInput] = useState(searchParams.get('q') ?? '')
 
   // Filters (initialize from URL)
@@ -91,14 +91,18 @@ export default function Marketplace() {
     setSearchParams(params, { replace: true })
   }, [filters, setSearchParams])
 
-  // Debounce search input: update filters.search only after user stops typing for 800ms
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setFilters(f => ({ ...f, search: searchInput }))
-    }, 800)
+  // Manual search trigger function
+  const triggerSearch = () => {
+    console.log('🔍 Manual search triggered with:', searchInput)
+    setFilters(f => ({ ...f, search: searchInput }))
+  }
 
-    return () => clearTimeout(timeoutId)
-  }, [searchInput])
+  // Handle Enter key in search input
+  const handleSearchKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      triggerSearch()
+    }
+  }
 
   // Load filter options
   useEffect(() => {
@@ -188,6 +192,7 @@ export default function Marketplace() {
 
   // Reset and load on filter change
   useEffect(() => {
+    console.log('🚀 Filter changed, loading cards with filters:', filters)
     setPage(0)
     setCards([])
     setHasMore(true)
@@ -266,12 +271,21 @@ export default function Marketplace() {
       {/* Search */}
       <label className="block text-sm mb-3">
         Search
-        <input
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="Card title…"
-          className="mt-1 w-full rounded-xl border border-black/10 p-2"
-        />
+        <div className="flex gap-2 mt-1">
+          <input
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyPress={handleSearchKeyPress}
+            placeholder="Card title… (press Enter)"
+            className="flex-1 rounded-xl border border-black/10 p-2"
+          />
+          <button
+            onClick={triggerSearch}
+            className="px-3 py-2 rounded-xl bg-primary text-white hover:opacity-90 text-sm"
+          >
+            🔍
+          </button>
+        </div>
       </label>
 
       <label className="block text-sm mb-3">
