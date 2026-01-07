@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 
@@ -63,6 +63,12 @@ export default function Marketplace() {
     sort: (searchParams.get('sort') as Filters['sort']) ?? 'newest',
   }))
 
+  // Keep a ref to latest filters for scroll handler
+  const filtersRef = useRef(filters)
+  useEffect(() => {
+    filtersRef.current = filters
+  }, [filters])
+
   // Data
   const [cards, setCards] = useState<Card[]>([])
   const [liveTotal, setLiveTotal] = useState(0)
@@ -85,11 +91,11 @@ export default function Marketplace() {
     setSearchParams(params, { replace: true })
   }, [filters, setSearchParams])
 
-  // Debounce search input: update filters.search only after user stops typing for 500ms
+  // Debounce search input: update filters.search only after user stops typing for 800ms
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setFilters(f => ({ ...f, search: searchInput }))
-    }, 500)
+    }, 800)
 
     return () => clearTimeout(timeoutId)
   }, [searchInput])
@@ -137,7 +143,7 @@ export default function Marketplace() {
   }, [])
 
   // Load cards function
-  const loadCards = useCallback(async (pageNum: number, append: boolean = false) => {
+  const loadCards = useCallback(async (pageNum: number, append: boolean = false, currentFilters: Filters) => {
     if (!append) {
       setInitialLoading(true)
     }
@@ -148,18 +154,18 @@ export default function Marketplace() {
       .select('id,title,price,image_url,image_orientation,sport,league,team,set,created_at')
       .eq('status', 'live')
 
-    if (filters.sport) query = query.eq('sport', filters.sport)
-    if (filters.league) query = query.eq('league', filters.league)
-    if (filters.team) query = query.eq('team', filters.team)
-    if (filters.set) query = query.eq('set', filters.set)
-    if (filters.minPrice) query = query.gte('price', Number(filters.minPrice))
-    if (filters.maxPrice) query = query.lte('price', Number(filters.maxPrice))
-    if (filters.search) query = query.ilike('title', `%${filters.search}%`)
+    if (currentFilters.sport) query = query.eq('sport', currentFilters.sport)
+    if (currentFilters.league) query = query.eq('league', currentFilters.league)
+    if (currentFilters.team) query = query.eq('team', currentFilters.team)
+    if (currentFilters.set) query = query.eq('set', currentFilters.set)
+    if (currentFilters.minPrice) query = query.gte('price', Number(currentFilters.minPrice))
+    if (currentFilters.maxPrice) query = query.lte('price', Number(currentFilters.maxPrice))
+    if (currentFilters.search) query = query.ilike('title', `%${currentFilters.search}%`)
 
-    if (filters.sort === 'newest') query = query.order('created_at', { ascending: false })
-    if (filters.sort === 'oldest') query = query.order('created_at', { ascending: true })
-    if (filters.sort === 'price_asc') query = query.order('price', { ascending: true, nullsFirst: true })
-    if (filters.sort === 'price_desc') query = query.order('price', { ascending: false, nullsLast: true })
+    if (currentFilters.sort === 'newest') query = query.order('created_at', { ascending: false })
+    if (currentFilters.sort === 'oldest') query = query.order('created_at', { ascending: true })
+    if (currentFilters.sort === 'price_asc') query = query.order('price', { ascending: true, nullsFirst: true })
+    if (currentFilters.sort === 'price_desc') query = query.order('price', { ascending: false, nullsLast: true })
 
     const from = pageNum * PAGE_SIZE
     const to = from + PAGE_SIZE - 1
@@ -178,15 +184,15 @@ export default function Marketplace() {
 
     setLoading(false)
     setInitialLoading(false)
-  }, [filters])
+  }, [])
 
   // Reset and load on filter change
   useEffect(() => {
     setPage(0)
     setCards([])
     setHasMore(true)
-    loadCards(0, false)
-  }, [filters.sport, filters.league, filters.team, filters.set, filters.minPrice, filters.maxPrice, filters.search, filters.sort])
+    loadCards(0, false, filters)
+  }, [filters.sport, filters.league, filters.team, filters.set, filters.minPrice, filters.maxPrice, filters.search, filters.sort, loadCards])
 
   // Scroll event listener for infinite scroll
   useEffect(() => {
@@ -201,7 +207,7 @@ export default function Marketplace() {
       if (scrollTop + windowHeight >= documentHeight - 500) {
         const nextPage = page + 1
         setPage(nextPage)
-        loadCards(nextPage, true)
+        loadCards(nextPage, true, filtersRef.current)
       }
     }
 
