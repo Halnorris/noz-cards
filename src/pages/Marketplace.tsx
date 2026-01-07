@@ -48,6 +48,9 @@ export default function Marketplace() {
   // Mobile filter drawer
   const [showFilters, setShowFilters] = useState(false)
 
+  // Local search input (debounced)
+  const [searchInput, setSearchInput] = useState(searchParams.get('q') ?? '')
+
   // Filters (initialize from URL)
   const [filters, setFilters] = useState<Filters>(() => ({
     sport: searchParams.get('sport') ?? '',
@@ -81,6 +84,15 @@ export default function Marketplace() {
     if (filters.sort && filters.sort !== 'newest') params.sort = filters.sort
     setSearchParams(params, { replace: true })
   }, [filters, setSearchParams])
+
+  // Debounce search input: update filters.search only after user stops typing for 500ms
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setFilters(f => ({ ...f, search: searchInput }))
+    }, 500)
+
+    return () => clearTimeout(timeoutId)
+  }, [searchInput])
 
   // Load filter options
   useEffect(() => {
@@ -202,6 +214,7 @@ export default function Marketplace() {
   }
 
   function resetFilters() {
+    setSearchInput('')
     setFilters({
       sport: '',
       league: '',
@@ -215,6 +228,7 @@ export default function Marketplace() {
   }
 
   function removeFilter(key: keyof Filters) {
+    if (key === 'search') setSearchInput('')
     setFilters(f => ({ ...f, [key]: '' }))
   }
 
@@ -247,8 +261,8 @@ export default function Marketplace() {
       <label className="block text-sm mb-3">
         Search
         <input
-          value={filters.search}
-          onChange={(e) => update('search', e.target.value)}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
           placeholder="Card title…"
           className="mt-1 w-full rounded-xl border border-black/10 p-2"
         />
@@ -503,20 +517,6 @@ export default function Marketplace() {
                             loading="lazy"
                             className="object-cover w-full h-full"
                           />
-                        )}
-                        {(card.view_count > 0 || card.wishlist_count > 0) && (
-                          <div className="absolute top-1 right-1 flex gap-1">
-                            {card.view_count > 0 && (
-                              <span className="px-1.5 py-0.5 rounded bg-black/60 text-white text-[9px]">
-                                👁 {card.view_count}
-                              </span>
-                            )}
-                            {card.wishlist_count > 0 && (
-                              <span className="px-1.5 py-0.5 rounded bg-black/60 text-white text-[9px]">
-                                ♥ {card.wishlist_count}
-                              </span>
-                            )}
-                          </div>
                         )}
                       </div>
                       <h3 className="text-xs font-medium leading-snug line-clamp-2 min-h-[2.25rem]">
