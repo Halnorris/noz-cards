@@ -327,14 +327,6 @@ function LiveCardsTab() {
           <div key={card.id} className="rounded-xl border border-black/5 p-2 hover:shadow-md transition">
             <div className="aspect-[3/4] rounded-lg bg-black/5 mb-2 overflow-hidden relative">
               {card.image_url && <img src={card.image_url} alt={card.title} className="w-full h-full object-cover" />}
-              <div className="absolute top-1 right-1 flex gap-1">
-                <span className="px-1.5 py-0.5 rounded bg-black/60 text-white text-[9px]">
-                  👁 {card.view_count}
-                </span>
-                <span className="px-1.5 py-0.5 rounded bg-black/60 text-white text-[9px]">
-                  ♥ {card.wishlist_count}
-                </span>
-              </div>
             </div>
             <h3 className="text-xs font-medium line-clamp-2 mb-2 min-h-[2rem]">{card.title || card.text}</h3>
             
