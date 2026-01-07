@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
+import React from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 
@@ -27,6 +28,173 @@ type Filters = {
 }
 
 const PAGE_SIZE = 24
+
+// Memoized FilterSidebar component to prevent input focus loss
+const FilterSidebar = React.memo(({
+  searchInput,
+  setSearchInput,
+  handleSearchKeyPress,
+  triggerSearch,
+  filters,
+  update,
+  sports,
+  leagues,
+  teams,
+  sets,
+  resetFilters,
+  activeFilterCount,
+  pretty
+}: {
+  searchInput: string
+  setSearchInput: (value: string) => void
+  handleSearchKeyPress: (e: React.KeyboardEvent) => void
+  triggerSearch: () => void
+  filters: Filters
+  update: <K extends keyof Filters>(key: K, value: Filters[K]) => void
+  sports: string[]
+  leagues: string[]
+  teams: string[]
+  sets: string[]
+  resetFilters: () => void
+  activeFilterCount: number
+  pretty: (s: string) => string
+}) => (
+  <div className="rounded-2xl bg-white p-4 border border-black/5 shadow-soft h-fit sticky top-20">
+    <div className="flex items-center justify-between mb-3">
+      <h2 className="font-header text-lg">Filters</h2>
+      {activeFilterCount > 0 && (
+        <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
+          {activeFilterCount} active
+        </span>
+      )}
+    </div>
+
+    {/* Search */}
+    <label className="block text-sm mb-3">
+      Search
+      <div className="flex gap-2 mt-1">
+        <input
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          onKeyPress={handleSearchKeyPress}
+          placeholder="Card title… (press Enter)"
+          className="flex-1 rounded-xl border border-black/10 p-2 text-sm"
+        />
+        <button
+          onClick={triggerSearch}
+          className="px-3 py-2 rounded-xl bg-primary text-white hover:opacity-90 text-sm shrink-0"
+          title="Search"
+        >
+          🔍
+        </button>
+      </div>
+    </label>
+
+    <label className="block text-sm mb-3">
+      Sport
+      <select
+        value={filters.sport}
+        onChange={(e) => update('sport', e.target.value)}
+        className="mt-1 w-full rounded-xl border border-black/10 p-2 bg-white"
+      >
+        <option value="">All</option>
+        {sports.map((s) => (
+          <option key={s} value={s}>{pretty(s)}</option>
+        ))}
+      </select>
+    </label>
+
+    <label className="block text-sm mb-3">
+      League
+      <select
+        value={filters.league}
+        onChange={(e) => update('league', e.target.value)}
+        className="mt-1 w-full rounded-xl border border-black/10 p-2 bg-white"
+      >
+        <option value="">All</option>
+        {leagues.map((l) => (
+          <option key={l} value={l}>{pretty(l)}</option>
+        ))}
+      </select>
+    </label>
+
+    <label className="block text-sm mb-3">
+      Team
+      <select
+        value={filters.team}
+        onChange={(e) => update('team', e.target.value)}
+        className="mt-1 w-full rounded-xl border border-black/10 p-2 bg-white"
+      >
+        <option value="">All</option>
+        {teams.map((t) => (
+          <option key={t} value={t}>{t}</option>
+        ))}
+      </select>
+    </label>
+
+    <label className="block text-sm mb-3">
+      Set
+      <select
+        value={filters.set}
+        onChange={(e) => update('set', e.target.value)}
+        className="mt-1 w-full rounded-xl border border-black/10 p-2 bg-white"
+      >
+        <option value="">All</option>
+        {sets.map((st) => (
+          <option key={st} value={st}>{st}</option>
+        ))}
+      </select>
+    </label>
+
+    <div className="flex gap-2 mb-3">
+      <label className="block text-sm flex-1">
+        Min £
+        <input
+          type="number"
+          value={filters.minPrice}
+          onChange={(e) => update('minPrice', e.target.value)}
+          className="mt-1 w-full rounded-xl border border-black/10 p-2"
+          placeholder="0"
+          min="0"
+        />
+      </label>
+      <label className="block text-sm flex-1">
+        Max £
+        <input
+          type="number"
+          value={filters.maxPrice}
+          onChange={(e) => update('maxPrice', e.target.value)}
+          className="mt-1 w-full rounded-xl border border-black/10 p-2"
+          placeholder="1000"
+          min="0"
+        />
+      </label>
+    </div>
+
+    <label className="block text-sm mb-4">
+      Sort by
+      <select
+        value={filters.sort}
+        onChange={(e) => update('sort', e.target.value as Filters['sort'])}
+        className="mt-1 w-full rounded-xl border border-black/10 p-2 bg-white"
+      >
+        <option value="newest">Newest</option>
+        <option value="oldest">Oldest</option>
+        <option value="price_asc">Price: Low → High</option>
+        <option value="price_desc">Price: High → Low</option>
+      </select>
+    </label>
+
+    {activeFilterCount > 0 && (
+      <button
+        onClick={resetFilters}
+        className="w-full px-3 py-2 rounded-xl bg-primary text-white hover:opacity-90 text-sm"
+      >
+        Clear all filters
+      </button>
+    )}
+  </div>
+))
 
 function normKey(s: string) {
   return s.trim().toLowerCase().replace(/\s+/g, ' ')
@@ -92,17 +260,17 @@ export default function Marketplace() {
   }, [filters, setSearchParams])
 
   // Manual search trigger function
-  const triggerSearch = () => {
+  const triggerSearch = useCallback(() => {
     console.log('🔍 Manual search triggered with:', searchInput)
     setFilters(f => ({ ...f, search: searchInput }))
-  }
+  }, [searchInput])
 
   // Handle Enter key in search input
-  const handleSearchKeyPress = (e: React.KeyboardEvent) => {
+  const handleSearchKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       triggerSearch()
     }
-  }
+  }, [triggerSearch])
 
   // Load filter options
   useEffect(() => {
@@ -224,7 +392,7 @@ export default function Marketplace() {
     setFilters(f => ({ ...f, [key]: value }))
   }
 
-  function resetFilters() {
+  const resetFilters = useCallback(() => {
     setSearchInput('')
     setFilters({
       sport: '',
@@ -236,7 +404,7 @@ export default function Marketplace() {
       search: '',
       sort: 'newest',
     })
-  }
+  }, [])
 
   function removeFilter(key: keyof Filters) {
     if (key === 'search') setSearchInput('')
@@ -255,144 +423,6 @@ export default function Marketplace() {
       filters.search,
     ].filter(Boolean).length
   }, [filters])
-
-  // Filter sidebar component
-  const FilterSidebar = () => (
-    <div className="rounded-2xl bg-white p-4 border border-black/5 shadow-soft h-fit sticky top-20">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="font-header text-lg">Filters</h2>
-        {activeFilterCount > 0 && (
-          <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
-            {activeFilterCount} active
-          </span>
-        )}
-      </div>
-
-      {/* Search */}
-      <label className="block text-sm mb-3">
-        Search
-        <div className="flex gap-2 mt-1">
-          <input
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            onKeyPress={handleSearchKeyPress}
-            placeholder="Card title… (press Enter)"
-            className="flex-1 rounded-xl border border-black/10 p-2"
-          />
-          <button
-            onClick={triggerSearch}
-            className="px-3 py-2 rounded-xl bg-primary text-white hover:opacity-90 text-sm"
-          >
-            🔍
-          </button>
-        </div>
-      </label>
-
-      <label className="block text-sm mb-3">
-        Sport
-        <select
-          value={filters.sport}
-          onChange={(e) => update('sport', e.target.value)}
-          className="mt-1 w-full rounded-xl border border-black/10 p-2 bg-white"
-        >
-          <option value="">All</option>
-          {sports.map((s) => (
-            <option key={s} value={s}>{pretty(s)}</option>
-          ))}
-        </select>
-      </label>
-
-      <label className="block text-sm mb-3">
-        League
-        <select
-          value={filters.league}
-          onChange={(e) => update('league', e.target.value)}
-          className="mt-1 w-full rounded-xl border border-black/10 p-2 bg-white"
-        >
-          <option value="">All</option>
-          {leagues.map((l) => (
-            <option key={l} value={l}>{pretty(l)}</option>
-          ))}
-        </select>
-      </label>
-
-      <label className="block text-sm mb-3">
-        Team
-        <select
-          value={filters.team}
-          onChange={(e) => update('team', e.target.value)}
-          className="mt-1 w-full rounded-xl border border-black/10 p-2 bg-white"
-        >
-          <option value="">All</option>
-          {teams.map((t) => (
-            <option key={t} value={t}>{t}</option>
-          ))}
-        </select>
-      </label>
-
-      <label className="block text-sm mb-3">
-        Set
-        <select
-          value={filters.set}
-          onChange={(e) => update('set', e.target.value)}
-          className="mt-1 w-full rounded-xl border border-black/10 p-2 bg-white"
-        >
-          <option value="">All</option>
-          {sets.map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
-      </label>
-
-      <div className="grid grid-cols-2 gap-2 mb-3">
-        <label className="block text-sm">
-          Min £
-          <input
-            type="number"
-            value={filters.minPrice}
-            onChange={(e) => update('minPrice', e.target.value)}
-            className="mt-1 w-full rounded-xl border border-black/10 p-2"
-            placeholder="0"
-            min="0"
-          />
-        </label>
-        <label className="block text-sm">
-          Max £
-          <input
-            type="number"
-            value={filters.maxPrice}
-            onChange={(e) => update('maxPrice', e.target.value)}
-            className="mt-1 w-full rounded-xl border border-black/10 p-2"
-            placeholder="1000"
-            min="0"
-          />
-        </label>
-      </div>
-
-      <label className="block text-sm mb-4">
-        Sort by
-        <select
-          value={filters.sort}
-          onChange={(e) => update('sort', e.target.value as Filters['sort'])}
-          className="mt-1 w-full rounded-xl border border-black/10 p-2 bg-white"
-        >
-          <option value="newest">Newest</option>
-          <option value="oldest">Oldest</option>
-          <option value="price_asc">Price: Low → High</option>
-          <option value="price_desc">Price: High → Low</option>
-        </select>
-      </label>
-
-      {activeFilterCount > 0 && (
-        <button
-          onClick={resetFilters}
-          className="w-full px-3 py-2 rounded-xl bg-primary text-white hover:opacity-90 text-sm"
-        >
-          Clear all filters
-        </button>
-      )}
-    </div>
-  )
 
   return (
     <div className="relative">
@@ -420,7 +450,21 @@ export default function Marketplace() {
               <h2 className="font-header text-xl">Filters</h2>
               <button onClick={() => setShowFilters(false)} className="text-2xl">&times;</button>
             </div>
-            <FilterSidebar />
+            <FilterSidebar
+              searchInput={searchInput}
+              setSearchInput={setSearchInput}
+              handleSearchKeyPress={handleSearchKeyPress}
+              triggerSearch={triggerSearch}
+              filters={filters}
+              update={update}
+              sports={sports}
+              leagues={leagues}
+              teams={teams}
+              sets={sets}
+              resetFilters={resetFilters}
+              activeFilterCount={activeFilterCount}
+              pretty={pretty}
+            />
           </div>
         </div>
       )}
@@ -428,7 +472,21 @@ export default function Marketplace() {
       <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-6">
         {/* Desktop sidebar */}
         <aside className="hidden md:block">
-          <FilterSidebar />
+          <FilterSidebar
+            searchInput={searchInput}
+            setSearchInput={setSearchInput}
+            handleSearchKeyPress={handleSearchKeyPress}
+            triggerSearch={triggerSearch}
+            filters={filters}
+            update={update}
+            sports={sports}
+            leagues={leagues}
+            teams={teams}
+            sets={sets}
+            resetFilters={resetFilters}
+            activeFilterCount={activeFilterCount}
+            pretty={pretty}
+          />
         </aside>
 
         {/* Main content */}
