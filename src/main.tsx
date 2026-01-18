@@ -54,6 +54,8 @@ const router = createBrowserRouter([
       { path: 'signin', element: <SignIn /> },
       { path: '*', element: <NotFound /> },
       { path: 'checkout', element: <Checkout /> },
+      { path: 'submit-cards', element: <SubmitCards /> },
+      { path: 'submission-confirmation', element: <SubmissionConfirmation /> },
     ],
   },
 ])
