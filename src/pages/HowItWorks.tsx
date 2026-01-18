@@ -17,7 +17,7 @@ export default function HowItWorks() {
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Link
-            to="/account/pending"
+            to="/submit-cards"
             className="px-5 py-3 rounded-xl bg-primary text-white hover:opacity-90"
           >
             Submit Cards
@@ -112,7 +112,7 @@ export default function HowItWorks() {
             </li>
           </ul>
           <div className="mt-4">
-            <Link to="/account/pending" className="text-sm underline">Submit your first cards</Link>
+            <Link to="/submit-cards" className="text-sm underline">Submit your first cards</Link>
           </div>
         </div>
       </section>
@@ -173,7 +173,7 @@ export default function HowItWorks() {
           <p className="opacity-80 text-sm">Submit your first cards now — we’ll handle the rest.</p>
         </div>
         <div className="flex gap-3">
-          <Link to="/account/pending" className="px-4 py-2 rounded-xl bg-primary text-white hover:opacity-90">
+          <Link to="/submit-cards" className="px-4 py-2 rounded-xl bg-primary text-white hover:opacity-90">
             Submit Cards
           </Link>
           <Link to="/marketplace" className="px-4 py-2 rounded-xl border border-black/10 hover:bg-black/5">
