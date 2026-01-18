@@ -41,9 +41,6 @@ export default function CardPage() {
   const [wishlisted, setWishlisted] = useState(false)
   const [wishlistId, setWishlistId] = useState<string | null>(null)
 
-  // Offer modal
-  const [offerOpen, setOfferOpen] = useState(false)
-
   // Gallery
   const [activeIndex, setActiveIndex] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
@@ -432,14 +429,6 @@ export default function CardPage() {
                 Buy Now
               </button>
 
-              {/* Make an Offer (UI-only) */}
-              <button
-                onClick={() => setOfferOpen(true)}
-                className="px-5 py-3 rounded-xl border border-black/10 hover:bg-black/5"
-              >
-                Make an Offer
-              </button>
-
               <button
                 onClick={handleAddToBasket}
                 aria-label="Add to Basket"
@@ -643,23 +632,6 @@ export default function CardPage() {
           onNext={() => setActiveIndex((i) => (i + 1) % images.length)}
           multiple={images.length > 1}
           title={card.title ?? 'Card'}
-        />
-      )}
-
-      {/* MAKE AN OFFER MODAL (UI-only) */}
-      {offerOpen && (
-        <MakeOfferModal
-          cardTitle={card.title ?? 'Card'}
-          askingPrice={card.price ?? null}
-          onClose={() => setOfferOpen(false)}
-          onSubmit={(offer) => {
-            console.log('Offer submitted:', {
-              cardId: card.id,
-              offerPrice: offer.price,
-              note: offer.note,
-            })
-            setOfferOpen(false)
-          }}
         />
       )}
 
