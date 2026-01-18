@@ -150,8 +150,9 @@ function HeroFeaturedCards() {
     async function loadCards() {
       const { data } = await supabase
         .from('cards')
-        .select('id,title,price,image_url,created_at')
+        .select('id,title,price,image_url,created_at,image_orientation')
         .eq('status', 'live')
+        .neq('image_orientation', 'landscape') // Exclude landscape cards
         .order('price', { ascending: false })
         .limit(8)
       setCards(data ?? [])
@@ -373,7 +374,8 @@ function RecentlyUploadedGrid() {
       setLoading(true)
       const { data } = await supabase
         .from('cards')
-        .select('id,title,price,image_url,created_at,status')
+        .select('id,title,price,image_url,created_at,status,image_orientation')
+        .neq('image_orientation', 'landscape') // Exclude landscape cards
         .order('created_at', { ascending: false })
         .limit(12)
       setCards(data ?? [])
