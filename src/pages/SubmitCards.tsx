@@ -91,9 +91,24 @@ export default function SubmitCards() {
         return
       }
 
-      // TODO: Send emails (admin notification + customer confirmation)
-      // This would typically be done via a Supabase Edge Function or webhook
-      // For now, we'll just show success and navigate
+      // Send confirmation emails via Edge Function
+      try {
+        const { error: functionError } = await supabase.functions.invoke(
+          'send-submission-email',
+          {
+            body: { submissionId: data.id }
+          }
+        )
+
+        if (functionError) {
+          console.error('Email sending failed:', functionError)
+          // Don't block the user - submission was successful
+          // You could add a toast notification here: "Submission successful but email failed to send"
+        }
+      } catch (emailErr) {
+        console.error('Email error:', emailErr)
+        // Don't block the user - submission is already in database
+      }
 
       // Success - redirect to confirmation page
       navigate(`/submission-confirmation?ref=${referenceNumber}`)
