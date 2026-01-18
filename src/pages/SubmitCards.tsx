@@ -58,11 +58,6 @@ export default function SubmitCards() {
       return
     }
 
-    if (quantity > 100) {
-      setError('For submissions over 100 cards, please contact support@nozcards.com')
-      return
-    }
-
     if (!user) {
       setError('You must be logged in to submit cards')
       return
@@ -220,13 +215,12 @@ export default function SubmitCards() {
             type="number"
             required
             min="1"
-            max="100"
             value={formData.quantity}
             onChange={(e) => handleChange('quantity', e.target.value)}
             className="w-full px-3 py-2 border rounded-xl"
             placeholder="e.g. 15"
           />
-          <p className="text-xs opacity-60 mt-1">Maximum 100 cards per submission</p>
+          <p className="text-xs opacity-60 mt-1">How many cards are you submitting?</p>
         </div>
 
         {/* Card description (optional) */}
