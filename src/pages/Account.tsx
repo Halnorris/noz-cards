@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/auth'
 import { useBasket } from '@/context/basket'
@@ -1232,9 +1232,12 @@ function SubmitCardsTab() {
         </ol>
       </div>
 
-      <button className="mt-6 px-6 py-3 rounded-xl bg-primary text-white hover:opacity-90">
+      <Link 
+        to="/submit-cards"
+        className="mt-6 inline-block px-6 py-3 rounded-xl bg-primary text-white hover:opacity-90"
+      >
         Start Submission Form
-      </button>
+      </Link>
     </div>
   )
 }
