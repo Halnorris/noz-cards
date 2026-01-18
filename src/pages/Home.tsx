@@ -30,7 +30,7 @@ export default function Home() {
                 Browse Marketplace
               </Link>
               <Link
-                to="/account/pending"
+                to="/submit-cards"
                 className="px-5 py-3 rounded-xl bg-secondary hover:opacity-90"
               >
                 Submit Cards
