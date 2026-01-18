@@ -418,22 +418,54 @@ function PendingCardsTab() {
   }, [cards, searchTerm, sortBy])
 
   const approveCard = async (cardId: string) => {
-    const price = parseFloat(prices[cardId])
-    if (!price || price <= 0) {
-      alert('Please enter a valid price')
+    const priceValue = prices[cardId]?.trim()
+    
+    // Check if price is entered
+    if (!priceValue) {
+      alert('Please enter a price before approving')
+      return
+    }
+    
+    const price = parseFloat(priceValue)
+    
+    // Validate price
+    if (isNaN(price) || price <= 0) {
+      alert('Please enter a valid price greater than £0')
       return
     }
 
     setUpdating(cardId)
-    const { error } = await supabase
-      .from('cards')
-      .update({ price, status: 'live' })
-      .eq('id', cardId)
+    
+    try {
+      const { data, error } = await supabase
+        .from('cards')
+        .update({ price, status: 'live' })
+        .eq('id', cardId)
+        .select()
 
-    if (!error) {
-      setCards(prev => prev.filter(c => c.id !== cardId))
+      if (error) {
+        console.error('Error updating card:', error)
+        alert('Failed to approve card: ' + error.message)
+      } else if (data && data.length > 0) {
+        // Successfully updated - remove from pending list
+        setCards(prev => prev.filter(c => c.id !== cardId))
+        // Clear the price from state
+        setPrices(prev => {
+          const newPrices = { ...prev }
+          delete newPrices[cardId]
+          return newPrices
+        })
+        alert(`Card approved and is now live at £${price.toFixed(2)}!`)
+      } else {
+        console.error('No data returned from update')
+        alert('Card may not have been updated. Please refresh and try again.')
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      alert('Failed to approve card: ' + (error instanceof Error ? error.message : 'Unknown error'))
+    } finally {
+      setUpdating(null)
     }
-    setUpdating(null)
   }
 
   const bulkApproveSuggested = async () => {
@@ -509,39 +541,52 @@ function PendingCardsTab() {
       </div>
       
       <div className="grid sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-        {filteredCards.map((card) => (
-          <div key={card.id} className="rounded-xl border border-black/5 p-2 hover:shadow-md transition">
-            <div className="aspect-[3/4] rounded-lg bg-black/5 mb-2 overflow-hidden">
-              {card.image_url && <img src={card.image_url} alt={card.title} className="w-full h-full object-cover" />}
+        {filteredCards.map((card) => {
+          const hasPrice = prices[card.id] && parseFloat(prices[card.id]) > 0
+          const suggestedPrice = card.price
+          
+          return (
+            <div key={card.id} className="rounded-xl border border-black/5 p-2 hover:shadow-md transition">
+              <div className="aspect-[3/4] rounded-lg bg-black/5 mb-2 overflow-hidden">
+                {card.image_url && <img src={card.image_url} alt={card.title} className="w-full h-full object-cover" />}
+              </div>
+              <h3 className="text-xs font-medium line-clamp-2 mb-2 min-h-[2rem]">{card.title || card.text}</h3>
+              
+              {suggestedPrice && (
+                <div className="text-[10px] opacity-70 mb-1">Suggested: £{suggestedPrice.toFixed(2)}</div>
+              )}
+              
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Your price"
+                value={prices[card.id] || ''}
+                onChange={(e) => setPrices(prev => ({ ...prev, [card.id]: e.target.value }))}
+                className="w-full px-1.5 py-1 border rounded text-[11px] mb-1"
+                disabled={updating === card.id}
+              />
+              <button
+                onClick={() => approveCard(card.id)}
+                disabled={updating === card.id || !hasPrice}
+                className={`w-full px-2 py-1 rounded text-white text-[10px] transition mb-1 ${
+                  hasPrice && updating !== card.id
+                    ? 'bg-primary hover:opacity-90'
+                    : 'bg-black/20 cursor-not-allowed'
+                }`}
+              >
+                {updating === card.id ? 'Approving...' : 'Approve'}
+              </button>
+              <button
+                onClick={() => requestBack(card.id)}
+                disabled={updating === card.id}
+                className="w-full px-2 py-1 rounded bg-red-50 border border-red-200 text-red-700 text-[10px] hover:bg-red-100 disabled:opacity-50"
+              >
+                Remove
+              </button>
             </div>
-            <h3 className="text-xs font-medium line-clamp-2 mb-2 min-h-[2rem]">{card.title || card.text}</h3>
-            
-            <div className="text-[10px] opacity-70 mb-1">Suggested: £{card.price?.toFixed(2) || '0.00'}</div>
-            
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="Adjust price"
-              value={prices[card.id] || ''}
-              onChange={(e) => setPrices(prev => ({ ...prev, [card.id]: e.target.value }))}
-              className="w-full px-1.5 py-1 border rounded text-[11px] mb-1"
-            />
-            <button
-              onClick={() => approveCard(card.id)}
-              disabled={updating === card.id || !prices[card.id]}
-              className="w-full px-2 py-1 rounded bg-primary text-white text-[10px] hover:opacity-90 disabled:opacity-50 mb-1"
-            >
-              {updating === card.id ? '...' : 'Approve'}
-            </button>
-            <button
-              onClick={() => requestBack(card.id)}
-              className="w-full px-2 py-1 rounded bg-red-50 border border-red-200 text-red-700 text-[10px] hover:bg-red-100"
-            >
-              Remove
-            </button>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
