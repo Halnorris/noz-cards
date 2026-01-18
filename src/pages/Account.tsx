@@ -437,19 +437,39 @@ function PendingCardsTab() {
     setUpdating(cardId)
     
     try {
-      const { data, error } = await supabase
+      // Update the card status and price
+      const { error: updateError } = await supabase
         .from('cards')
         .update({ price, status: 'live' })
         .eq('id', cardId)
-        .select()
 
-      if (error) {
-        console.error('Error updating card:', error)
-        alert('Failed to approve card: ' + error.message)
-      } else if (data && data.length > 0) {
-        // Successfully updated - remove from pending list
+      if (updateError) {
+        console.error('Error updating card:', updateError)
+        alert('Failed to approve card: ' + updateError.message)
+        setUpdating(null)
+        return
+      }
+
+      // Verify the update by checking if card is still pending
+      const { data: checkData, error: checkError } = await supabase
+        .from('cards')
+        .select('status')
+        .eq('id', cardId)
+        .single()
+
+      if (checkError) {
+        console.error('Error verifying update:', checkError)
+        // Update probably worked, just couldn't verify
         setCards(prev => prev.filter(c => c.id !== cardId))
-        // Clear the price from state
+        setPrices(prev => {
+          const newPrices = { ...prev }
+          delete newPrices[cardId]
+          return newPrices
+        })
+        alert(`Card approved! (Verification failed but update should be successful)`)
+      } else if (checkData.status === 'live') {
+        // Successfully updated and verified
+        setCards(prev => prev.filter(c => c.id !== cardId))
         setPrices(prev => {
           const newPrices = { ...prev }
           delete newPrices[cardId]
@@ -457,7 +477,7 @@ function PendingCardsTab() {
         })
         alert(`Card approved and is now live at £${price.toFixed(2)}!`)
       } else {
-        console.error('No data returned from update')
+        console.error('Card status did not change to live')
         alert('Card may not have been updated. Please refresh and try again.')
       }
     } catch (error) {
