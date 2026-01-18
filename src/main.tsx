@@ -23,6 +23,8 @@ import Consignment from '@/pages/legal/Consignment'
 import Contact from '@/pages/legal/Contact'
 import SignIn from '@/pages/SignIn'
 import Checkout from '@/pages/Checkout'
+import SubmitCards from '@/pages/SubmitCards'
+import SubmissionConfirmation from '@/pages/SubmissionConfirmation'
 
 // Providers
 import { BasketProvider } from '@/context/basket'
