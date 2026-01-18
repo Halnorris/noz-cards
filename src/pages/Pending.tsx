@@ -66,35 +66,54 @@ export default function Pending() {
   }
 
   const confirmPrice = async (cardId: string) => {
-    const price = parseFloat(prices[cardId])
+    const priceValue = prices[cardId]?.trim()
     
-    if (!price || price <= 0) {
-      alert('Please enter a valid price')
+    // Check if price is entered
+    if (!priceValue) {
+      alert('Please enter a price before confirming')
+      return
+    }
+    
+    const price = parseFloat(priceValue)
+    
+    // Validate price
+    if (isNaN(price) || price <= 0) {
+      alert('Please enter a valid price greater than £0')
       return
     }
 
     setUpdating(cardId)
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('cards')
         .update({ 
           price: price,
           status: 'live'
         })
         .eq('id', cardId)
+        .select()
 
       if (error) {
         console.error('Error updating card:', error)
-        alert('Failed to update card')
-      } else {
-        // Remove card from pending list
+        alert('Failed to update card: ' + error.message)
+      } else if (data && data.length > 0) {
+        // Successfully updated - remove from pending list
         setCards(prev => prev.filter(c => c.id !== cardId))
-        alert('Card is now live!')
+        // Clear the price from state
+        setPrices(prev => {
+          const newPrices = { ...prev }
+          delete newPrices[cardId]
+          return newPrices
+        })
+        alert(`Card is now live at £${price.toFixed(2)}!`)
+      } else {
+        console.error('No data returned from update')
+        alert('Card may not have been updated. Please refresh and try again.')
       }
     } catch (error) {
       console.error('Error:', error)
-      alert('Failed to update card')
+      alert('Failed to update card: ' + (error instanceof Error ? error.message : 'Unknown error'))
     } finally {
       setUpdating(null)
     }
@@ -127,41 +146,59 @@ export default function Pending() {
       <p className="text-sm opacity-70">Set your price and confirm to make these cards live on the marketplace.</p>
       
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {cards.map((card) => (
-          <div key={card.id} className="rounded-2xl bg-white p-4 shadow-soft border border-black/5">
-            <div className="aspect-[3/4] rounded-xl bg-black/5 mb-3 overflow-hidden">
-              {card.image_url && (
-                <img 
-                  src={card.image_url} 
-                  alt={card.text || 'Card'} 
-                  className="w-full h-full object-cover"
-                />
+        {cards.map((card) => {
+          const hasPrice = prices[card.id] && parseFloat(prices[card.id]) > 0
+          const suggestedPrice = card.price
+          
+          return (
+            <div key={card.id} className="rounded-2xl bg-white p-4 shadow-soft border border-black/5">
+              <div className="aspect-[3/4] rounded-xl bg-black/5 mb-3 overflow-hidden">
+                {card.image_url && (
+                  <img 
+                    src={card.image_url} 
+                    alt={card.text || 'Card'} 
+                    className="w-full h-full object-cover"
+                  />
+                )}
+              </div>
+              <div className="text-sm font-medium mb-1 line-clamp-2">
+                {card.text || `Card #${card.nozid}`}
+              </div>
+              
+              {suggestedPrice && (
+                <div className="text-xs opacity-70 mb-2">
+                  Suggested price: £{suggestedPrice.toFixed(2)}
+                </div>
               )}
-            </div>
-            <div className="text-sm opacity-80 mb-2 line-clamp-2">
-              {card.text || `Card #${card.nozid}`}
-            </div>
-            <input
-              className="w-full border rounded-xl px-3 py-2 mb-2"
-              placeholder="Set your price (£)"
-              type="number"
-              min="0"
-              step="0.01"
-              value={prices[card.id] || ''}
-              onChange={(e) => handlePriceChange(card.id, e.target.value)}
-              disabled={updating === card.id}
-            />
-            <div className="flex gap-2">
+              
+              <label className="block text-xs font-medium mb-1 opacity-80">
+                Your Price (£)
+              </label>
+              <input
+                className="w-full border rounded-xl px-3 py-2 mb-3 text-sm"
+                placeholder="0.00"
+                type="number"
+                min="0"
+                step="0.01"
+                value={prices[card.id] || ''}
+                onChange={(e) => handlePriceChange(card.id, e.target.value)}
+                disabled={updating === card.id}
+              />
+              
               <button 
                 onClick={() => confirmPrice(card.id)}
-                disabled={updating === card.id}
-                className="flex-1 px-3 py-2 rounded-xl bg-primary text-white hover:opacity-90 disabled:opacity-50"
+                disabled={updating === card.id || !hasPrice}
+                className={`w-full px-3 py-2 rounded-xl text-white transition ${
+                  hasPrice && updating !== card.id
+                    ? 'bg-primary hover:opacity-90' 
+                    : 'bg-black/20 cursor-not-allowed'
+                }`}
               >
-                {updating === card.id ? 'Updating...' : 'Confirm & Go Live'}
+                {updating === card.id ? 'Approving...' : 'Approve & Go Live'}
               </button>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </section>
   )
