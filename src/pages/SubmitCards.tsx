@@ -98,10 +98,34 @@ export default function SubmitCards() {
         return
       }
 
-      // Emails are sent automatically via database webhook - no need to call function here!
       console.log('✅ Submission created:', data.reference_number)
 
-      // Success - redirect to confirmation page
+      // Wait 2 seconds for database to fully commit, then send emails in background
+      setTimeout(async () => {
+        try {
+          const response = await fetch(
+            'https://rmviffmljrfpskwkznhk.supabase.co/functions/v1/send-submission-email',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJtdmlmZm1sanJmcHNrd2t6bmhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM1MTY4MjAsImV4cCI6MjA0OTA5MjgyMH0.kcH_cT2LG7Ob9Q6_djyUPW1cJo79eYHy-eXmYBPAr1w`
+              },
+              body: JSON.stringify({ submissionId: data.id })
+            }
+          )
+          
+          if (response.ok) {
+            console.log('✅ Emails sent successfully')
+          } else {
+            console.error('❌ Email sending failed:', await response.text())
+          }
+        } catch (err) {
+          console.error('❌ Email error:', err)
+        }
+      }, 2000)
+
+      // Success - redirect immediately (don't wait for emails)
       navigate(`/submission-confirmation?ref=${referenceNumber}`)
       
     } catch (err) {
