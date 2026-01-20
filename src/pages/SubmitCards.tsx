@@ -98,30 +98,8 @@ export default function SubmitCards() {
         return
       }
 
-      // Debug logging
-      console.log('✅ Submission created successfully:', data)
-      console.log('📧 Sending email for submission ID:', data.id)
-      console.log('📧 Full submission object:', JSON.stringify(data, null, 2))
-
-      // Send confirmation emails via Edge Function
-      try {
-        const { data: emailData, error: functionError } = await supabase.functions.invoke(
-          'send-submission-email',
-          {
-            body: { submissionId: data.id }
-          }
-        )
-
-        if (functionError) {
-          console.error('❌ Email sending failed:', functionError)
-          // Don't block the user - submission was successful
-        } else {
-          console.log('✅ Email function response:', emailData)
-        }
-      } catch (emailErr) {
-        console.error('❌ Email error:', emailErr)
-        // Don't block the user - submission is already in database
-      }
+      // Emails are sent automatically via database webhook - no need to call function here!
+      console.log('✅ Submission created:', data.reference_number)
 
       // Success - redirect to confirmation page
       navigate(`/submission-confirmation?ref=${referenceNumber}`)
