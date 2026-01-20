@@ -91,9 +91,21 @@ export default function SubmitCards() {
         return
       }
 
+      if (!data) {
+        console.error('No data returned from insert')
+        setError('Submission created but could not retrieve details.')
+        setSubmitting(false)
+        return
+      }
+
+      // Debug logging
+      console.log('✅ Submission created successfully:', data)
+      console.log('📧 Sending email for submission ID:', data.id)
+      console.log('📧 Full submission object:', JSON.stringify(data, null, 2))
+
       // Send confirmation emails via Edge Function
       try {
-        const { error: functionError } = await supabase.functions.invoke(
+        const { data: emailData, error: functionError } = await supabase.functions.invoke(
           'send-submission-email',
           {
             body: { submissionId: data.id }
@@ -101,12 +113,13 @@ export default function SubmitCards() {
         )
 
         if (functionError) {
-          console.error('Email sending failed:', functionError)
+          console.error('❌ Email sending failed:', functionError)
           // Don't block the user - submission was successful
-          // You could add a toast notification here: "Submission successful but email failed to send"
+        } else {
+          console.log('✅ Email function response:', emailData)
         }
       } catch (emailErr) {
-        console.error('Email error:', emailErr)
+        console.error('❌ Email error:', emailErr)
         // Don't block the user - submission is already in database
       }
 
