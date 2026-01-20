@@ -24,14 +24,12 @@ export default function SubmitCards() {
       return
     }
 
-    // Pre-fill email from user profile if available
     if (user?.email) {
       setFormData(prev => ({ ...prev, email: user.email || '' }))
     }
   }, [user, authLoading, navigate])
 
   const generateReferenceNumber = () => {
-    // Generate reference like: NOZ-20240118-ABCD
     const date = new Date().toISOString().slice(0, 10).replace(/-/g, '')
     const random = Math.random().toString(36).substring(2, 6).toUpperCase()
     return `NOZ-${date}-${random}`
@@ -41,7 +39,6 @@ export default function SubmitCards() {
     e.preventDefault()
     setError(null)
 
-    // Validation
     if (!formData.email || !formData.phone || !formData.quantity) {
       setError('Please fill in all required fields')
       return
@@ -68,7 +65,6 @@ export default function SubmitCards() {
     try {
       const referenceNumber = generateReferenceNumber()
 
-      // Insert submission into database
       const { data, error: insertError } = await supabase
         .from('submissions')
         .insert({
@@ -99,33 +95,6 @@ export default function SubmitCards() {
       }
 
       console.log('✅ Submission created:', data.reference_number)
-
-      // Wait 2 seconds for database to fully commit, then send emails in background
-      setTimeout(async () => {
-        try {
-          const response = await fetch(
-            'https://rmviffmljrfpskwkznhk.supabase.co/functions/v1/send-submission-email',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJtdmlmZm1sanJmcHNrd2t6bmhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM1MTY4MjAsImV4cCI6MjA0OTA5MjgyMH0.kcH_cT2LG7Ob9Q6_djyUPW1cJo79eYHy-eXmYBPAr1w`
-              },
-              body: JSON.stringify({ submissionId: data.id })
-            }
-          )
-          
-          if (response.ok) {
-            console.log('✅ Emails sent successfully')
-          } else {
-            console.error('❌ Email sending failed:', await response.text())
-          }
-        } catch (err) {
-          console.error('❌ Email error:', err)
-        }
-      }, 2000)
-
-      // Success - redirect immediately (don't wait for emails)
       navigate(`/submission-confirmation?ref=${referenceNumber}`)
       
     } catch (err) {
@@ -157,7 +126,6 @@ export default function SubmitCards() {
         </p>
       </div>
 
-      {/* How it works */}
       <div className="rounded-2xl bg-white p-6 shadow-soft border border-black/5">
         <h2 className="font-header text-xl mb-3">How It Works</h2>
         <ol className="space-y-2 text-sm">
@@ -184,7 +152,6 @@ export default function SubmitCards() {
         </ol>
       </div>
 
-      {/* Important notice */}
       <div className="rounded-xl bg-yellow-50 border border-yellow-200 p-4">
         <h3 className="font-medium text-yellow-900 mb-2">⚠️ Important</h3>
         <ul className="text-sm text-yellow-800 space-y-1">
@@ -194,7 +161,6 @@ export default function SubmitCards() {
         </ul>
       </div>
 
-      {/* Submission form */}
       <form onSubmit={handleSubmit} className="rounded-2xl bg-white p-6 shadow-soft border border-black/5 space-y-6">
         <h2 className="font-header text-xl">Submission Details</h2>
 
@@ -204,7 +170,6 @@ export default function SubmitCards() {
           </div>
         )}
 
-        {/* Email */}
         <div>
           <label className="block text-sm font-medium mb-1">
             Email Address <span className="text-red-600">*</span>
@@ -220,7 +185,6 @@ export default function SubmitCards() {
           <p className="text-xs opacity-60 mt-1">We'll send your confirmation here</p>
         </div>
 
-        {/* Phone */}
         <div>
           <label className="block text-sm font-medium mb-1">
             Phone Number <span className="text-red-600">*</span>
@@ -236,7 +200,6 @@ export default function SubmitCards() {
           <p className="text-xs opacity-60 mt-1">In case we need to contact you</p>
         </div>
 
-        {/* Quantity */}
         <div>
           <label className="block text-sm font-medium mb-1">
             Number of Cards <span className="text-red-600">*</span>
@@ -253,7 +216,6 @@ export default function SubmitCards() {
           <p className="text-xs opacity-60 mt-1">How many cards are you submitting?</p>
         </div>
 
-        {/* Card description (optional) */}
         <div>
           <label className="block text-sm font-medium mb-1">
             Card Description (Optional)
@@ -267,7 +229,6 @@ export default function SubmitCards() {
           <p className="text-xs opacity-60 mt-1">Help us prepare for your cards</p>
         </div>
 
-        {/* Terms and conditions */}
         <div className="space-y-3">
           <label className="flex items-start gap-3 cursor-pointer">
             <input
@@ -291,7 +252,6 @@ export default function SubmitCards() {
           </label>
         </div>
 
-        {/* Submit button */}
         <button
           type="submit"
           disabled={submitting || !formData.acceptsTerms}
@@ -301,7 +261,6 @@ export default function SubmitCards() {
         </button>
       </form>
 
-      {/* Contact info */}
       <div className="text-center text-sm opacity-70">
         Questions? Email us at{' '}
         <a href="mailto:support@nozcards.com" className="text-primary underline">
