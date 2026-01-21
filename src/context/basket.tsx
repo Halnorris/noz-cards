@@ -11,6 +11,7 @@ type BasketItem = {
 type BasketCtx = {
   items: BasketItem[]
   count: number
+  total: number
   addItem: (item: Omit<BasketItem, 'qty'>, qty?: number) => void
   removeItem: (id: string) => void
   clear: () => void
@@ -57,18 +58,22 @@ export function BasketProvider({ children }: { children: React.ReactNode }) {
   }
 
   const removeItem = (id: string) => setItems((prev) => prev.filter((p) => p.id !== id))
-
+  
   const clear = () => setItems([])
-
+  
   const openMiniCart = () => setMiniCartOpen(true)
+  
   const closeMiniCart = () => setMiniCartOpen(false)
 
   const count = useMemo(() => items.length, [items])
+  
+  const total = useMemo(() => items.reduce((sum, item) => sum + (item.price ?? 0), 0), [items])
 
   const value = useMemo(
     () => ({ 
       items, 
-      count, 
+      count,
+      total,
       addItem, 
       removeItem, 
       clear, 
@@ -76,7 +81,7 @@ export function BasketProvider({ children }: { children: React.ReactNode }) {
       closeMiniCart, 
       miniCartOpen 
     }),
-    [items, count, miniCartOpen]
+    [items, count, total, miniCartOpen]
   )
 
   return <BasketContext.Provider value={value}>{children}</BasketContext.Provider>
