@@ -69,12 +69,11 @@ export default function CheckoutSuccess() {
         
         console.log(`Updating ${cardIds.length} cards to status: ${newStatus}`)
         
-        // Update card status
+        // Update card status (removed updated_at)
         const { error: updateError } = await supabaseServiceRole
           .from('cards')
           .update({ 
-            status: newStatus,
-            updated_at: new Date().toISOString()
+            status: newStatus
           })
           .in('id', cardIds)
 
