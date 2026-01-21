@@ -98,7 +98,7 @@ export default function CheckoutSuccess() {
     }
 
     updateCardStatus()
-  }, [sessionId, clear, statusUpdated])
+  }, [sessionId, clear])
 
   return (
     <section className="max-w-2xl mx-auto space-y-6 py-8">
