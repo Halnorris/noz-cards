@@ -11,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { orderId, items, shippingCost } = req.body
+    const { orderId, items, shippingCost, shippingMethod } = req.body
 
     const host = req.headers.host
     const protocol = host?.includes('localhost') ? 'http' : 'https'
