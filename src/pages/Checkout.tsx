@@ -94,6 +94,23 @@ export default function Checkout() {
 
       if (itemsError) throw itemsError
 
+      // Update card status based on shipping method
+      const newStatus = shippingMethod === 'store' ? 'stored' : 'sold'
+      
+      const cardIds = items.map(item => item.id)
+      const { error: updateError } = await supabase
+        .from('cards')
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .in('id', cardIds)
+
+      if (updateError) {
+        console.error('Error updating card status:', updateError)
+        // Don't throw - order is already created, just log the error
+      }
+
       // Call Stripe checkout
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
