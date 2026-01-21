@@ -65,29 +65,51 @@ export default function CheckoutSuccess() {
         }
         
         const cardIds = orderItems.map(item => item.card_id)
-        const newStatus = shippingMethod === 'store' ? 'stored' : 'sold'
         
-        console.log(`Updating ${cardIds.length} cards to status: ${newStatus}`)
-        
-        // Update card status (removed updated_at)
-        const { error: updateError } = await supabaseServiceRole
-          .from('cards')
-          .update({ 
-            status: newStatus
-          })
-          .in('id', cardIds)
+        if (shippingMethod === 'store') {
+          // For stored cards: update order status to 'stored' and card status to 'stored'
+          console.log(`Storing ${cardIds.length} cards for later shipment`)
+          
+          // Update card status to 'stored' so they're removed from marketplace
+          const { error: updateError } = await supabaseServiceRole
+            .from('cards')
+            .update({ status: 'stored' })
+            .in('id', cardIds)
 
-        if (updateError) {
-          console.error('Error updating card status:', updateError)
+          if (updateError) {
+            console.error('Error updating card status:', updateError)
+          } else {
+            console.log(`✅ ${cardIds.length} cards marked as stored`)
+          }
+
+          // Update order status to 'stored' so it appears in "Stored Cards" tab
+          await supabaseServiceRole
+            .from('orders')
+            .update({ status: 'stored' })
+            .eq('id', orderId)
+          
         } else {
-          console.log(`✅ ${cardIds.length} cards marked as ${newStatus}`)
-        }
+          // For shipping: update order status to 'paid' and card status to 'sold'
+          console.log(`Shipping ${cardIds.length} cards immediately`)
+          
+          // Update card status to 'sold' so they're removed from marketplace
+          const { error: updateError } = await supabaseServiceRole
+            .from('cards')
+            .update({ status: 'sold' })
+            .in('id', cardIds)
 
-        // Update order status to 'paid'
-        await supabaseServiceRole
-          .from('orders')
-          .update({ status: 'paid' })
-          .eq('id', orderId)
+          if (updateError) {
+            console.error('Error updating card status:', updateError)
+          } else {
+            console.log(`✅ ${cardIds.length} cards marked as sold`)
+          }
+
+          // Update order status to 'paid'
+          await supabaseServiceRole
+            .from('orders')
+            .update({ status: 'paid' })
+            .eq('id', orderId)
+        }
         
         setStatusUpdated(true)
         
