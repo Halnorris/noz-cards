@@ -13,6 +13,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { orderId, items } = req.body
 
+    // Get the site URL from headers
+    const host = req.headers.host
+    const protocol = host?.includes('localhost') ? 'http' : 'https'
+    const siteUrl = `${protocol}://${host}`
+
     // Create line items for Stripe
     const lineItems = items.map((item: any) => ({
       price_data: {
@@ -30,8 +35,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       payment_method_types: ['card'],
       line_items: lineItems,
       mode: 'payment',
-      success_url: `${process.env.VERCEL_URL || 'http://localhost:5173'}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.VERCEL_URL || 'http://localhost:5173'}/checkout`,
+      success_url: `${siteUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${siteUrl}/checkout`,
       metadata: {
         orderId: orderId,
       },
