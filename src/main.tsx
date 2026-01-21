@@ -25,6 +25,8 @@ import SignIn from '@/pages/SignIn'
 import Checkout from '@/pages/Checkout'
 import SubmitCards from '@/pages/SubmitCards'
 import SubmissionConfirmation from '@/pages/SubmissionConfirmation'
+import Checkout from '@/pages/Checkout'
+import CheckoutSuccess from '@/pages/CheckoutSuccess'
 
 // Providers
 import { BasketProvider } from '@/context/basket'
@@ -56,6 +58,8 @@ const router = createBrowserRouter([
       { path: 'checkout', element: <Checkout /> },
       { path: 'submit-cards', element: <SubmitCards /> },
       { path: 'submission-confirmation', element: <SubmissionConfirmation /> },
+      { path: 'checkout', element: <Checkout /> },
+      { path: 'checkout/success', element: <CheckoutSuccess /> },
     ],
   },
 ])
