@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useBasket } from '@/context/basket'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 
 export default function CheckoutSuccess() {
   const [searchParams] = useSearchParams()
   const { clear } = useBasket()
   const sessionId = searchParams.get('session_id')
-  const [orderDetails, setOrderDetails] = useState<any>(null)
 
   useEffect(() => {
     // Clear basket on success
@@ -15,16 +14,73 @@ export default function CheckoutSuccess() {
       clear()
     }
 
-    // Fetch order details
-    if (sessionId) {
-      fetchOrderDetails()
-    }
-  }, [sessionId, clear])
+    // Update card status after successful payment
+    const updateCardStatus = async () => {
+      if (!sessionId) return
+      
+      try {
+        // Get order ID from session metadata by calling our API
+        const response = await fetch('/api/verify-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId }),
+        })
+        
+        const { orderId, shippingMethod } = await response.json()
+        
+        if (!orderId) {
+          console.error('No order ID found in session')
+          return
+        }
 
-  const fetchOrderDetails = async () => {
-    // In production, verify the session with Stripe
-    // For now, just show success message
-  }
+        // Create service role client
+        const supabaseServiceRole = createClient(
+          import.meta.env.VITE_SUPABASE_URL!,
+          import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY!
+        )
+        
+        // Get card IDs from order_items
+        const { data: orderItems } = await supabaseServiceRole
+          .from('order_items')
+          .select('card_id')
+          .eq('order_id', orderId)
+        
+        if (!orderItems || orderItems.length === 0) {
+          console.error('No order items found')
+          return
+        }
+        
+        const cardIds = orderItems.map(item => item.card_id)
+        const newStatus = shippingMethod === 'store' ? 'stored' : 'sold'
+        
+        // Update card status
+        const { error: updateError } = await supabaseServiceRole
+          .from('cards')
+          .update({ 
+            status: newStatus,
+            updated_at: new Date().toISOString()
+          })
+          .in('id', cardIds)
+
+        if (updateError) {
+          console.error('Error updating card status:', updateError)
+        } else {
+          console.log(`✅ ${cardIds.length} cards marked as ${newStatus}`)
+        }
+
+        // Update order status to 'paid'
+        await supabaseServiceRole
+          .from('orders')
+          .update({ status: 'paid' })
+          .eq('id', orderId)
+        
+      } catch (err) {
+        console.error('Error in post-payment update:', err)
+      }
+    }
+
+    updateCardStatus()
+  }, [sessionId, clear])
 
   return (
     <section className="max-w-2xl mx-auto space-y-6 py-8">
