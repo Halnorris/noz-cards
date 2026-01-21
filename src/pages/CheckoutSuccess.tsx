@@ -76,7 +76,7 @@ export default function CheckoutSuccess() {
 
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         <Link
-          to="/account"
+          to="/account?tab=orders"
           className="px-8 py-3 rounded-xl bg-primary text-white hover:opacity-90 text-center font-medium"
         >
           View My Orders
