@@ -7,6 +7,7 @@ export default function CheckoutSuccess() {
   const [searchParams] = useSearchParams()
   const { clear } = useBasket()
   const sessionId = searchParams.get('session_id')
+  const [statusUpdated, setStatusUpdated] = useState(false)
 
   useEffect(() => {
     // Clear basket on success
@@ -14,11 +15,14 @@ export default function CheckoutSuccess() {
       clear()
     }
 
+    // Only run once
+    if (statusUpdated || !sessionId) return
+
     // Update card status after successful payment
     const updateCardStatus = async () => {
-      if (!sessionId) return
-      
       try {
+        console.log('Verifying session:', sessionId)
+        
         // Get order ID from session metadata by calling our API
         const response = await fetch('/api/verify-session', {
           method: 'POST',
@@ -26,12 +30,21 @@ export default function CheckoutSuccess() {
           body: JSON.stringify({ sessionId }),
         })
         
+        if (!response.ok) {
+          console.error('Verify session failed:', response.status)
+          setStatusUpdated(true) // Prevent retry loop
+          return
+        }
+        
         const { orderId, shippingMethod } = await response.json()
         
         if (!orderId) {
           console.error('No order ID found in session')
+          setStatusUpdated(true) // Prevent retry loop
           return
         }
+
+        console.log('Order ID:', orderId, 'Shipping method:', shippingMethod)
 
         // Create service role client
         const supabaseServiceRole = createClient(
@@ -40,18 +53,21 @@ export default function CheckoutSuccess() {
         )
         
         // Get card IDs from order_items
-        const { data: orderItems } = await supabaseServiceRole
+        const { data: orderItems, error: itemsError } = await supabaseServiceRole
           .from('order_items')
           .select('card_id')
           .eq('order_id', orderId)
         
-        if (!orderItems || orderItems.length === 0) {
-          console.error('No order items found')
+        if (itemsError || !orderItems || orderItems.length === 0) {
+          console.error('Error fetching order items:', itemsError)
+          setStatusUpdated(true)
           return
         }
         
         const cardIds = orderItems.map(item => item.card_id)
         const newStatus = shippingMethod === 'store' ? 'stored' : 'sold'
+        
+        console.log(`Updating ${cardIds.length} cards to status: ${newStatus}`)
         
         // Update card status
         const { error: updateError } = await supabaseServiceRole
@@ -74,13 +90,16 @@ export default function CheckoutSuccess() {
           .update({ status: 'paid' })
           .eq('id', orderId)
         
+        setStatusUpdated(true)
+        
       } catch (err) {
         console.error('Error in post-payment update:', err)
+        setStatusUpdated(true) // Prevent retry loop
       }
     }
 
     updateCardStatus()
-  }, [sessionId, clear])
+  }, [sessionId, clear, statusUpdated])
 
   return (
     <section className="max-w-2xl mx-auto space-y-6 py-8">
