@@ -19,11 +19,11 @@ export default function Checkout() {
     country: 'United Kingdom',
   })
   
-  const [shippingMethod, setShippingMethod] = useState('standard')
+  const [shippingMethod, setShippingMethod] = useState('ship_now')
   
   const shippingCosts = {
-    standard: 3.95,
-    express: 7.95,
+    ship_now: 3.95,
+    store: 0,
   }
 
   const shippingCost = shippingCosts[shippingMethod as keyof typeof shippingCosts]
@@ -42,23 +42,27 @@ export default function Checkout() {
   const handleCheckout = async () => {
     if (!user) return
 
-    // Validate shipping address
-    if (!shippingAddress.line1 || !shippingAddress.city || !shippingAddress.postcode) {
-      setError('Please fill in all required shipping address fields')
-      return
+    // Only validate address if shipping
+    if (shippingMethod === 'ship_now') {
+      if (!shippingAddress.line1 || !shippingAddress.city || !shippingAddress.postcode) {
+        setError('Please fill in all required shipping address fields')
+        return
+      }
     }
 
     setLoading(true)
     setError(null)
 
     try {
-      const addressString = [
-        shippingAddress.line1,
-        shippingAddress.line2,
-        shippingAddress.city,
-        shippingAddress.postcode,
-        shippingAddress.country,
-      ].filter(Boolean).join(', ')
+      const addressString = shippingMethod === 'ship_now' 
+        ? [
+            shippingAddress.line1,
+            shippingAddress.line2,
+            shippingAddress.city,
+            shippingAddress.postcode,
+            shippingAddress.country,
+          ].filter(Boolean).join(', ')
+        : 'In-store collection'
 
       // Create order in database
       const { data: order, error: orderError } = await supabase
@@ -122,163 +126,189 @@ export default function Checkout() {
   if (items.length === 0) return null
 
   return (
-    <section className="max-w-4xl mx-auto space-y-6 py-8">
-      <h1 className="font-header text-3xl">Checkout</h1>
+    <section className="max-w-5xl mx-auto py-8">
+      <h1 className="font-header text-3xl mb-6">Checkout</h1>
 
       {error && (
-        <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-red-700 text-sm">
+        <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-red-700 text-sm mb-6">
           {error}
         </div>
       )}
 
-      <div className="grid lg:grid-cols-[1fr_380px] gap-6">
-        {/* Left: Shipping Info */}
+      <div className="grid lg:grid-cols-[1fr_400px] gap-6">
+        {/* Left: Shipping & Payment */}
         <div className="space-y-6">
-          {/* Shipping Address */}
-          <div className="rounded-2xl bg-white p-6 shadow-soft border border-black/5 space-y-4">
-            <h2 className="font-header text-xl">Shipping Address</h2>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Address Line 1 <span className="text-red-600">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={shippingAddress.line1}
-                onChange={(e) => setShippingAddress(prev => ({ ...prev, line1: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-xl"
-                placeholder="123 Main Street"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Address Line 2</label>
-              <input
-                type="text"
-                value={shippingAddress.line2}
-                onChange={(e) => setShippingAddress(prev => ({ ...prev, line2: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-xl"
-                placeholder="Apartment, suite, etc. (optional)"
-              />
-            </div>
-
-            <div className="grid sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  City <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={shippingAddress.city}
-                  onChange={(e) => setShippingAddress(prev => ({ ...prev, city: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-xl"
-                  placeholder="London"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Postcode <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={shippingAddress.postcode}
-                  onChange={(e) => setShippingAddress(prev => ({ ...prev, postcode: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-xl"
-                  placeholder="SW1A 1AA"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Country</label>
-              <input
-                type="text"
-                disabled
-                value={shippingAddress.country}
-                className="w-full px-3 py-2 border rounded-xl bg-gray-50"
-              />
-            </div>
-          </div>
-
+          
           {/* Shipping Method */}
-          <div className="rounded-2xl bg-white p-6 shadow-soft border border-black/5 space-y-4">
-            <h2 className="font-header text-xl">Shipping Method</h2>
+          <div className="rounded-2xl bg-white p-6 shadow-soft border border-black/5">
+            <h2 className="font-header text-xl mb-4">Delivery Method</h2>
             
-            <label className="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-black/5">
-              <input
-                type="radio"
-                name="shipping"
-                value="standard"
-                checked={shippingMethod === 'standard'}
-                onChange={(e) => setShippingMethod(e.target.value)}
-              />
-              <div className="flex-1">
-                <div className="font-medium">Standard Delivery</div>
-                <div className="text-sm opacity-70">3-5 business days</div>
-              </div>
-              <div className="font-header">£{shippingCosts.standard.toFixed(2)}</div>
-            </label>
+            <div className="space-y-3">
+              <label className={`flex items-start gap-4 p-4 border-2 rounded-xl cursor-pointer transition ${
+                shippingMethod === 'ship_now' ? 'border-primary bg-primary/5' : 'border-black/10 hover:border-black/20'
+              }`}>
+                <input
+                  type="radio"
+                  name="shipping"
+                  value="ship_now"
+                  checked={shippingMethod === 'ship_now'}
+                  onChange={(e) => setShippingMethod(e.target.value)}
+                  className="mt-1"
+                />
+                <div className="flex-1">
+                  <div className="font-medium text-lg">🚚 Standard Shipping</div>
+                  <div className="text-sm opacity-70 mt-1">Delivered in 3-5 business days</div>
+                  <div className="text-sm font-header mt-2 text-primary">£{shippingCosts.ship_now.toFixed(2)}</div>
+                </div>
+              </label>
 
-            <label className="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-black/5">
-              <input
-                type="radio"
-                name="shipping"
-                value="express"
-                checked={shippingMethod === 'express'}
-                onChange={(e) => setShippingMethod(e.target.value)}
-              />
-              <div className="flex-1">
-                <div className="font-medium">Express Delivery</div>
-                <div className="text-sm opacity-70">1-2 business days</div>
-              </div>
-              <div className="font-header">£{shippingCosts.express.toFixed(2)}</div>
-            </label>
+              <label className={`flex items-start gap-4 p-4 border-2 rounded-xl cursor-pointer transition ${
+                shippingMethod === 'store' ? 'border-primary bg-primary/5' : 'border-black/10 hover:border-black/20'
+              }`}>
+                <input
+                  type="radio"
+                  name="shipping"
+                  value="store"
+                  checked={shippingMethod === 'store'}
+                  onChange={(e) => setShippingMethod(e.target.value)}
+                  className="mt-1"
+                />
+                <div className="flex-1">
+                  <div className="font-medium text-lg">🏪 In-Store Collection</div>
+                  <div className="text-sm opacity-70 mt-1">Collect from our location</div>
+                  <div className="text-sm font-header mt-2 text-primary">FREE</div>
+                </div>
+              </label>
+            </div>
           </div>
+
+          {/* Shipping Address - Only show if ship_now selected */}
+          {shippingMethod === 'ship_now' && (
+            <div className="rounded-2xl bg-white p-6 shadow-soft border border-black/5">
+              <h2 className="font-header text-xl mb-4">Shipping Address</h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">
+                    Address Line 1 <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={shippingAddress.line1}
+                    onChange={(e) => setShippingAddress(prev => ({ ...prev, line1: e.target.value }))}
+                    className="w-full px-4 py-2.5 border border-black/20 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                    placeholder="123 Main Street"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Address Line 2</label>
+                  <input
+                    type="text"
+                    value={shippingAddress.line2}
+                    onChange={(e) => setShippingAddress(prev => ({ ...prev, line2: e.target.value }))}
+                    className="w-full px-4 py-2.5 border border-black/20 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                    placeholder="Apartment, suite, etc. (optional)"
+                  />
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5">
+                      City <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={shippingAddress.city}
+                      onChange={(e) => setShippingAddress(prev => ({ ...prev, city: e.target.value }))}
+                      className="w-full px-4 py-2.5 border border-black/20 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                      placeholder="London"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5">
+                      Postcode <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={shippingAddress.postcode}
+                      onChange={(e) => setShippingAddress(prev => ({ ...prev, postcode: e.target.value }))}
+                      className="w-full px-4 py-2.5 border border-black/20 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                      placeholder="SW1A 1AA"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Country</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={shippingAddress.country}
+                    className="w-full px-4 py-2.5 border border-black/10 rounded-xl bg-black/5"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
 
         {/* Right: Order Summary */}
-        <div className="space-y-6">
-          <div className="rounded-2xl bg-white p-6 shadow-soft border border-black/5 space-y-4">
-            <h2 className="font-header text-xl">Order Summary</h2>
+        <div className="lg:sticky lg:top-6 h-fit">
+          <div className="rounded-2xl bg-white p-6 shadow-soft border border-black/5">
+            <h2 className="font-header text-xl mb-4">Order Summary</h2>
 
-            <div className="space-y-2">
+            <div className="space-y-3 mb-4">
               {items.map(item => (
-                <div key={item.id} className="flex justify-between py-2 border-b text-sm">
-                  <span className="truncate pr-2">{item.title}</span>
-                  <span className="font-medium whitespace-nowrap">£{item.price?.toFixed(2)}</span>
+                <div key={item.id} className="flex gap-3 pb-3 border-b border-black/5">
+                  <div className="w-16 h-16 rounded-lg overflow-hidden bg-black/5 border border-black/10 shrink-0">
+                    {item.image_url && (
+                      <img src={item.image_url} alt={item.title || ''} className="w-full h-full object-cover" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{item.title}</div>
+                    <div className="text-sm font-header mt-1">£{item.price?.toFixed(2)}</div>
+                  </div>
                 </div>
               ))}
             </div>
 
-            <div className="space-y-2 pt-2">
+            <div className="space-y-2 pt-3 border-t">
               <div className="flex justify-between text-sm">
-                <span className="opacity-70">Subtotal</span>
-                <span>£{total.toFixed(2)}</span>
+                <span className="opacity-70">Subtotal ({items.length} {items.length === 1 ? 'item' : 'items'})</span>
+                <span className="font-medium">£{total.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="opacity-70">Shipping</span>
-                <span>£{shippingCost.toFixed(2)}</span>
+                <span className="font-medium">
+                  {shippingCost === 0 ? 'FREE' : `£${shippingCost.toFixed(2)}`}
+                </span>
               </div>
-              <div className="flex justify-between text-lg font-bold pt-2 border-t">
+              <div className="flex justify-between text-lg font-bold pt-3 border-t">
                 <span>Total</span>
-                <span>£{orderTotal.toFixed(2)}</span>
+                <span className="text-primary">£{orderTotal.toFixed(2)}</span>
               </div>
             </div>
 
             <button
               onClick={handleCheckout}
               disabled={loading}
-              className="w-full px-6 py-3 rounded-xl bg-primary text-white font-medium hover:opacity-90 disabled:opacity-50 mt-4"
+              className="w-full px-6 py-3.5 rounded-xl bg-primary text-white font-medium hover:opacity-90 disabled:opacity-50 transition mt-6"
             >
-              {loading ? 'Processing...' : 'Proceed to Payment'}
+              {loading ? 'Processing...' : 'Continue to Payment'}
             </button>
 
-            <div className="text-xs text-center opacity-70 pt-2">
-              You'll be redirected to Stripe for secure payment
+            <div className="flex items-center justify-center gap-2 text-xs opacity-60 mt-4">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+              </svg>
+              Secure checkout powered by Stripe
             </div>
           </div>
         </div>
