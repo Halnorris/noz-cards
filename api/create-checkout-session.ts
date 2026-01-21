@@ -49,6 +49,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       cancel_url: `${siteUrl}/checkout`,
       metadata: {
         orderId: orderId,
+        shippingMethod: shippingMethod,
       },
     })
 
