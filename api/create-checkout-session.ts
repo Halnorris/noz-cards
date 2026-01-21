@@ -11,26 +11,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { orderId, items } = req.body
+    const { orderId, items, shippingCost } = req.body
 
-    // Get the site URL from headers
     const host = req.headers.host
     const protocol = host?.includes('localhost') ? 'http' : 'https'
     const siteUrl = `${protocol}://${host}`
 
-    // Create line items for Stripe
+    // Create line items for cards
     const lineItems = items.map((item: any) => ({
       price_data: {
         currency: 'gbp',
         product_data: {
           name: item.title,
         },
-        unit_amount: Math.round(item.price * 100), // Convert to pence
+        unit_amount: Math.round(item.price * 100),
       },
       quantity: 1,
     }))
 
-    // Create Stripe Checkout Session
+    // Add shipping as a line item
+    lineItems.push({
+      price_data: {
+        currency: 'gbp',
+        product_data: {
+          name: 'Shipping',
+        },
+        unit_amount: Math.round(shippingCost * 100),
+      },
+      quantity: 1,
+    })
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: lineItems,
