@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useBasket } from '@/context/basket'
 import { useAuth } from '@/context/auth'
 import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 
 export default function Checkout() {
   const { items, total } = useBasket()
@@ -94,11 +95,18 @@ export default function Checkout() {
 
       if (itemsError) throw itemsError
 
-      // Update card status based on shipping method
+      // Update card status using service role to bypass RLS
       const newStatus = shippingMethod === 'store' ? 'stored' : 'sold'
       
       const cardIds = items.map(item => item.id)
-      const { error: updateError } = await supabase
+      
+      // Create a service role client for this operation
+      const supabaseServiceRole = createClient(
+        import.meta.env.VITE_SUPABASE_URL!,
+        import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY!
+      )
+      
+      const { error: updateError } = await supabaseServiceRole
         .from('cards')
         .update({ 
           status: newStatus,
