@@ -42,7 +42,7 @@ export default function Checkout() {
   const handleCheckout = async () => {
     if (!user) return
 
-    // Only validate address if shipping
+    // Only validate address if shipping now
     if (shippingMethod === 'ship_now') {
       if (!shippingAddress.line1 || !shippingAddress.city || !shippingAddress.postcode) {
         setError('Please fill in all required shipping address fields')
@@ -62,7 +62,7 @@ export default function Checkout() {
             shippingAddress.postcode,
             shippingAddress.country,
           ].filter(Boolean).join(', ')
-        : 'In-store collection'
+        : 'Store for later shipment'
 
       // Create order in database
       const { data: order, error: orderError } = await supabase
@@ -136,12 +136,12 @@ export default function Checkout() {
       )}
 
       <div className="grid lg:grid-cols-[1fr_400px] gap-6">
-        {/* Left: Shipping & Payment */}
+        {/* Left: Shipping Options */}
         <div className="space-y-6">
           
           {/* Shipping Method */}
           <div className="rounded-2xl bg-white p-6 shadow-soft border border-black/5">
-            <h2 className="font-header text-xl mb-4">Delivery Method</h2>
+            <h2 className="font-header text-xl mb-4">Delivery Options</h2>
             
             <div className="space-y-3">
               <label className={`flex items-start gap-4 p-4 border-2 rounded-xl cursor-pointer transition ${
@@ -156,8 +156,8 @@ export default function Checkout() {
                   className="mt-1"
                 />
                 <div className="flex-1">
-                  <div className="font-medium text-lg">🚚 Standard Shipping</div>
-                  <div className="text-sm opacity-70 mt-1">Delivered in 3-5 business days</div>
+                  <div className="font-medium text-lg">📦 Ship Now</div>
+                  <div className="text-sm opacity-70 mt-1">Your cards will be shipped immediately (3-5 business days)</div>
                   <div className="text-sm font-header mt-2 text-primary">£{shippingCosts.ship_now.toFixed(2)}</div>
                 </div>
               </label>
@@ -174,9 +174,12 @@ export default function Checkout() {
                   className="mt-1"
                 />
                 <div className="flex-1">
-                  <div className="font-medium text-lg">🏪 In-Store Collection</div>
-                  <div className="text-sm opacity-70 mt-1">Collect from our location</div>
+                  <div className="font-medium text-lg">🏪 Store & Ship Later</div>
+                  <div className="text-sm opacity-70 mt-1">We'll hold your cards and ship them all together when you're ready</div>
                   <div className="text-sm font-header mt-2 text-primary">FREE</div>
+                  <div className="text-xs opacity-60 mt-2 italic">
+                    💡 Pro tip: Buy multiple cards and ship them all at once to save on shipping!
+                  </div>
                 </div>
               </label>
             </div>
