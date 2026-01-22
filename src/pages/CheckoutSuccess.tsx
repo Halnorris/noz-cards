@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useBasket } from '@/context/basket'
 import { createClient } from '@supabase/supabase-js'
@@ -7,7 +7,7 @@ export default function CheckoutSuccess() {
   const [searchParams] = useSearchParams()
   const { clear } = useBasket()
   const sessionId = searchParams.get('session_id')
-  const [statusUpdated, setStatusUpdated] = useState(false)
+  const hasRun = useRef(false) // THIS PREVENTS THE LOOP
 
   useEffect(() => {
     // Clear basket on success
@@ -15,8 +15,9 @@ export default function CheckoutSuccess() {
       clear()
     }
 
-    // Only run once
-    if (statusUpdated || !sessionId) return
+    // Only run once - using ref to prevent loop
+    if (hasRun.current || !sessionId) return
+    hasRun.current = true // Mark as run immediately
 
     // Update card status after successful payment
     const updateCardStatus = async () => {
@@ -32,7 +33,6 @@ export default function CheckoutSuccess() {
         
         if (!response.ok) {
           console.error('Verify session failed:', response.status)
-          setStatusUpdated(true) // Prevent retry loop
           return
         }
         
@@ -40,7 +40,6 @@ export default function CheckoutSuccess() {
         
         if (!orderId) {
           console.error('No order ID found in session')
-          setStatusUpdated(true) // Prevent retry loop
           return
         }
 
@@ -66,7 +65,6 @@ export default function CheckoutSuccess() {
         
         if (itemsError || !orderItems || orderItems.length === 0) {
           console.error('Error fetching order items:', itemsError)
-          setStatusUpdated(true)
           return
         }
         
@@ -117,16 +115,13 @@ export default function CheckoutSuccess() {
             .eq('id', orderId)
         }
         
-        setStatusUpdated(true)
-        
       } catch (err) {
         console.error('Error in post-payment update:', err)
-        setStatusUpdated(true) // Prevent retry loop
       }
     }
 
     updateCardStatus()
-  }, [sessionId, clear, statusUpdated]) // FIXED: Added statusUpdated here!
+  }, [sessionId, clear])
 
   return (
     <section className="max-w-2xl mx-auto space-y-6 py-8">
