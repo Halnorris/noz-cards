@@ -621,49 +621,24 @@ function StoredCardsTab() {
     if (!user) return
     
     async function fetchStoredOrders() {
-      // First get the orders
-      const { data: ordersData } = await supabase
+      const { data } = await supabase
         .from('orders')
-        .select('*')
+        .select(`
+          *,
+          order_items(
+            id,
+            card_id,
+            price,
+            card_title,
+            card_image_url,
+            card_nozid
+          )
+        `)
         .eq('user_id', user.id)
         .eq('status', 'stored')
         .order('created_at', { ascending: false })
       
-      if (!ordersData || ordersData.length === 0) {
-        setOrders([])
-        setLoading(false)
-        return
-      }
-
-      // Then get order items with card details for each order
-      const ordersWithItems = await Promise.all(
-        ordersData.map(async (order) => {
-          const { data: items } = await supabase
-            .from('order_items')
-            .select(`
-              id,
-              card_id,
-              cards (
-                id,
-                title,
-                image_url,
-                price,
-                nozid
-              )
-            `)
-            .eq('order_id', order.id)
-          
-          return {
-            ...order,
-            order_items: items?.map(item => ({
-              id: item.id,
-              card: item.cards
-            }))
-          }
-        })
-      )
-      
-      setOrders(ordersWithItems)
+      setOrders(data || [])
       setLoading(false)
     }
     
@@ -754,10 +729,10 @@ function StoredCardsTab() {
                   {order.order_items?.map((item: any) => (
                     <div key={item.id} className="rounded-lg border border-black/5 p-2">
                       <div className="aspect-[3/4] rounded bg-black/5 mb-1 overflow-hidden">
-                        {item.card?.image_url ? (
+                        {item.card_image_url ? (
                           <img 
-                            src={item.card.image_url} 
-                            alt={item.card.title || 'Card'} 
+                            src={item.card_image_url} 
+                            alt={item.card_title || 'Card'} 
                             className="w-full h-full object-cover" 
                           />
                         ) : (
@@ -766,7 +741,7 @@ function StoredCardsTab() {
                           </div>
                         )}
                       </div>
-                      <div className="text-[10px] truncate">{item.card?.title || item.card?.nozid || 'Card'}</div>
+                      <div className="text-[10px] truncate">{item.card_title || item.card_nozid || 'Card'}</div>
                     </div>
                   ))}
                 </div>
@@ -796,12 +771,9 @@ function OrdersTab() {
           order_items(
             id,
             price,
-            card:cards(
-              id,
-              title,
-              image_url,
-              nozid
-            )
+            card_title,
+            card_image_url,
+            card_nozid
           )
         `)
         .eq('user_id', user.id)
@@ -890,10 +862,10 @@ function OrdersTab() {
                     {order.order_items?.map((item: any) => (
                       <div key={item.id} className="rounded-lg border border-black/5 bg-white p-2">
                         <div className="aspect-[3/4] rounded bg-black/5 mb-2 overflow-hidden">
-                          {item.card?.image_url ? (
+                          {item.card_image_url ? (
                             <img 
-                              src={item.card.image_url} 
-                              alt={item.card.title || 'Card'} 
+                              src={item.card_image_url} 
+                              alt={item.card_title || 'Card'} 
                               className="w-full h-full object-cover" 
                             />
                           ) : (
@@ -903,7 +875,7 @@ function OrdersTab() {
                           )}
                         </div>
                         <div className="text-xs font-medium truncate mb-1">
-                          {item.card?.title || item.card?.nozid || 'Card'}
+                          {item.card_title || item.card_nozid || 'Card'}
                         </div>
                         <div className="text-xs opacity-70">
                           £{item.price?.toFixed(2) || '0.00'}
