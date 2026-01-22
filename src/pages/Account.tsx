@@ -540,7 +540,7 @@ function PendingCardsTab() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="px-3 py-2 border rounded-xl text-sm bg-white"
+            className="px-3 py-1.5 border rounded-xl text-sm bg-white"
           >
             <option value="newest">Newest</option>
             <option value="oldest">Oldest</option>
@@ -619,29 +619,54 @@ function StoredCardsTab() {
 
   useEffect(() => {
     if (!user) return
+    
     async function fetchStoredOrders() {
-      const { data } = await supabase
+      // First get the orders
+      const { data: ordersData } = await supabase
         .from('orders')
-        .select(`
-          *,
-          order_items(
-            id,
-            card:cards(
-              id, 
-              title, 
-              image_url, 
-              price,
-              nozid
-            )
-          )
-        `)
+        .select('*')
         .eq('user_id', user.id)
         .eq('status', 'stored')
         .order('created_at', { ascending: false })
       
-      setOrders(data || [])
+      if (!ordersData || ordersData.length === 0) {
+        setOrders([])
+        setLoading(false)
+        return
+      }
+
+      // Then get order items with card details for each order
+      const ordersWithItems = await Promise.all(
+        ordersData.map(async (order) => {
+          const { data: items } = await supabase
+            .from('order_items')
+            .select(`
+              id,
+              card_id,
+              cards (
+                id,
+                title,
+                image_url,
+                price,
+                nozid
+              )
+            `)
+            .eq('order_id', order.id)
+          
+          return {
+            ...order,
+            order_items: items?.map(item => ({
+              id: item.id,
+              card: item.cards
+            }))
+          }
+        })
+      )
+      
+      setOrders(ordersWithItems)
       setLoading(false)
     }
+    
     fetchStoredOrders()
   }, [user])
 
