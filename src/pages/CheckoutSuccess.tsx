@@ -49,7 +49,13 @@ export default function CheckoutSuccess() {
         // Create service role client
         const supabaseServiceRole = createClient(
           import.meta.env.VITE_SUPABASE_URL!,
-          import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY!
+          import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY!,
+          {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false
+            }
+          }
         )
         
         // Get card IDs from order_items
@@ -120,7 +126,7 @@ export default function CheckoutSuccess() {
     }
 
     updateCardStatus()
-  }, [sessionId, clear])
+  }, [sessionId, clear, statusUpdated]) // FIXED: Added statusUpdated here!
 
   return (
     <section className="max-w-2xl mx-auto space-y-6 py-8">
