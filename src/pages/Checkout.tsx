@@ -81,11 +81,14 @@ export default function Checkout() {
 
       if (orderError) throw orderError
 
-      // Create order items
+      // Create order items WITH CARD DETAILS (snapshot at purchase time)
       const orderItems = items.map(item => ({
         order_id: order.id,
         card_id: item.id,
         price: item.price,
+        card_title: item.title,
+        card_image_url: item.image_url,
+        card_nozid: item.nozid || item.id,
       }))
 
       const { error: itemsError } = await supabase
@@ -106,7 +109,7 @@ export default function Checkout() {
             price: item.price,
           })),
           shippingCost: shippingCost,
-          shippingMethod: shippingMethod, // Pass shipping method to Stripe
+          shippingMethod: shippingMethod,
         }),
       })
 
