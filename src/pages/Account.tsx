@@ -22,9 +22,12 @@ type Card = {
 type Order = {
   id: string
   shipping_method: string
+  subtotal?: number
+  shipping_cost?: number
   total: number
   status: string
   created_at: string
+  shipping_address?: string
   order_items?: any[]
 }
 
@@ -80,7 +83,7 @@ export default function Account() {
     }
 
     fetchStats()
-  }, [user, authLoading, navigate, activeTab]) // Refresh when tab changes
+  }, [user, authLoading, navigate, activeTab])
 
   if (authLoading || loading) {
     return (
@@ -420,7 +423,6 @@ function PendingCardsTab() {
   const approveCard = async (cardId: string) => {
     const priceValue = prices[cardId]?.trim()
     
-    // Check if price is entered
     if (!priceValue) {
       alert('Please enter a price before approving')
       return
@@ -428,7 +430,6 @@ function PendingCardsTab() {
     
     const price = parseFloat(priceValue)
     
-    // Validate price
     if (isNaN(price) || price <= 0) {
       alert('Please enter a valid price greater than £0')
       return
@@ -437,7 +438,6 @@ function PendingCardsTab() {
     setUpdating(cardId)
     
     try {
-      // Update the card status and price
       const { error: updateError } = await supabase
         .from('cards')
         .update({ price, status: 'live' })
@@ -450,7 +450,6 @@ function PendingCardsTab() {
         return
       }
 
-      // Verify the update by checking if card is still pending
       const { data: checkData, error: checkError } = await supabase
         .from('cards')
         .select('status')
@@ -459,7 +458,6 @@ function PendingCardsTab() {
 
       if (checkError) {
         console.error('Error verifying update:', checkError)
-        // Update probably worked, just couldn't verify
         setCards(prev => prev.filter(c => c.id !== cardId))
         setPrices(prev => {
           const newPrices = { ...prev }
@@ -468,7 +466,6 @@ function PendingCardsTab() {
         })
         alert(`Card approved! (Verification failed but update should be successful)`)
       } else if (checkData.status === 'live') {
-        // Successfully updated and verified
         setCards(prev => prev.filter(c => c.id !== cardId))
         setPrices(prev => {
           const newPrices = { ...prev }
@@ -543,7 +540,7 @@ function PendingCardsTab() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="px-3 py-1.5 border rounded-xl text-sm bg-white"
+            className="px-3 py-2 border rounded-xl text-sm bg-white"
           >
             <option value="newest">Newest</option>
             <option value="oldest">Oldest</option>
@@ -629,7 +626,13 @@ function StoredCardsTab() {
           *,
           order_items(
             id,
-            card:cards(id, title, image_url, price)
+            card:cards(
+              id, 
+              title, 
+              image_url, 
+              price,
+              nozid
+            )
           )
         `)
         .eq('user_id', user.id)
@@ -726,11 +729,19 @@ function StoredCardsTab() {
                   {order.order_items?.map((item: any) => (
                     <div key={item.id} className="rounded-lg border border-black/5 p-2">
                       <div className="aspect-[3/4] rounded bg-black/5 mb-1 overflow-hidden">
-                        {item.card?.image_url && (
-                          <img src={item.card.image_url} alt={item.card.title} className="w-full h-full object-cover" />
+                        {item.card?.image_url ? (
+                          <img 
+                            src={item.card.image_url} 
+                            alt={item.card.title || 'Card'} 
+                            className="w-full h-full object-cover" 
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xs opacity-50">
+                            No image
+                          </div>
                         )}
                       </div>
-                      <div className="text-[10px] truncate">{item.card?.title}</div>
+                      <div className="text-[10px] truncate">{item.card?.title || item.card?.nozid || 'Card'}</div>
                     </div>
                   ))}
                 </div>
@@ -748,6 +759,7 @@ function OrdersTab() {
   const { user } = useAuth()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -756,15 +768,21 @@ function OrdersTab() {
         .from('orders')
         .select(`
           *,
-          order_items(count)
+          order_items(
+            id,
+            price,
+            card:cards(
+              id,
+              title,
+              image_url,
+              nozid
+            )
+          )
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
       
-      setOrders((data || []).map(order => ({
-        ...order,
-        card_count: order.order_items?.[0]?.count || 0
-      })))
+      setOrders(data || [])
       setLoading(false)
     }
     fetchOrders()
@@ -780,36 +798,125 @@ function OrdersTab() {
     )
   }
 
+  const toggleOrder = (orderId: string) => {
+    setExpandedOrder(expandedOrder === orderId ? null : orderId)
+  }
+
   return (
     <div className="space-y-4">
       <h2 className="font-header text-lg">Your Orders ({orders.length})</h2>
       
       <div className="space-y-3">
-        {orders.map((order) => (
-          <div key={order.id} className="p-4 rounded-xl border border-black/5 hover:shadow-md transition">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="font-medium">Order #{order.id.slice(0, 8)}</div>
-                <div className="text-sm opacity-70 mt-1">
-                  {order.card_count} {order.card_count === 1 ? 'card' : 'cards'} • £{order.total.toFixed(2)}
+        {orders.map((order) => {
+          const isExpanded = expandedOrder === order.id
+          const itemCount = order.order_items?.length || 0
+          
+          return (
+            <div 
+              key={order.id} 
+              className="rounded-xl border border-black/5 overflow-hidden hover:shadow-md transition"
+            >
+              {/* Order Summary - Clickable */}
+              <button
+                onClick={() => toggleOrder(order.id)}
+                className="w-full p-4 text-left hover:bg-black/[0.02] transition"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="font-medium">Order #{order.id.slice(0, 8)}</div>
+                    <div className="text-sm opacity-70 mt-1">
+                      {itemCount} {itemCount === 1 ? 'card' : 'cards'} • £{order.total.toFixed(2)}
+                    </div>
+                    <div className="text-xs opacity-60 mt-1">
+                      {new Date(order.created_at).toLocaleDateString('en-GB', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                      })}
+                    </div>
+                  </div>
+                  <div className="text-right flex flex-col items-end gap-2">
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      order.status === 'paid' 
+                        ? 'bg-green-100 text-green-700' 
+                        : order.status === 'stored'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {order.status === 'paid' ? 'Paid' : order.status === 'stored' ? 'Stored' : 'Pending'}
+                    </span>
+                    <svg 
+                      className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                      fill="none" 
+                      viewBox="0 0 24 24" 
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
                 </div>
-                <div className="text-xs opacity-60 mt-1">
-                  {new Date(order.created_at).toLocaleDateString()}
+              </button>
+
+              {/* Order Details - Expandable */}
+              {isExpanded && (
+                <div className="border-t border-black/5 p-4 bg-black/[0.01]">
+                  <h3 className="font-medium text-sm mb-3">Order Items:</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {order.order_items?.map((item: any) => (
+                      <div key={item.id} className="rounded-lg border border-black/5 bg-white p-2">
+                        <div className="aspect-[3/4] rounded bg-black/5 mb-2 overflow-hidden">
+                          {item.card?.image_url ? (
+                            <img 
+                              src={item.card.image_url} 
+                              alt={item.card.title || 'Card'} 
+                              className="w-full h-full object-cover" 
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-xs opacity-50">
+                              No image
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-xs font-medium truncate mb-1">
+                          {item.card?.title || item.card?.nozid || 'Card'}
+                        </div>
+                        <div className="text-xs opacity-70">
+                          £{item.price?.toFixed(2) || '0.00'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Shipping Info */}
+                  <div className="mt-4 pt-4 border-t border-black/5">
+                    <div className="text-sm">
+                      <div className="flex justify-between mb-2">
+                        <span className="opacity-70">Subtotal:</span>
+                        <span className="font-medium">£{order.subtotal?.toFixed(2) || '0.00'}</span>
+                      </div>
+                      <div className="flex justify-between mb-2">
+                        <span className="opacity-70">Shipping:</span>
+                        <span className="font-medium">
+                          {order.shipping_cost === 0 ? 'FREE' : `£${order.shipping_cost?.toFixed(2)}`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between pt-2 border-t border-black/5">
+                        <span className="font-medium">Total:</span>
+                        <span className="font-bold text-primary">£{order.total.toFixed(2)}</span>
+                      </div>
+                    </div>
+                    {order.shipping_address && order.shipping_method !== 'store' && (
+                      <div className="mt-3 text-xs opacity-70">
+                        <div className="font-medium mb-1">Shipping to:</div>
+                        <div>{order.shipping_address}</div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <div className="text-right">
-                <span className={`px-2 py-1 rounded-full text-xs ${
-                  order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                  order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
-                  order.status === 'stored' ? 'bg-purple-100 text-purple-800' :
-                  'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {order.status}
-                </span>
-              </div>
+              )}
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
@@ -855,7 +962,6 @@ function WishlistTab() {
   const buyAll = () => {
     if (items.length === 0) return
     
-    // Add all wishlist items to basket
     items.forEach(item => {
       addItem({
         id: item.card.id,
@@ -865,7 +971,6 @@ function WishlistTab() {
       })
     })
     
-    // Navigate to checkout
     navigate('/checkout')
   }
 
@@ -941,7 +1046,6 @@ function SettingsTab() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   
-  // Profile data
   const [profile, setProfile] = useState({
     full_name: '',
     email: '',
@@ -953,7 +1057,6 @@ function SettingsTab() {
     country: 'United Kingdom',
   })
 
-  // Password change
   const [passwords, setPasswords] = useState({
     current: '',
     new: '',
@@ -1049,7 +1152,6 @@ function SettingsTab() {
         <p className="text-sm opacity-70">Manage your profile and preferences</p>
       </div>
 
-      {/* Profile Information */}
       <form onSubmit={saveProfile} className="space-y-6">
         <div className="p-6 rounded-xl border border-black/5 bg-black/[0.02] space-y-4">
           <h3 className="font-header text-lg">Profile Information</h3>
@@ -1164,7 +1266,6 @@ function SettingsTab() {
         </div>
       </form>
 
-      {/* Change Password */}
       <form onSubmit={changePassword} className="p-6 rounded-xl border border-black/5 bg-black/[0.02] space-y-4">
         <h3 className="font-header text-lg">Change Password</h3>
 
