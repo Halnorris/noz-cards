@@ -19,13 +19,38 @@ export default function Checkout() {
     country: 'United Kingdom',
   })
   
-  const [shippingMethod, setShippingMethod] = useState('ship_now')
+  const [shippingMethod, setShippingMethod] = useState('2nd_class')
   
-  const shippingCosts = {
-    ship_now: 3.95,
-    store: 0,
+  // Calculate shipping costs based on number of items
+  const getShippingCosts = () => {
+    const itemCount = items.length
+    
+    if (itemCount === 1) {
+      return {
+        '2nd_class': 2.00,
+        '1st_class': 3.50,
+        'special_delivery': 9.00,
+        'store': 0,
+      }
+    } else if (itemCount >= 2 && itemCount <= 10) {
+      return {
+        '2nd_class': 4.00,
+        '1st_class': 5.00,
+        'special_delivery': 12.00,
+        'store': 0,
+      }
+    } else {
+      // 10+ cards
+      return {
+        '2nd_class': 10.00,
+        '1st_class': 12.00,
+        'special_delivery': 15.00,
+        'store': 0,
+      }
+    }
   }
 
+  const shippingCosts = getShippingCosts()
   const shippingCost = shippingCosts[shippingMethod as keyof typeof shippingCosts]
   const orderTotal = total + shippingCost
 
@@ -42,8 +67,8 @@ export default function Checkout() {
   const handleCheckout = async () => {
     if (!user) return
 
-    // Only validate address if shipping now
-    if (shippingMethod === 'ship_now') {
+    // Only validate address if not storing
+    if (shippingMethod !== 'store') {
       if (!shippingAddress.line1 || !shippingAddress.city || !shippingAddress.postcode) {
         setError('Please fill in all required shipping address fields')
         return
@@ -54,7 +79,7 @@ export default function Checkout() {
     setError(null)
 
     try {
-      const addressString = shippingMethod === 'ship_now' 
+      const addressString = shippingMethod !== 'store' 
         ? [
             shippingAddress.line1,
             shippingAddress.line2,
@@ -129,6 +154,8 @@ export default function Checkout() {
 
   if (items.length === 0) return null
 
+  const itemCount = items.length
+
   return (
     <section className="max-w-5xl mx-auto py-8">
       <h1 className="font-header text-3xl mb-6">Checkout</h1>
@@ -146,23 +173,62 @@ export default function Checkout() {
           {/* Shipping Method */}
           <div className="rounded-2xl bg-white p-6 shadow-soft border border-black/5">
             <h2 className="font-header text-xl mb-4">Delivery Options</h2>
+            <p className="text-sm opacity-70 mb-4">
+              {itemCount === 1 ? '1 card' : itemCount <= 10 ? `${itemCount} cards` : `${itemCount} cards (10+)`}
+            </p>
             
             <div className="space-y-3">
               <label className={`flex items-start gap-4 p-4 border-2 rounded-xl cursor-pointer transition ${
-                shippingMethod === 'ship_now' ? 'border-primary bg-primary/5' : 'border-black/10 hover:border-black/20'
+                shippingMethod === '2nd_class' ? 'border-primary bg-primary/5' : 'border-black/10 hover:border-black/20'
               }`}>
                 <input
                   type="radio"
                   name="shipping"
-                  value="ship_now"
-                  checked={shippingMethod === 'ship_now'}
+                  value="2nd_class"
+                  checked={shippingMethod === '2nd_class'}
                   onChange={(e) => setShippingMethod(e.target.value)}
                   className="mt-1"
                 />
                 <div className="flex-1">
-                  <div className="font-medium text-lg">📦 Ship Now</div>
-                  <div className="text-sm opacity-70 mt-1">Your cards will be shipped immediately (3-5 business days)</div>
-                  <div className="text-sm font-header mt-2 text-primary">£{shippingCosts.ship_now.toFixed(2)}</div>
+                  <div className="font-medium text-lg">📬 2nd Class</div>
+                  <div className="text-sm opacity-70 mt-1">Standard delivery (3-5 business days)</div>
+                  <div className="text-sm font-header mt-2 text-primary">£{shippingCosts['2nd_class'].toFixed(2)}</div>
+                </div>
+              </label>
+
+              <label className={`flex items-start gap-4 p-4 border-2 rounded-xl cursor-pointer transition ${
+                shippingMethod === '1st_class' ? 'border-primary bg-primary/5' : 'border-black/10 hover:border-black/20'
+              }`}>
+                <input
+                  type="radio"
+                  name="shipping"
+                  value="1st_class"
+                  checked={shippingMethod === '1st_class'}
+                  onChange={(e) => setShippingMethod(e.target.value)}
+                  className="mt-1"
+                />
+                <div className="flex-1">
+                  <div className="font-medium text-lg">📮 1st Class</div>
+                  <div className="text-sm opacity-70 mt-1">Fast delivery (1-2 business days)</div>
+                  <div className="text-sm font-header mt-2 text-primary">£{shippingCosts['1st_class'].toFixed(2)}</div>
+                </div>
+              </label>
+
+              <label className={`flex items-start gap-4 p-4 border-2 rounded-xl cursor-pointer transition ${
+                shippingMethod === 'special_delivery' ? 'border-primary bg-primary/5' : 'border-black/10 hover:border-black/20'
+              }`}>
+                <input
+                  type="radio"
+                  name="shipping"
+                  value="special_delivery"
+                  checked={shippingMethod === 'special_delivery'}
+                  onChange={(e) => setShippingMethod(e.target.value)}
+                  className="mt-1"
+                />
+                <div className="flex-1">
+                  <div className="font-medium text-lg">🚀 Special Delivery</div>
+                  <div className="text-sm opacity-70 mt-1">Next day guaranteed delivery</div>
+                  <div className="text-sm font-header mt-2 text-primary">£{shippingCosts['special_delivery'].toFixed(2)}</div>
                 </div>
               </label>
 
@@ -189,8 +255,8 @@ export default function Checkout() {
             </div>
           </div>
 
-          {/* Shipping Address - Only show if ship_now selected */}
-          {shippingMethod === 'ship_now' && (
+          {/* Shipping Address - Only show if not storing */}
+          {shippingMethod !== 'store' && (
             <div className="rounded-2xl bg-white p-6 shadow-soft border border-black/5">
               <h2 className="font-header text-xl mb-4">Shipping Address</h2>
               
