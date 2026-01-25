@@ -767,7 +767,7 @@ function StoredCardsTab() {
               )}
             </div>
             <div className="text-xs font-medium truncate">{card.card_title || card.card_nozid || 'Card'}</div>
-            <div className="text-[10px] opacity-60 mt-1">Already paid</div>
+            <div className="text-[10px] opacity-60 mt-1">£{card.price?.toFixed(2) || '0.00'}</div>
           </div>
         ))}
       </div>
@@ -800,7 +800,7 @@ function OrdersTab() {
           )
         `)
         .eq('user_id', user.id)
-        .neq('status', 'stored') // Exclude stored orders
+        .not('status', 'in', '(stored,pending)') // Exclude stored and pending orders
         .order('created_at', { ascending: false })
       
       if (data) {
@@ -955,11 +955,9 @@ function OrdersTab() {
                         <div className="text-xs font-medium truncate mb-1">
                           {item.card_title || item.card_nozid || 'Card'}
                         </div>
-                        {!isShippingOrder && (
-                          <div className="text-xs opacity-70">
-                            £{item.price?.toFixed(2) || '0.00'}
-                          </div>
-                        )}
+                        <div className="text-xs opacity-70">
+                          £{item.price?.toFixed(2) || '0.00'}
+                        </div>
                       </div>
                     ))}
                   </div>
