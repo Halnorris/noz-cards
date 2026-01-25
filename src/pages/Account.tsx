@@ -65,7 +65,7 @@ export default function Account() {
         const [live, pending, orders, storedOrders, wishlist] = await Promise.all([
           supabase.from('cards').select('*', { count: 'exact', head: true }).eq('owner_user_id', user.id).eq('status', 'live'),
           supabase.from('cards').select('*', { count: 'exact', head: true }).eq('owner_user_id', user.id).eq('status', 'pending'),
-          supabase.from('orders').select('*', { count: 'exact', head: true }).eq('user_id', user.id).neq('status', 'stored'), // Exclude stored from orders count
+          supabase.from('orders').select('*', { count: 'exact', head: true }).eq('user_id', user.id).not('status', 'in', '(stored,pending)'), // Only count paid/shipped orders
           supabase.from('orders').select('id, order_items(id)').eq('user_id', user.id).eq('status', 'stored'), // Get stored orders with items
           supabase.from('wishlists').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
         ])
