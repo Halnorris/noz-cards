@@ -733,7 +733,7 @@ function StoredCardsTab() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+      <div className="grid sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
         {cards.map((card) => (
           <div 
             key={card.id} 
@@ -745,7 +745,7 @@ function StoredCardsTab() {
             onClick={() => toggleCard(card.id)}
           >
             <div className="relative">
-              <div className="aspect-[3/4] rounded bg-black/5 mb-2 overflow-hidden">
+              <div className="aspect-[3/4] rounded bg-black/5 mb-1 overflow-hidden">
                 {card.card_image_url ? (
                   <img 
                     src={card.card_image_url} 
@@ -759,15 +759,15 @@ function StoredCardsTab() {
                 )}
               </div>
               {selectedCards.has(card.id) && (
-                <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center">
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
               )}
             </div>
-            <div className="text-xs font-medium truncate">{card.card_title || card.card_nozid || 'Card'}</div>
-            <div className="text-[10px] opacity-60 mt-1">£{card.price?.toFixed(2) || '0.00'}</div>
+            <div className="text-[11px] font-medium line-clamp-2 min-h-[2rem]">{card.card_title || card.card_nozid || 'Card'}</div>
+            <div className="text-[10px] font-header mt-0.5">£{card.price?.toFixed(2) || '0.00'}</div>
           </div>
         ))}
       </div>
@@ -936,10 +936,10 @@ function OrdersTab() {
                   <h3 className="font-medium text-sm mb-3">
                     {isShippingOrder ? 'Cards Being Shipped:' : 'Order Items:'}
                   </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  <div className="grid sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
                     {displayCards.map((item: any) => (
-                      <div key={item.id} className="rounded-lg border border-black/5 bg-white p-2">
-                        <div className="aspect-[3/4] rounded bg-black/5 mb-2 overflow-hidden">
+                      <div key={item.id} className="rounded-xl border border-black/5 p-2">
+                        <div className="aspect-[3/4] rounded bg-black/5 mb-1 overflow-hidden">
                           {item.card_image_url ? (
                             <img 
                               src={item.card_image_url} 
@@ -952,10 +952,10 @@ function OrdersTab() {
                             </div>
                           )}
                         </div>
-                        <div className="text-xs font-medium truncate mb-1">
+                        <div className="text-[11px] font-medium line-clamp-2 min-h-[2rem]">
                           {item.card_title || item.card_nozid || 'Card'}
                         </div>
-                        <div className="text-xs opacity-70">
+                        <div className="text-[10px] font-header mt-0.5">
                           £{item.price?.toFixed(2) || '0.00'}
                         </div>
                       </div>
