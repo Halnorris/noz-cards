@@ -120,6 +120,8 @@ export default function ShipStoredCards() {
           status: 'pending',
           shipping_method: shippingMethod,
           shipping_address: addressString,
+          order_type: 'shipping', // Mark this as a shipping-only order
+          related_order_ids: orderIds, // Link to the original stored orders
         })
         .select()
         .single()
