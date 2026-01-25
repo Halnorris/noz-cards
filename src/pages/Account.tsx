@@ -28,6 +28,8 @@ type Order = {
   status: string
   created_at: string
   shipping_address?: string
+  order_type?: string
+  related_order_ids?: string[]
   order_items?: any[]
 }
 
@@ -761,10 +763,12 @@ function OrdersTab() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null)
+  const [relatedCards, setRelatedCards] = useState<{[key: string]: any[]}>({})
 
   useEffect(() => {
     if (!user) return
     async function fetchOrders() {
+      // Fetch all orders including shipping orders
       const { data } = await supabase
         .from('orders')
         .select(`
@@ -780,7 +784,44 @@ function OrdersTab() {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
       
-      setOrders(data || [])
+      if (data) {
+        setOrders(data)
+        
+        // For shipping orders, fetch the related cards
+        const shippingOrders = data.filter(o => o.order_type === 'shipping' && o.related_order_ids)
+        
+        if (shippingOrders.length > 0) {
+          const relatedCardsData: {[key: string]: any[]} = {}
+          
+          for (const shippingOrder of shippingOrders) {
+            if (shippingOrder.related_order_ids && shippingOrder.related_order_ids.length > 0) {
+              // Fetch cards from the related orders
+              const { data: relatedOrdersData } = await supabase
+                .from('orders')
+                .select(`
+                  id,
+                  order_items(
+                    id,
+                    price,
+                    card_title,
+                    card_image_url,
+                    card_nozid
+                  )
+                `)
+                .in('id', shippingOrder.related_order_ids)
+              
+              if (relatedOrdersData) {
+                // Flatten all order items from related orders
+                const allCards = relatedOrdersData.flatMap(ro => ro.order_items || [])
+                relatedCardsData[shippingOrder.id] = allCards
+              }
+            }
+          }
+          
+          setRelatedCards(relatedCardsData)
+        }
+      }
+      
       setLoading(false)
     }
     fetchOrders()
@@ -807,7 +848,9 @@ function OrdersTab() {
       <div className="space-y-3">
         {orders.map((order) => {
           const isExpanded = expandedOrder === order.id
-          const itemCount = order.order_items?.length || 0
+          const isShippingOrder = order.order_type === 'shipping'
+          const displayCards = isShippingOrder ? (relatedCards[order.id] || []) : (order.order_items || [])
+          const itemCount = displayCards.length
           
           return (
             <div 
@@ -821,9 +864,12 @@ function OrdersTab() {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="font-medium">Order #{order.id.slice(0, 8)}</div>
+                    <div className="font-medium">
+                      {isShippingOrder ? '📦 Shipping Order' : 'Order'} #{order.id.slice(0, 8)}
+                    </div>
                     <div className="text-sm opacity-70 mt-1">
                       {itemCount} {itemCount === 1 ? 'card' : 'cards'} • £{order.total.toFixed(2)}
+                      {isShippingOrder && <span className="ml-2 text-xs">(Shipping only)</span>}
                     </div>
                     <div className="text-xs opacity-60 mt-1">
                       {new Date(order.created_at).toLocaleDateString('en-GB', {
@@ -839,9 +885,14 @@ function OrdersTab() {
                         ? 'bg-green-100 text-green-700' 
                         : order.status === 'stored'
                         ? 'bg-blue-100 text-blue-700'
+                        : order.status === 'shipped'
+                        ? 'bg-purple-100 text-purple-700'
                         : 'bg-yellow-100 text-yellow-700'
                     }`}>
-                      {order.status === 'paid' ? 'Paid' : order.status === 'stored' ? 'Stored' : 'Pending'}
+                      {order.status === 'paid' ? 'Paid' : 
+                       order.status === 'stored' ? 'Stored' : 
+                       order.status === 'shipped' ? 'Shipped' : 
+                       'Pending'}
                     </span>
                     <svg 
                       className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
@@ -858,9 +909,16 @@ function OrdersTab() {
               {/* Order Details - Expandable */}
               {isExpanded && (
                 <div className="border-t border-black/5 p-4 bg-black/[0.01]">
-                  <h3 className="font-medium text-sm mb-3">Order Items:</h3>
+                  {isShippingOrder && order.related_order_ids && (
+                    <div className="mb-3 text-xs opacity-70">
+                      Shipping for orders: {order.related_order_ids.map(id => `#${id.slice(0, 8)}`).join(', ')}
+                    </div>
+                  )}
+                  <h3 className="font-medium text-sm mb-3">
+                    {isShippingOrder ? 'Cards Being Shipped:' : 'Order Items:'}
+                  </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {order.order_items?.map((item: any) => (
+                    {displayCards.map((item: any) => (
                       <div key={item.id} className="rounded-lg border border-black/5 bg-white p-2">
                         <div className="aspect-[3/4] rounded bg-black/5 mb-2 overflow-hidden">
                           {item.card_image_url ? (
@@ -878,9 +936,11 @@ function OrdersTab() {
                         <div className="text-xs font-medium truncate mb-1">
                           {item.card_title || item.card_nozid || 'Card'}
                         </div>
-                        <div className="text-xs opacity-70">
-                          £{item.price?.toFixed(2) || '0.00'}
-                        </div>
+                        {!isShippingOrder && (
+                          <div className="text-xs opacity-70">
+                            £{item.price?.toFixed(2) || '0.00'}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -888,18 +948,22 @@ function OrdersTab() {
                   {/* Shipping Info */}
                   <div className="mt-4 pt-4 border-t border-black/5">
                     <div className="text-sm">
-                      <div className="flex justify-between mb-2">
-                        <span className="opacity-70">Subtotal:</span>
-                        <span className="font-medium">£{order.subtotal?.toFixed(2) || '0.00'}</span>
-                      </div>
-                      <div className="flex justify-between mb-2">
-                        <span className="opacity-70">Shipping:</span>
-                        <span className="font-medium">
-                          {order.shipping_cost === 0 ? 'FREE' : `£${order.shipping_cost?.toFixed(2)}`}
-                        </span>
-                      </div>
+                      {!isShippingOrder && (
+                        <>
+                          <div className="flex justify-between mb-2">
+                            <span className="opacity-70">Subtotal:</span>
+                            <span className="font-medium">£{order.subtotal?.toFixed(2) || '0.00'}</span>
+                          </div>
+                          <div className="flex justify-between mb-2">
+                            <span className="opacity-70">Shipping:</span>
+                            <span className="font-medium">
+                              {order.shipping_cost === 0 ? 'FREE' : `£${order.shipping_cost?.toFixed(2)}`}
+                            </span>
+                          </div>
+                        </>
+                      )}
                       <div className="flex justify-between pt-2 border-t border-black/5">
-                        <span className="font-medium">Total:</span>
+                        <span className="font-medium">{isShippingOrder ? 'Shipping Cost:' : 'Total:'}</span>
                         <span className="font-bold text-primary">£{order.total.toFixed(2)}</span>
                       </div>
                     </div>
