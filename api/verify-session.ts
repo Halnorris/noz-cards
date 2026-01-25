@@ -1,8 +1,8 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node'
 import Stripe from 'stripe'
-import { VercelRequest, VercelResponse } from '@vercel/node'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-11-20.acacia',
+  apiVersion: '2023-10-16',
 })
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -13,16 +13,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { sessionId } = req.body
 
-    // Retrieve the session from Stripe
+    if (!sessionId) {
+      return res.status(400).json({ error: 'Session ID required' })
+    }
+
+    // Retrieve the checkout session from Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId)
 
-    // Return the order ID and shipping method from metadata
-    return res.status(200).json({
+    // Return the metadata (contains orderId, shippingMethod, or shipping-specific data)
+    res.status(200).json({
       orderId: session.metadata?.orderId,
       shippingMethod: session.metadata?.shippingMethod,
+      metadata: session.metadata, // Full metadata for shipping orders
     })
-  } catch (error: any) {
-    console.error('Error verifying session:', error)
-    return res.status(500).json({ error: error.message })
+  } catch (err: any) {
+    console.error('Verify session error:', err)
+    res.status(500).json({ error: err.message })
   }
 }
