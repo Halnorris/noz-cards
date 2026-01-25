@@ -670,8 +670,9 @@ function StoredCardsTab() {
       alert('Please select cards to ship')
       return
     }
-    // TODO: Navigate to shipping page with selected orders
-    alert(`Shipping ${selectedOrders.size} order(s)...`)
+    // Navigate to shipping checkout with selected order IDs
+    const orderIdsParam = Array.from(selectedOrders).join(',')
+    navigate(`/ship-stored?orders=${orderIdsParam}`)
   }
 
   if (loading) return <div className="text-center py-8 opacity-70">Loading...</div>
@@ -957,9 +958,10 @@ function WishlistTab() {
   }
 
   const buyAll = () => {
-    if (items.length === 0) return
+    const validItems = items.filter(item => item.card !== null)
+    if (validItems.length === 0) return
     
-    items.forEach(item => {
+    validItems.forEach(item => {
       addItem({
         id: item.card.id,
         title: item.card.title,
@@ -982,25 +984,28 @@ function WishlistTab() {
     )
   }
 
-  const total = items.reduce((sum, item) => sum + (item.card.price || 0), 0)
+  // Filter out items where the card has been deleted
+  const validItems = items.filter(item => item.card !== null)
+  const total = validItems.reduce((sum, item) => sum + (item.card?.price || 0), 0)
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-header text-lg">Your Wishlist ({items.length})</h2>
+          <h2 className="font-header text-lg">Your Wishlist ({validItems.length})</h2>
           <p className="text-sm opacity-70">Total: £{total.toFixed(2)}</p>
         </div>
         <button
           onClick={buyAll}
-          className="px-4 py-2 rounded-xl bg-primary text-white hover:opacity-90"
+          disabled={validItems.length === 0}
+          className="px-4 py-2 rounded-xl bg-primary text-white hover:opacity-90 disabled:opacity-50"
         >
-          Buy All ({items.length})
+          Buy All ({validItems.length})
         </button>
       </div>
       
       <div className="grid sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-        {items.map((item) => (
+        {validItems.map((item) => (
           <div key={item.id} className="rounded-xl border border-black/5 p-2 hover:shadow-md transition group">
             <div className="aspect-[3/4] rounded-lg bg-black/5 mb-2 overflow-hidden">
               {item.card.image_url && <img src={item.card.image_url} alt={item.card.title} className="w-full h-full object-cover" />}
