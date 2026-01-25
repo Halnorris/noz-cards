@@ -62,18 +62,23 @@ export default function Account() {
 
     async function fetchStats() {
       try {
-        const [live, pending, orders, stored, wishlist] = await Promise.all([
+        const [live, pending, orders, storedOrders, wishlist] = await Promise.all([
           supabase.from('cards').select('*', { count: 'exact', head: true }).eq('owner_user_id', user.id).eq('status', 'live'),
           supabase.from('cards').select('*', { count: 'exact', head: true }).eq('owner_user_id', user.id).eq('status', 'pending'),
-          supabase.from('orders').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
-          supabase.from('orders').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('status', 'stored'),
+          supabase.from('orders').select('*', { count: 'exact', head: true }).eq('user_id', user.id).neq('status', 'stored'), // Exclude stored from orders count
+          supabase.from('orders').select('id, order_items(id)').eq('user_id', user.id).eq('status', 'stored'), // Get stored orders with items
           supabase.from('wishlists').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
         ])
+
+        // Count total stored cards across all stored orders
+        const storedCardCount = storedOrders.data?.reduce((sum, order) => {
+          return sum + (order.order_items?.length || 0)
+        }, 0) || 0
 
         setStats({
           liveCount: live.count || 0,
           pendingCount: pending.count || 0,
-          storedCount: stored.count || 0,
+          storedCount: storedCardCount, // Now showing card count, not order count
           ordersCount: orders.count || 0,
           wishlistCount: wishlist.count || 0,
         })
@@ -615,18 +620,19 @@ function PendingCardsTab() {
 function StoredCardsTab() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [orders, setOrders] = useState<Order[]>([])
+  const [cards, setCards] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set())
+  const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (!user) return
     
-    async function fetchStoredOrders() {
-      const { data } = await supabase
+    async function fetchStoredCards() {
+      // Get all stored orders for this user
+      const { data: orders } = await supabase
         .from('orders')
         .select(`
-          *,
+          id,
           order_items(
             id,
             card_id,
@@ -640,46 +646,61 @@ function StoredCardsTab() {
         .eq('status', 'stored')
         .order('created_at', { ascending: false })
       
-      setOrders(data || [])
+      if (orders) {
+        // Flatten all cards from all orders into a single array
+        const allCards = orders.flatMap(order => 
+          (order.order_items || []).map(item => ({
+            ...item,
+            order_id: order.id // Keep track of which order it belongs to
+          }))
+        )
+        setCards(allCards)
+      }
+      
       setLoading(false)
     }
     
-    fetchStoredOrders()
+    fetchStoredCards()
   }, [user])
 
-  const toggleOrder = (orderId: string) => {
-    setSelectedOrders(prev => {
+  const toggleCard = (cardId: string) => {
+    setSelectedCards(prev => {
       const next = new Set(prev)
-      if (next.has(orderId)) {
-        next.delete(orderId)
+      if (next.has(cardId)) {
+        next.delete(cardId)
       } else {
-        next.add(orderId)
+        next.add(cardId)
       }
       return next
     })
   }
 
   const toggleAll = () => {
-    if (selectedOrders.size === orders.length) {
-      setSelectedOrders(new Set())
+    if (selectedCards.size === cards.length) {
+      setSelectedCards(new Set())
     } else {
-      setSelectedOrders(new Set(orders.map(o => o.id)))
+      setSelectedCards(new Set(cards.map(c => c.id)))
     }
   }
 
   const shipSelected = () => {
-    if (selectedOrders.size === 0) {
+    if (selectedCards.size === 0) {
       alert('Please select cards to ship')
       return
     }
-    // Navigate to shipping checkout with selected order IDs
-    const orderIdsParam = Array.from(selectedOrders).join(',')
+    
+    // Get unique order IDs from selected cards
+    const selectedCardObjects = cards.filter(c => selectedCards.has(c.id))
+    const uniqueOrderIds = [...new Set(selectedCardObjects.map(c => c.order_id))]
+    
+    // Navigate to shipping checkout with order IDs
+    const orderIdsParam = uniqueOrderIds.join(',')
     navigate(`/ship-stored?orders=${orderIdsParam}`)
   }
 
   if (loading) return <div className="text-center py-8 opacity-70">Loading...</div>
 
-  if (orders.length === 0) {
+  if (cards.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="opacity-70 mb-4">No stored cards.</p>
@@ -688,68 +709,65 @@ function StoredCardsTab() {
     )
   }
 
-  const totalCards = orders.reduce((sum, order) => sum + (order.order_items?.length || 0), 0)
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-header text-lg">Stored Cards</h2>
-          <p className="text-sm opacity-70">{totalCards} cards waiting to ship</p>
+          <p className="text-sm opacity-70">{cards.length} {cards.length === 1 ? 'card' : 'cards'} waiting to ship</p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={toggleAll}
             className="px-4 py-2 rounded-xl border border-black/10 text-sm hover:bg-black/5"
           >
-            {selectedOrders.size === orders.length ? 'Deselect All' : 'Select All'}
+            {selectedCards.size === cards.length ? 'Deselect All' : 'Select All'}
           </button>
           <button
             onClick={shipSelected}
-            disabled={selectedOrders.size === 0}
+            disabled={selectedCards.size === 0}
             className="px-4 py-2 rounded-xl bg-primary text-white text-sm hover:opacity-90 disabled:opacity-50"
           >
-            Ship Selected ({selectedOrders.size})
+            Ship Selected ({selectedCards.size})
           </button>
         </div>
       </div>
 
-      <div className="space-y-3">
-        {orders.map((order) => (
-          <div key={order.id} className="p-4 rounded-xl border border-black/5 hover:shadow-md transition">
-            <div className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                checked={selectedOrders.has(order.id)}
-                onChange={() => toggleOrder(order.id)}
-                className="mt-1"
-              />
-              <div className="flex-1">
-                <div className="font-medium mb-2">
-                  Order #{order.id.slice(0, 8)} • {order.order_items?.length || 0} cards
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                  {order.order_items?.map((item: any) => (
-                    <div key={item.id} className="rounded-lg border border-black/5 p-2">
-                      <div className="aspect-[3/4] rounded bg-black/5 mb-1 overflow-hidden">
-                        {item.card_image_url ? (
-                          <img 
-                            src={item.card_image_url} 
-                            alt={item.card_title || 'Card'} 
-                            className="w-full h-full object-cover" 
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xs opacity-50">
-                            No image
-                          </div>
-                        )}
-                      </div>
-                      <div className="text-[10px] truncate">{item.card_title || item.card_nozid || 'Card'}</div>
-                    </div>
-                  ))}
-                </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+        {cards.map((card) => (
+          <div 
+            key={card.id} 
+            className={`rounded-xl border p-2 cursor-pointer transition ${
+              selectedCards.has(card.id) 
+                ? 'border-primary bg-primary/5 shadow-md' 
+                : 'border-black/5 hover:border-black/20 hover:shadow-md'
+            }`}
+            onClick={() => toggleCard(card.id)}
+          >
+            <div className="relative">
+              <div className="aspect-[3/4] rounded bg-black/5 mb-2 overflow-hidden">
+                {card.card_image_url ? (
+                  <img 
+                    src={card.card_image_url} 
+                    alt={card.card_title || 'Card'} 
+                    className="w-full h-full object-cover" 
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-xs opacity-50">
+                    No image
+                  </div>
+                )}
               </div>
+              {selectedCards.has(card.id) && (
+                <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
             </div>
+            <div className="text-xs font-medium truncate">{card.card_title || card.card_nozid || 'Card'}</div>
+            <div className="text-[10px] opacity-60 mt-1">Already paid</div>
           </div>
         ))}
       </div>
@@ -768,7 +786,7 @@ function OrdersTab() {
   useEffect(() => {
     if (!user) return
     async function fetchOrders() {
-      // Fetch all orders including shipping orders
+      // Fetch all orders EXCEPT 'stored' status (those appear in Stored Cards tab)
       const { data } = await supabase
         .from('orders')
         .select(`
@@ -782,6 +800,7 @@ function OrdersTab() {
           )
         `)
         .eq('user_id', user.id)
+        .neq('status', 'stored') // Exclude stored orders
         .order('created_at', { ascending: false })
       
       if (data) {
