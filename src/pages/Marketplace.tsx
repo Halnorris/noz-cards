@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import React from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { useBasket } from '@/context/basket'
+import { useAuth } from '@/context/auth'
 
 type Card = {
   id: string
@@ -206,6 +208,8 @@ function pretty(s: string) {
 
 export default function Marketplace() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const { addItem } = useBasket()
+  const { user } = useAuth()
 
   // Filter options
   const [sports, setSports] = useState<string[]>([])
@@ -411,6 +415,42 @@ export default function Marketplace() {
     setFilters(f => ({ ...f, [key]: '' }))
   }
 
+  // Wishlist toggle handler
+  const toggleWishlist = async (card: Card, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (!user) {
+      alert('Please sign in to add cards to your wishlist')
+      return
+    }
+
+    const { data: existing } = await supabase
+      .from('wishlists')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('card_id', card.id)
+      .single()
+
+    if (existing) {
+      await supabase.from('wishlists').delete().eq('id', existing.id)
+    } else {
+      await supabase.from('wishlists').insert({ user_id: user.id, card_id: card.id })
+    }
+  }
+
+  // Add to basket handler
+  const addToBasket = (card: Card, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    addItem({
+      id: card.id,
+      title: card.title,
+      price: card.price!,
+      image_url: card.image_url,
+    })
+  }
+
   // Count active filters
   const activeFilterCount = useMemo(() => {
     return [
@@ -596,6 +636,28 @@ export default function Marketplace() {
                             className="object-cover w-full h-full"
                           />
                         )}
+                        
+                        {/* Hover Icons Overlay */}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <button
+                            onClick={(e) => addToBasket(card, e)}
+                            className="w-10 h-10 rounded-full bg-white text-primary hover:bg-primary hover:text-white transition flex items-center justify-center"
+                            title="Add to basket"
+                          >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={(e) => toggleWishlist(card, e)}
+                            className="w-10 h-10 rounded-full bg-white text-red-500 hover:bg-red-500 hover:text-white transition flex items-center justify-center"
+                            title="Add to wishlist"
+                          >
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                       <h3 className="text-xs font-medium leading-snug line-clamp-2 min-h-[2.25rem]">
                         {card.title ?? 'Untitled card'}
