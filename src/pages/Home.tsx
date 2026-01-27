@@ -113,6 +113,7 @@ export default function Home() {
 /* 🔽 Hero Featured Cards (Top 8 highest priced) WITH HOVER ICONS 🔽 */
 function HeroFeaturedCards() {
   const [cards, setCards] = useState<any[]>([])
+  const [wishlistCardIds, setWishlistCardIds] = useState<Set<string>>(new Set())
   const { addItem } = useBasket()
   const { user } = useAuth()
 
@@ -129,6 +130,25 @@ function HeroFeaturedCards() {
     }
     loadCards()
   }, [])
+
+  useEffect(() => {
+    if (!user) {
+      setWishlistCardIds(new Set())
+      return
+    }
+    
+    async function loadWishlist() {
+      const { data } = await supabase
+        .from('wishlists')
+        .select('card_id')
+        .eq('user_id', user.id)
+      
+      if (data) {
+        setWishlistCardIds(new Set(data.map(w => w.card_id)))
+      }
+    }
+    loadWishlist()
+  }, [user])
 
   const toggleWishlist = async (card: any, e: React.MouseEvent) => {
     e.preventDefault()
@@ -148,8 +168,14 @@ function HeroFeaturedCards() {
 
     if (existing) {
       await supabase.from('wishlists').delete().eq('id', existing.id)
+      setWishlistCardIds(prev => {
+        const next = new Set(prev)
+        next.delete(card.id)
+        return next
+      })
     } else {
       await supabase.from('wishlists').insert({ user_id: user.id, card_id: card.id })
+      setWishlistCardIds(prev => new Set(prev).add(card.id))
     }
   }
 
@@ -179,47 +205,55 @@ function HeroFeaturedCards() {
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-      {cards.map((card) => (
-        <Link
-          key={card.id}
-          to={`/card/${card.id}`}
-          className="p-2 bg-white rounded-lg shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition block group relative"
-        >
-          <div className="aspect-[3/4] bg-black/5 rounded mb-1 overflow-hidden relative">
-            {card.image_url && (
-              <img
-                src={card.image_url}
-                alt={card.title}
-                className="object-cover w-full h-full"
-              />
-            )}
-            
-            {/* Hover Icons */}
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-              <button
-                onClick={(e) => addToBasket(card, e)}
-                className="w-8 h-8 rounded-full bg-white text-primary hover:bg-primary hover:text-white transition flex items-center justify-center"
-                title="Add to basket"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </button>
-              <button
-                onClick={(e) => toggleWishlist(card, e)}
-                className="w-8 h-8 rounded-full bg-white text-red-500 hover:bg-red-500 hover:text-white transition flex items-center justify-center"
-                title="Add to wishlist"
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-                </svg>
-              </button>
+      {cards.map((card) => {
+        const isInWishlist = wishlistCardIds.has(card.id)
+        
+        return (
+          <Link
+            key={card.id}
+            to={`/card/${card.id}`}
+            className="p-2 bg-white rounded-lg shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition block group relative"
+          >
+            <div className="aspect-[3/4] bg-black/5 rounded mb-1 overflow-hidden relative">
+              {card.image_url && (
+                <img
+                  src={card.image_url}
+                  alt={card.title}
+                  className="object-cover w-full h-full"
+                />
+              )}
+              
+              {/* Hover Icons */}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                <button
+                  onClick={(e) => addToBasket(card, e)}
+                  className="w-8 h-8 rounded-full bg-white text-primary hover:bg-primary hover:text-white transition flex items-center justify-center"
+                  title="Add to basket"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={(e) => toggleWishlist(card, e)}
+                  className={`w-8 h-8 rounded-full transition flex items-center justify-center ${
+                    isInWishlist 
+                      ? 'bg-red-500 text-white hover:bg-red-600' 
+                      : 'bg-white text-red-500 hover:bg-red-500 hover:text-white'
+                  }`}
+                  title={isInWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
             </div>
-          </div>
-          <h3 className="text-xs font-medium truncate">{card.title}</h3>
-          <p className="text-xs opacity-70">£{card.price}</p>
-        </Link>
-      ))}
+            <h3 className="text-xs font-medium truncate">{card.title}</h3>
+            <p className="text-xs opacity-70">£{card.price}</p>
+          </Link>
+        )
+      })}
     </div>
   )
 }
@@ -387,6 +421,7 @@ function RecentlyUploadedGrid() {
 
   const [cards, setCards] = useState<Card[]>([])
   const [loading, setLoading] = useState(true)
+  const [wishlistCardIds, setWishlistCardIds] = useState<Set<string>>(new Set())
   const { addItem } = useBasket()
   const { user } = useAuth()
 
@@ -404,6 +439,25 @@ function RecentlyUploadedGrid() {
     }
     fetchRecent()
   }, [])
+
+  useEffect(() => {
+    if (!user) {
+      setWishlistCardIds(new Set())
+      return
+    }
+    
+    async function loadWishlist() {
+      const { data } = await supabase
+        .from('wishlists')
+        .select('card_id')
+        .eq('user_id', user.id)
+      
+      if (data) {
+        setWishlistCardIds(new Set(data.map(w => w.card_id)))
+      }
+    }
+    loadWishlist()
+  }, [user])
 
   const toggleWishlist = async (card: Card, e: React.MouseEvent) => {
     e.preventDefault()
@@ -423,8 +477,14 @@ function RecentlyUploadedGrid() {
 
     if (existing) {
       await supabase.from('wishlists').delete().eq('id', existing.id)
+      setWishlistCardIds(prev => {
+        const next = new Set(prev)
+        next.delete(card.id)
+        return next
+      })
     } else {
       await supabase.from('wishlists').insert({ user_id: user.id, card_id: card.id })
+      setWishlistCardIds(prev => new Set(prev).add(card.id))
     }
   }
 
@@ -466,53 +526,61 @@ function RecentlyUploadedGrid() {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-      {cards.map((card) => (
-        <Link
-          key={card.id}
-          to={`/card/${card.id}`}
-          className="group rounded-2xl bg-white p-3 shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition block relative"
-        >
-          <div className="aspect-[3/4] rounded-xl bg-black/5 mb-2 border border-black/10 overflow-hidden relative">
-            {card.image_url ? (
-              <img
-                src={card.image_url}
-                alt={card.title}
-                className="object-cover w-full h-full"
-              />
-            ) : null}
-            
-            {/* Hover Icons - only show for live cards */}
-            {card.status === 'live' && (
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                <button
-                  onClick={(e) => addToBasket(card, e)}
-                  className="w-8 h-8 rounded-full bg-white text-primary hover:bg-primary hover:text-white transition flex items-center justify-center"
-                  title="Add to basket"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </button>
-                <button
-                  onClick={(e) => toggleWishlist(card, e)}
-                  className="w-8 h-8 rounded-full bg-white text-red-500 hover:bg-red-500 hover:text-white transition flex items-center justify-center"
-                  title="Add to wishlist"
-                >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-                  </svg>
-                </button>
-              </div>
+      {cards.map((card) => {
+        const isInWishlist = wishlistCardIds.has(card.id)
+        
+        return (
+          <Link
+            key={card.id}
+            to={`/card/${card.id}`}
+            className="group rounded-2xl bg-white p-3 shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition block relative"
+          >
+            <div className="aspect-[3/4] rounded-xl bg-black/5 mb-2 border border-black/10 overflow-hidden relative">
+              {card.image_url ? (
+                <img
+                  src={card.image_url}
+                  alt={card.title}
+                  className="object-cover w-full h-full"
+                />
+              ) : null}
+              
+              {/* Hover Icons - only show for live cards */}
+              {card.status === 'live' && (
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <button
+                    onClick={(e) => addToBasket(card, e)}
+                    className="w-8 h-8 rounded-full bg-white text-primary hover:bg-primary hover:text-white transition flex items-center justify-center"
+                    title="Add to basket"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={(e) => toggleWishlist(card, e)}
+                    className={`w-8 h-8 rounded-full transition flex items-center justify-center ${
+                      isInWishlist 
+                        ? 'bg-red-500 text-white hover:bg-red-600' 
+                        : 'bg-white text-red-500 hover:bg-red-500 hover:text-white'
+                    }`}
+                    title={isInWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+                  >
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </div>
+            <h3 className="text-sm font-medium truncate">
+              {card.title ?? 'Untitled card'}
+            </h3>
+            {card.price != null && (
+              <p className="text-sm opacity-70">£{card.price}</p>
             )}
-          </div>
-          <h3 className="text-sm font-medium truncate">
-            {card.title ?? 'Untitled card'}
-          </h3>
-          {card.price != null && (
-            <p className="text-sm opacity-70">£{card.price}</p>
-          )}
-        </Link>
-      ))}
+          </Link>
+        )
+      })}
     </div>
   )
 }
