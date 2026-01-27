@@ -248,6 +248,7 @@ export default function Marketplace() {
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
   const [page, setPage] = useState(0)
+  const [wishlistCardIds, setWishlistCardIds] = useState<Set<string>>(new Set())
 
   // Keep URL in sync
   useEffect(() => {
@@ -317,6 +318,26 @@ export default function Marketplace() {
     }
     loadLiveTotal()
   }, [])
+
+  // Load user's wishlist card IDs
+  useEffect(() => {
+    if (!user) {
+      setWishlistCardIds(new Set())
+      return
+    }
+    
+    async function loadWishlist() {
+      const { data } = await supabase
+        .from('wishlists')
+        .select('card_id')
+        .eq('user_id', user.id)
+      
+      if (data) {
+        setWishlistCardIds(new Set(data.map(w => w.card_id)))
+      }
+    }
+    loadWishlist()
+  }, [user])
 
   // Load cards function
   const loadCards = useCallback(async (pageNum: number, append: boolean = false, currentFilters: Filters) => {
@@ -434,8 +455,16 @@ export default function Marketplace() {
 
     if (existing) {
       await supabase.from('wishlists').delete().eq('id', existing.id)
+      // Remove from local state
+      setWishlistCardIds(prev => {
+        const next = new Set(prev)
+        next.delete(card.id)
+        return next
+      })
     } else {
       await supabase.from('wishlists').insert({ user_id: user.id, card_id: card.id })
+      // Add to local state
+      setWishlistCardIds(prev => new Set(prev).add(card.id))
     }
   }
 
@@ -621,6 +650,8 @@ export default function Marketplace() {
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 {cards.map((card) => {
                   const aspect = card.image_orientation === 'landscape' ? 'aspect-[4/3]' : 'aspect-[3/4]'
+                  const isInWishlist = wishlistCardIds.has(card.id)
+                  
                   return (
                     <Link
                       key={card.id}
@@ -650,8 +681,12 @@ export default function Marketplace() {
                           </button>
                           <button
                             onClick={(e) => toggleWishlist(card, e)}
-                            className="w-10 h-10 rounded-full bg-white text-red-500 hover:bg-red-500 hover:text-white transition flex items-center justify-center"
-                            title="Add to wishlist"
+                            className={`w-10 h-10 rounded-full transition flex items-center justify-center ${
+                              isInWishlist 
+                                ? 'bg-red-500 text-white hover:bg-red-600' 
+                                : 'bg-white text-red-500 hover:bg-red-500 hover:text-white'
+                            }`}
+                            title={isInWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
                           >
                             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
