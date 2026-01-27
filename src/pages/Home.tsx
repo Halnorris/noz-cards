@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { useBasket } from '@/context/basket'
+import { useAuth } from '@/context/auth'
 
 export default function Home() {
   return (
@@ -18,7 +20,7 @@ export default function Home() {
             </h1>
 
             <p className="mt-4 opacity-80 max-w-xl">
-              Submit a consignment in minutes and we’ll handle the rest — from professional scans
+              Submit a consignment in minutes and we'll handle the rest — from professional scans
               to instant checkout and smooth payouts.
             </p>
 
@@ -88,40 +90,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ABOUT US (updated) */}
-      <section className="rounded-2xl bg-white shadow-soft border border-black/5 p-6 md:p-10">
-        <div className="grid md:grid-cols-3 gap-8 items-center">
-          {/* Image */}
-          <div className="md:col-span-1">
-            {/* <img src="/about-harry.jpg" alt="About Noz Cards" className="rounded-2xl border border-black/10 w-full h-auto object-cover" /> */}
-            <div className="aspect-[4/5] rounded-2xl border border-black/10 bg-black/10" />
-          </div>
-
-          {/* Text */}
-          <div className="md:col-span-2">
-            <h2 className="font-header text-2xl mb-2">About Noz Cards</h2>
-            <p className="opacity-80">
-              Hey! I&apos;m Harry, welcome to Noz Cards! I created this marketplace to be the easiest and
-              simplest place to buy cards for your collection. I started my Calvin Bassey (Fulham
-              Centre Back) PC back in January 2025 and have loved getting into the hobby ever since.
-              <br /><br />
-              I created Noz Cards to make buying and selling easier, more convenient and more
-              transparent. My goal is to create a community of card lovers that can rely on us to
-              provide an amazing service, showcase great cards and make collecting easy, reliable and
-              safe for everyone — all based in the UK!
-            </p>
-            <div className="mt-4">
-              <Link
-                to="/about"
-                className="inline-block px-4 py-2 rounded-xl bg-primary text-white hover:opacity-90 text-sm"
-              >
-                More About Us
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* EBAY SECTION (with carousel) */}
       <EbaySection />
 
@@ -142,9 +110,11 @@ export default function Home() {
   )
 }
 
-/* 🔽 Hero Featured Cards (Top 8 highest priced) 🔽 */
+/* 🔽 Hero Featured Cards (Top 8 highest priced) WITH HOVER ICONS 🔽 */
 function HeroFeaturedCards() {
   const [cards, setCards] = useState<any[]>([])
+  const { addItem } = useBasket()
+  const { user } = useAuth()
 
   useEffect(() => {
     async function loadCards() {
@@ -152,13 +122,47 @@ function HeroFeaturedCards() {
         .from('cards')
         .select('id,title,price,image_url,created_at,image_orientation')
         .eq('status', 'live')
-        .neq('image_orientation', 'landscape') // Exclude landscape cards
+        .neq('image_orientation', 'landscape')
         .order('price', { ascending: false })
         .limit(8)
       setCards(data ?? [])
     }
     loadCards()
   }, [])
+
+  const toggleWishlist = async (card: any, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (!user) {
+      alert('Please sign in to add cards to your wishlist')
+      return
+    }
+
+    const { data: existing } = await supabase
+      .from('wishlists')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('card_id', card.id)
+      .single()
+
+    if (existing) {
+      await supabase.from('wishlists').delete().eq('id', existing.id)
+    } else {
+      await supabase.from('wishlists').insert({ user_id: user.id, card_id: card.id })
+    }
+  }
+
+  const addToBasket = (card: any, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    addItem({
+      id: card.id,
+      title: card.title,
+      price: card.price,
+      image_url: card.image_url,
+    })
+  }
 
   if (!cards.length) {
     return (
@@ -179,9 +183,9 @@ function HeroFeaturedCards() {
         <Link
           key={card.id}
           to={`/card/${card.id}`}
-          className="p-2 bg-white rounded-lg shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition block"
+          className="p-2 bg-white rounded-lg shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition block group relative"
         >
-          <div className="aspect-[3/4] bg-black/5 rounded mb-1 overflow-hidden">
+          <div className="aspect-[3/4] bg-black/5 rounded mb-1 overflow-hidden relative">
             {card.image_url && (
               <img
                 src={card.image_url}
@@ -189,6 +193,28 @@ function HeroFeaturedCards() {
                 className="object-cover w-full h-full"
               />
             )}
+            
+            {/* Hover Icons */}
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+              <button
+                onClick={(e) => addToBasket(card, e)}
+                className="w-8 h-8 rounded-full bg-white text-primary hover:bg-primary hover:text-white transition flex items-center justify-center"
+                title="Add to basket"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </button>
+              <button
+                onClick={(e) => toggleWishlist(card, e)}
+                className="w-8 h-8 rounded-full bg-white text-red-500 hover:bg-red-500 hover:text-white transition flex items-center justify-center"
+                title="Add to wishlist"
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
           </div>
           <h3 className="text-xs font-medium truncate">{card.title}</h3>
           <p className="text-xs opacity-70">£{card.price}</p>
@@ -198,7 +224,7 @@ function HeroFeaturedCards() {
   )
 }
 
-/* 🔽 eBay Section (with carousel) 🔽 */
+/* eBay Section - unchanged */
 function EbaySection() {
   const EBAY_USERNAME = 'noz_cards'
   return (
@@ -207,8 +233,8 @@ function EbaySection() {
         <div>
           <h2 className="font-header text-2xl">Shop Noz Cards on eBay</h2>
           <p className="opacity-80 text-sm mt-1 max-w-xl">
-            If you’re more of an eBay browser, you can check out our listings and feedback history
-            there too. Every card’s handled with the same care and consistency as what you’ll find
+            If you're more of an eBay browser, you can check out our listings and feedback history
+            there too. Every card's handled with the same care and consistency as what you'll find
             right here on Noz Cards.
           </p>
         </div>
@@ -227,13 +253,12 @@ function EbaySection() {
   )
 }
 
-/* 🔽 eBay Feedback Carousel — shows 3 at a time, advances by 3 🔽 */
 function EbayFeedbackCarousel() {
   type Feedback = { id: number; text: string; username: string }
 
   const [items, setItems] = useState<Feedback[]>([])
   const [loading, setLoading] = useState(true)
-  const [page, setPage] = useState(0) // page = group of 3
+  const [page, setPage] = useState(0)
   const intervalRef = useRef<number | null>(null)
   const [isHovered, setIsHovered] = useState(false)
 
@@ -252,7 +277,6 @@ function EbayFeedbackCarousel() {
 
   const pageCount = Math.max(1, Math.ceil(items.length / 3))
 
-  // Auto-rotate every 4s (pause on hover)
   useEffect(() => {
     if (!items.length || isHovered) return
     intervalRef.current = window.setInterval(() => {
@@ -271,7 +295,6 @@ function EbayFeedbackCarousel() {
   const next = () => goToPage(page + 1)
   const prev = () => goToPage(page - 1)
 
-  // Helper: get item at circular index
   const at = (i: number) => items[i % items.length]
 
   if (loading) {
@@ -295,11 +318,10 @@ function EbayFeedbackCarousel() {
     )
   }
 
-  // Visible group of up to 3 items, wrapping around
   const startIndex = page * 3
   const visible = items.length >= 3
     ? [at(startIndex), at(startIndex + 1), at(startIndex + 2)]
-    : items // if <3, just show what we have
+    : items
 
   return (
     <div
@@ -307,20 +329,18 @@ function EbayFeedbackCarousel() {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Slides (grid of 1/2/3) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {visible.map((f) => (
           <div
             key={`${f.id}-${f.username}`}
             className="h-full w-full rounded-xl border border-black/5 bg-white p-4 flex flex-col justify-center"
           >
-            <div className="text-sm leading-6">“{f.text}”</div>
+            <div className="text-sm leading-6">"{f.text}"</div>
             <div className="mt-2 text-xs opacity-60">— {f.username}</div>
           </div>
         ))}
       </div>
 
-      {/* Controls */}
       <button
         type="button"
         onClick={prev}
@@ -338,7 +358,6 @@ function EbayFeedbackCarousel() {
         ›
       </button>
 
-      {/* Dots = pages */}
       <div className="mt-3 flex items-center justify-center gap-2">
         {Array.from({ length: pageCount }).map((_, i) => (
           <button
@@ -355,7 +374,7 @@ function EbayFeedbackCarousel() {
   )
 }
 
-/* 🔽 Recently Uploaded Grid 🔽 */
+/* 🔽 Recently Uploaded Grid WITH HOVER ICONS 🔽 */
 function RecentlyUploadedGrid() {
   type Card = {
     id: string
@@ -368,6 +387,8 @@ function RecentlyUploadedGrid() {
 
   const [cards, setCards] = useState<Card[]>([])
   const [loading, setLoading] = useState(true)
+  const { addItem } = useBasket()
+  const { user } = useAuth()
 
   useEffect(() => {
     async function fetchRecent() {
@@ -375,7 +396,7 @@ function RecentlyUploadedGrid() {
       const { data } = await supabase
         .from('cards')
         .select('id,title,price,image_url,created_at,status,image_orientation')
-        .neq('image_orientation', 'landscape') // Exclude landscape cards
+        .neq('image_orientation', 'landscape')
         .order('created_at', { ascending: false })
         .limit(12)
       setCards(data ?? [])
@@ -383,6 +404,40 @@ function RecentlyUploadedGrid() {
     }
     fetchRecent()
   }, [])
+
+  const toggleWishlist = async (card: Card, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (!user) {
+      alert('Please sign in to add cards to your wishlist')
+      return
+    }
+
+    const { data: existing } = await supabase
+      .from('wishlists')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('card_id', card.id)
+      .single()
+
+    if (existing) {
+      await supabase.from('wishlists').delete().eq('id', existing.id)
+    } else {
+      await supabase.from('wishlists').insert({ user_id: user.id, card_id: card.id })
+    }
+  }
+
+  const addToBasket = (card: Card, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    addItem({
+      id: card.id,
+      title: card.title,
+      price: card.price!,
+      image_url: card.image_url,
+    })
+  }
 
   if (loading) {
     return (
@@ -404,7 +459,7 @@ function RecentlyUploadedGrid() {
   if (!cards.length) {
     return (
       <div className="opacity-70 text-sm">
-        No cards yet — upload some and they’ll appear here.
+        No cards yet — upload some and they'll appear here.
       </div>
     )
   }
@@ -415,9 +470,9 @@ function RecentlyUploadedGrid() {
         <Link
           key={card.id}
           to={`/card/${card.id}`}
-          className="group rounded-2xl bg-white p-3 shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition block"
+          className="group rounded-2xl bg-white p-3 shadow-soft border border-black/5 hover:-translate-y-0.5 hover:shadow-md transition block relative"
         >
-          <div className="aspect-[3/4] rounded-xl bg-black/5 mb-2 border border-black/10 overflow-hidden">
+          <div className="aspect-[3/4] rounded-xl bg-black/5 mb-2 border border-black/10 overflow-hidden relative">
             {card.image_url ? (
               <img
                 src={card.image_url}
@@ -425,6 +480,30 @@ function RecentlyUploadedGrid() {
                 className="object-cover w-full h-full"
               />
             ) : null}
+            
+            {/* Hover Icons - only show for live cards */}
+            {card.status === 'live' && (
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                <button
+                  onClick={(e) => addToBasket(card, e)}
+                  className="w-8 h-8 rounded-full bg-white text-primary hover:bg-primary hover:text-white transition flex items-center justify-center"
+                  title="Add to basket"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={(e) => toggleWishlist(card, e)}
+                  className="w-8 h-8 rounded-full bg-white text-red-500 hover:bg-red-500 hover:text-white transition flex items-center justify-center"
+                  title="Add to wishlist"
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+            )}
           </div>
           <h3 className="text-sm font-medium truncate">
             {card.title ?? 'Untitled card'}
