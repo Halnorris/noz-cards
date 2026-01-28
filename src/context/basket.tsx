@@ -5,6 +5,7 @@ type BasketItem = {
   title: string | null
   price: number | null
   image_url: string | null
+  nozid?: string | null  // ADDED THIS
   qty: number
 }
 
