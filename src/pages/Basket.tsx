@@ -1,123 +1,100 @@
-import { Link, useNavigate } from 'react-router-dom'
-import { useMemo } from 'react'
-import { useBasket } from '@/context/basket'
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
 
 type BasketItem = {
   id: string
-  title: string
+  title: string | null
   price: number | null
   image_url: string | null
-  nozid?: string
+  nozid?: string | null  // ADDED THIS
   qty: number
 }
 
-function formatPrice(n: number | null | undefined) {
-  if (n == null) return '—'
-  return `£${n.toFixed(2)}`
+type BasketCtx = {
+  items: BasketItem[]
+  count: number
+  total: number
+  addItem: (item: Omit<BasketItem, 'qty'>, qty?: number) => void
+  removeItem: (id: string) => void
+  clear: () => void
+  openMiniCart: () => void
+  closeMiniCart: () => void
+  miniCartOpen: boolean
 }
 
-export default function BasketPage() {
-  const navigate = useNavigate()
-  const { items = [], removeItem, clear } = useBasket()
+const BasketContext = createContext<BasketCtx | undefined>(undefined)
 
-  const subtotal = useMemo(
-    () => items.reduce((s: number, it: BasketItem) => s + (it.price ?? 0), 0),
-    [items]
+const STORAGE_KEY = 'noz_basket_v1'
+
+export function BasketProvider({ children }: { children: React.ReactNode }) {
+  const [items, setItems] = useState<BasketItem[]>([])
+  const [miniCartOpen, setMiniCartOpen] = useState(false)
+
+  // Load from localStorage once
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (raw) setItems(JSON.parse(raw))
+    } catch {}
+  }, [])
+
+  // Persist on change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+    } catch {}
+  }, [items])
+
+  const addItem = (item: Omit<BasketItem, 'qty'>, qty = 1) => {
+    console.log('🛒 BASKET CONTEXT - Adding item:', item)
+    console.log('🛒 BASKET CONTEXT - Item nozid:', item.nozid)
+    
+    setItems((prev) => {
+      const idx = prev.findIndex((p) => p.id === item.id)
+      // If item already exists, don't add it again (can't have 2 of the same card)
+      if (idx !== -1) {
+        return prev
+      }
+      // Always add with qty=1 since cards are unique
+      const newItem = { ...item, qty: 1 }
+      console.log('🛒 BASKET CONTEXT - New item with qty:', newItem)
+      return [...prev, newItem]
+    })
+    // Auto-open mini cart when item is added
+    setMiniCartOpen(true)
+  }
+
+  const removeItem = (id: string) => setItems((prev) => prev.filter((p) => p.id !== id))
+  
+  const clear = () => setItems([])
+  
+  const openMiniCart = () => setMiniCartOpen(true)
+  
+  const closeMiniCart = () => setMiniCartOpen(false)
+
+  const count = useMemo(() => items.length, [items])
+  
+  const total = useMemo(() => items.reduce((sum, item) => sum + (item.price ?? 0), 0), [items])
+
+  const value = useMemo(
+    () => ({ 
+      items, 
+      count,
+      total,
+      addItem, 
+      removeItem, 
+      clear, 
+      openMiniCart, 
+      closeMiniCart, 
+      miniCartOpen 
+    }),
+    [items, count, total, miniCartOpen]
   )
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="font-header text-2xl">Your Basket ({items.length})</h1>
-        <Link to="/marketplace" className="underline text-sm">Continue shopping</Link>
-      </div>
+  return <BasketContext.Provider value={value}>{children}</BasketContext.Provider>
+}
 
-      {items.length === 0 ? (
-        <div className="rounded-2xl bg-white p-6 border border-black/5 shadow-soft text-center">
-          <div className="text-sm opacity-70">Your basket is empty.</div>
-          <Link to="/marketplace" className="inline-block mt-3 px-4 py-2 rounded-xl bg-primary text-white">
-            Browse Marketplace
-          </Link>
-        </div>
-      ) : (
-        <div className="grid lg:grid-cols-[1fr_320px] gap-6">
-          {/* Items list */}
-          <div className="space-y-3">
-            {items.map((it) => (
-              <div key={it.id} className="rounded-2xl bg-white p-3 border border-black/5 shadow-soft flex gap-3">
-                <Link to={`/card/${it.id}`} className="w-20 h-20 rounded-xl overflow-hidden bg-black/5 border border-black/10">
-                  {it.image_url ? (
-                    <img src={it.image_url} alt={it.title} className="w-full h-full object-cover" />
-                  ) : null}
-                </Link>
-
-                <div className="flex-1 min-w-0">
-                  <Link to={`/card/${it.id}`} className="font-medium text-sm hover:underline block truncate">
-                    {it.title}
-                  </Link>
-                  <div className="text-sm font-header mt-1">{formatPrice(it.price)}</div>
-
-                  <button
-                    className="mt-2 text-xs text-red-600 hover:underline"
-                    onClick={() => removeItem?.(it.id)}
-                    disabled={!removeItem}
-                  >
-                    Remove
-                  </button>
-                </div>
-
-                <div className="text-sm font-header">
-                  {formatPrice(it.price)}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Summary */}
-          <aside className="rounded-2xl bg-white p-4 border border-black/5 shadow-soft h-fit">
-            <div className="text-lg font-header">Order Summary</div>
-            <div className="mt-2 space-y-2 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="opacity-70">Subtotal ({items.length} {items.length === 1 ? 'card' : 'cards'})</span>
-                <span className="font-header">{formatPrice(subtotal)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="opacity-70">Shipping</span>
-                <span className="opacity-70">Calculated at checkout</span>
-              </div>
-              <div className="pt-2 border-t border-black/10 flex items-center justify-between">
-                <span>Total</span>
-                <span className="font-header">{formatPrice(subtotal)}</span>
-              </div>
-              <div className="text-[11px] opacity-70">
-                Fees & taxes (if any) shown at checkout.
-              </div>
-            </div>
-
-            <button
-              onClick={() => navigate('/checkout')}
-              className="mt-3 w-full px-4 py-2 rounded-xl bg-primary text-white hover:opacity-90"
-            >
-              Go to Checkout
-            </button>
-
-            <Link
-              to="/marketplace"
-              className="mt-2 block w-full text-center px-4 py-2 rounded-xl border border-black/10 hover:bg-black/5 text-sm"
-            >
-              Continue Shopping
-            </Link>
-
-            <button
-              onClick={() => clear?.()}
-              disabled={!clear || items.length === 0}
-              className="mt-3 w-full px-4 py-2 rounded-xl border border-black/10 hover:bg-black/5 text-xs disabled:opacity-50"
-            >
-              Clear basket
-            </button>
-          </aside>
-        </div>
-      )}
-    </div>
-  )
+export function useBasket() {
+  const ctx = useContext(BasketContext)
+  if (!ctx) throw new Error('useBasket must be used inside <BasketProvider>')
+  return ctx
 }
