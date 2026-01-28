@@ -1,4 +1,3 @@
-// src/pages/Basket.tsx
 import { Link, useNavigate } from 'react-router-dom'
 import { useMemo } from 'react'
 import { useBasket } from '@/context/basket'
@@ -8,6 +7,7 @@ type BasketItem = {
   title: string
   price: number | null
   image_url: string | null
+  nozid?: string
   qty: number
 }
 
