@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/auth'
 import { useBasket } from '@/context/basket'
+import StripeConnectButton from '@/components/StripeConnectButton'
 
 type Tab = 'dashboard' | 'live' | 'pending' | 'stored' | 'orders' | 'wishlist' | 'settings' | 'submit'
 
@@ -1233,6 +1234,12 @@ function SettingsTab() {
       <div>
         <h2 className="font-header text-xl mb-2">Account Settings</h2>
         <p className="text-sm opacity-70">Manage your profile and preferences</p>
+      </div>
+
+      {/* Stripe Connect Section */}
+      <div>
+        <h3 className="font-header text-lg mb-3">Payout Settings</h3>
+        <StripeConnectButton />
       </div>
 
       <form onSubmit={saveProfile} className="space-y-6">
