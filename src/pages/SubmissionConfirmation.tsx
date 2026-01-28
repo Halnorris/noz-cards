@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/auth'
+import StripeConnectButton from '@/components/StripeConnectButton'
 
 type Submission = {
   id: string
@@ -73,6 +74,15 @@ export default function SubmissionConfirmation() {
         </div>
         <h1 className="font-header text-3xl mb-2">Submission Received!</h1>
         <p className="text-xl opacity-80">Reference: <strong>{submission.reference_number}</strong></p>
+      </div>
+
+      {/* Stripe Connect Reminder */}
+      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+        <h3 className="font-header text-sm mb-2">💰 Don't Forget: Connect Stripe for Payouts</h3>
+        <p className="text-sm opacity-80 mb-3">
+          Before your cards go live, make sure you've connected Stripe so you can receive 85% of each sale directly to your bank.
+        </p>
+        <StripeConnectButton />
       </div>
 
       {/* Confirmation details */}
