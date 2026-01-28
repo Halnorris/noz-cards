@@ -1,4 +1,9 @@
-// api/stripe-webhook.ts
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+}
+
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 
