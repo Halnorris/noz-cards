@@ -473,13 +473,20 @@ export default function Marketplace() {
   const addToBasket = (card: Card, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    addItem({
+    
+    const itemToAdd = {
       id: card.id,
       title: card.title,
       price: card.price!,
       image_url: card.image_url,
       nozid: card.nozid, // Include nozid for inventory tracking
-    } as any)
+    }
+    
+    console.log('📦 MARKETPLACE - Card being added:', card)
+    console.log('📦 MARKETPLACE - Card nozid:', card.nozid)
+    console.log('📦 MARKETPLACE - Item to add:', itemToAdd)
+    
+    addItem(itemToAdd as any)
   }
 
   // Count active filters
