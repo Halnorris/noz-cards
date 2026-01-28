@@ -15,6 +15,7 @@ type Card = {
   league?: string | null
   team?: string | null
   set?: string | null
+  nozid?: string | null
   created_at?: string
   owner_user_id?: string | null
 }
@@ -29,6 +30,7 @@ type SimpleCard = {
   league?: string | null
   team?: string | null
   set?: string | null
+  nozid?: string | null
 }
 
 export default function CardPage() {
@@ -65,7 +67,7 @@ export default function CardPage() {
 
       const { data, error } = await supabase
         .from('cards')
-        .select('id,title,price,image_url,image_back_url,image_orientation,sport,league,team,set,created_at,owner_user_id')
+        .select('id,title,price,image_url,image_back_url,image_orientation,sport,league,team,set,nozid,created_at,owner_user_id')
         .eq('id', id)
         .single()
 
@@ -126,7 +128,7 @@ export default function CardPage() {
 
       let query = supabase
         .from('cards')
-        .select('id,title,price,image_url,image_orientation,sport,league,team,set')
+        .select('id,title,price,image_url,image_orientation,sport,league,team,set,nozid')
         .eq('status', 'live')
         .neq('id', card.id)
         .limit(24)
@@ -149,6 +151,7 @@ export default function CardPage() {
         title: card.title ?? 'Card',
         price: card.price,
         image_url: (card.image_url ?? card.image_back_url) ?? null,
+        nozid: card.nozid, // Include nozid for inventory tracking
       },
       1
     )
@@ -163,6 +166,7 @@ export default function CardPage() {
         title: card.title ?? 'Card',
         price: card.price,
         image_url: (card.image_url ?? card.image_back_url) ?? null,
+        nozid: card.nozid, // Include nozid for inventory tracking
       },
       1
     )
