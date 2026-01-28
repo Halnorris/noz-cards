@@ -63,7 +63,6 @@ export default function StripeConnectButton() {
       }
     } catch (error) {
       console.error('Error creating Stripe account:', error)
-      console.error('Full error details:', error)
       alert('Failed to start Stripe onboarding. Please try again.')
     } finally {
       setCreating(false)
@@ -150,6 +149,11 @@ export default function StripeConnectButton() {
           <span className="inline-block w-2 h-2 rounded-full bg-primary" />
           Secure & fast
         </div>
+      </div>
+      <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 mb-3">
+        <p className="text-xs text-blue-800">
+          ⏱️ One-time setup takes ~5 minutes, then enjoy automatic payouts forever
+        </p>
       </div>
       <button
         onClick={handleConnect}
