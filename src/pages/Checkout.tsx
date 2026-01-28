@@ -113,7 +113,7 @@ export default function Checkout() {
         price: item.price,
         card_title: item.title,
         card_image_url: item.image_url,
-        card_nozid: item.nozid || item.id,
+        card_nozid: item.nozid, // The actual nozid from the cards table
       }))
 
       const { error: itemsError } = await supabase
