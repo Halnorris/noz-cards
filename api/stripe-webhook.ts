@@ -1,3 +1,4 @@
+// Disable body parsing, need raw body for signature verification
 export const config = {
   api: {
     bodyParser: false,
@@ -6,6 +7,7 @@ export const config = {
 
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import { buffer } from 'micro'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-10-16',
@@ -24,35 +26,51 @@ export default async function handler(req: any, res: any) {
   }
 
   const sig = req.headers['stripe-signature']
+  
+  if (!sig) {
+    console.error('No stripe-signature header')
+    return res.status(400).send('No signature')
+  }
 
   let event: Stripe.Event
 
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret)
+    // Read raw body as buffer
+    const buf = await buffer(req)
+    
+    // Verify webhook signature
+    event = stripe.webhooks.constructEvent(buf, sig, webhookSecret)
   } catch (err: any) {
     console.error('Webhook signature verification failed:', err.message)
     return res.status(400).send(`Webhook Error: ${err.message}`)
   }
 
+  console.log('✅ Webhook verified:', event.type)
+
   // Handle the event
-  switch (event.type) {
-    case 'checkout.session.completed':
-      await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session)
-      break
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed':
+        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session)
+        break
 
-    case 'payment_intent.succeeded':
-      await handlePaymentSucceeded(event.data.object as Stripe.PaymentIntent)
-      break
+      case 'payment_intent.succeeded':
+        await handlePaymentSucceeded(event.data.object as Stripe.PaymentIntent)
+        break
 
-    default:
-      console.log(`Unhandled event type ${event.type}`)
+      default:
+        console.log(`Unhandled event type ${event.type}`)
+    }
+  } catch (error: any) {
+    console.error('Error processing webhook:', error)
+    return res.status(500).json({ error: error.message })
   }
 
   return res.status(200).json({ received: true })
 }
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  console.log('Checkout completed:', session.id)
+  console.log('💳 Checkout completed:', session.id)
   
   const { orderId } = session.metadata || {}
 
@@ -62,16 +80,20 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 
   // Update order status to paid
-  await supabase
+  const { error } = await supabase
     .from('orders')
     .update({ status: 'paid' })
     .eq('id', orderId)
 
-  console.log(`Order ${orderId} marked as paid`)
+  if (error) {
+    console.error('Error updating order:', error)
+  } else {
+    console.log(`✅ Order ${orderId} marked as paid`)
+  }
 }
 
 async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
-  console.log('Payment succeeded:', paymentIntent.id)
+  console.log('💰 Payment succeeded:', paymentIntent.id)
 
   // Get the checkout session to access metadata
   const sessions = await stripe.checkout.sessions.list({
@@ -87,6 +109,8 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
   const session = sessions.data[0]
   const metadata = session.metadata || {}
 
+  console.log('Session metadata:', metadata)
+
   // Process transfers to card owners
   const transfers: Promise<any>[] = []
 
@@ -101,7 +125,7 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
       const cardId = metadata[cardIdKey]
 
       if (stripeAccount && amount > 0) {
-        console.log(`Creating transfer of £${amount} to ${stripeAccount} for card ${cardId}`)
+        console.log(`💸 Creating transfer of £${amount} to ${stripeAccount} for card ${cardId}`)
 
         const transfer = stripe.transfers.create({
           amount: Math.round(amount * 100), // Convert to pence
@@ -112,8 +136,12 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
             cardId,
             orderId: metadata.orderId,
           },
+        }).then((result) => {
+          console.log(`✅ Transfer successful: ${result.id}`)
+          return result
         }).catch((error) => {
-          console.error(`Transfer failed for card ${cardId}:`, error)
+          console.error(`❌ Transfer failed for card ${cardId}:`, error.message)
+          throw error
         })
 
         transfers.push(transfer)
@@ -122,16 +150,19 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
   })
 
   // Wait for all transfers to complete
-  await Promise.all(transfers)
-
-  console.log(`Processed ${transfers.length} transfers for payment ${paymentIntent.id}`)
+  try {
+    await Promise.all(transfers)
+    console.log(`✅ Processed ${transfers.length} transfers for payment ${paymentIntent.id}`)
+  } catch (error) {
+    console.error('❌ Some transfers failed:', error)
+  }
 
   // Update card statuses
   const { orderId, shippingMethod } = metadata
 
   if (shippingMethod === 'store') {
     // Cards will be stored, don't mark as sold yet
-    console.log(`Cards for order ${orderId} will be stored`)
+    console.log(`📦 Cards for order ${orderId} will be stored`)
   } else {
     // Update card statuses to sold
     const { data: orderItems } = await supabase
@@ -142,12 +173,16 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
     if (orderItems && orderItems.length > 0) {
       const cardIds = orderItems.map((item: any) => item.card_id)
 
-      await supabase
+      const { error } = await supabase
         .from('cards')
         .update({ status: 'sold' })
         .in('id', cardIds)
 
-      console.log(`Marked ${cardIds.length} cards as sold`)
+      if (error) {
+        console.error('Error marking cards as sold:', error)
+      } else {
+        console.log(`✅ Marked ${cardIds.length} cards as sold`)
+      }
     }
   }
 }
