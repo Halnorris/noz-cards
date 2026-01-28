@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/auth'
+import StripeConnectButton from '@/components/StripeConnectButton'
 
 export default function SubmitCards() {
   const { user, loading: authLoading } = useAuth()
@@ -126,28 +127,41 @@ export default function SubmitCards() {
         </p>
       </div>
 
+      {/* Stripe Connect Section */}
+      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+        <h3 className="font-header text-sm mb-2">💰 Get Paid for Your Cards</h3>
+        <p className="text-sm opacity-80 mb-3">
+          Connect Stripe to receive 85% of your card sales directly to your bank account.
+        </p>
+        <StripeConnectButton />
+      </div>
+
       <div className="rounded-2xl bg-white p-6 shadow-soft border border-black/5">
         <h2 className="font-header text-xl mb-3">How It Works</h2>
         <ol className="space-y-2 text-sm">
           <li className="flex gap-2">
             <span className="font-bold text-primary">1.</span>
-            <span>Complete this form with your card details</span>
+            <span>Connect your Stripe account (one-time, ~5 mins)</span>
           </li>
           <li className="flex gap-2">
             <span className="font-bold text-primary">2.</span>
-            <span>We'll send you a confirmation email with our address</span>
+            <span>Complete this form with your card details</span>
           </li>
           <li className="flex gap-2">
             <span className="font-bold text-primary">3.</span>
-            <span>Send your cards to us (or arrange weekend collection)</span>
+            <span>We'll send you a confirmation email with our address</span>
           </li>
           <li className="flex gap-2">
             <span className="font-bold text-primary">4.</span>
-            <span>We photograph, list, and approve prices with you</span>
+            <span>Send your cards to us (or arrange weekend collection)</span>
           </li>
           <li className="flex gap-2">
             <span className="font-bold text-primary">5.</span>
-            <span>Your cards go live and you get paid when they sell!</span>
+            <span>We photograph, list, and approve prices with you</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-bold text-primary">6.</span>
+            <span>Your cards go live and you get paid automatically when they sell! (85% to you)</span>
           </li>
         </ol>
       </div>
