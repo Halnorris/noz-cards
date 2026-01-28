@@ -63,6 +63,7 @@ export default function StripeConnectButton() {
       }
     } catch (error) {
       console.error('Error creating Stripe account:', error)
+      console.error('Full error details:', error)
       alert('Failed to start Stripe onboarding. Please try again.')
     } finally {
       setCreating(false)
