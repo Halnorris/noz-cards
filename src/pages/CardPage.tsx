@@ -145,31 +145,39 @@ export default function CardPage() {
 
   function handleBuyNow() {
     if (!card) return
-    addItem(
-      {
-        id: card.id,
-        title: card.title ?? 'Card',
-        price: card.price,
-        image_url: (card.image_url ?? card.image_back_url) ?? null,
-        nozid: card.nozid, // Include nozid for inventory tracking
-      },
-      1
-    )
+    
+    const itemToAdd = {
+      id: card.id,
+      title: card.title ?? 'Card',
+      price: card.price,
+      image_url: (card.image_url ?? card.image_back_url) ?? null,
+      nozid: card.nozid, // Include nozid for inventory tracking
+    }
+    
+    console.log('💳 CARD PAGE - Buy Now - Card:', card)
+    console.log('💳 CARD PAGE - Buy Now - Card nozid:', card.nozid)
+    console.log('💳 CARD PAGE - Buy Now - Item to add:', itemToAdd)
+    
+    addItem(itemToAdd, 1)
     navigate('/checkout')
   }
 
   function handleAddToBasket() {
     if (!card) return
-    addItem(
-      {
-        id: card.id,
-        title: card.title ?? 'Card',
-        price: card.price,
-        image_url: (card.image_url ?? card.image_back_url) ?? null,
-        nozid: card.nozid, // Include nozid for inventory tracking
-      },
-      1
-    )
+    
+    const itemToAdd = {
+      id: card.id,
+      title: card.title ?? 'Card',
+      price: card.price,
+      image_url: (card.image_url ?? card.image_back_url) ?? null,
+      nozid: card.nozid, // Include nozid for inventory tracking
+    }
+    
+    console.log('🛍️ CARD PAGE - Add to Basket - Card:', card)
+    console.log('🛍️ CARD PAGE - Add to Basket - Card nozid:', card.nozid)
+    console.log('🛍️ CARD PAGE - Add to Basket - Item to add:', itemToAdd)
+    
+    addItem(itemToAdd, 1)
   }
 
   function handleToggleWishlist() {
