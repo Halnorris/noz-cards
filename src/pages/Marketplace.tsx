@@ -15,6 +15,7 @@ type Card = {
   league: string | null
   team: string | null
   set: string | null
+  nozid: string | null
   created_at: string
 }
 
@@ -348,7 +349,7 @@ export default function Marketplace() {
 
     let query = supabase
       .from('cards')
-      .select('id,title,price,image_url,image_orientation,sport,league,team,set,created_at')
+      .select('id,title,price,image_url,image_orientation,sport,league,team,set,nozid,created_at')
       .eq('status', 'live')
 
     if (currentFilters.sport) query = query.eq('sport', currentFilters.sport)
@@ -477,7 +478,8 @@ export default function Marketplace() {
       title: card.title,
       price: card.price!,
       image_url: card.image_url,
-    })
+      nozid: card.nozid, // Include nozid for inventory tracking
+    } as any)
   }
 
   // Count active filters
