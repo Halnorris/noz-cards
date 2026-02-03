@@ -96,6 +96,24 @@ export default function SubmitCards() {
       }
 
       console.log('✅ Submission created:', data.reference_number)
+      
+      // Send confirmation email
+      try {
+        await fetch('/api/send-submission-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userEmail: formData.email,
+            referenceNumber: referenceNumber,
+            quantity: quantity,
+            cardDescription: formData.cardDescription || null,
+          }),
+        })
+      } catch (emailError) {
+        console.error('Failed to send confirmation email:', emailError)
+        // Don't show error to user - submission still succeeded
+      }
+      
       navigate(`/submission-confirmation?ref=${referenceNumber}`)
       
     } catch (err) {
