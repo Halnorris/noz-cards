@@ -52,7 +52,12 @@ export default function Checkout() {
 
   const shippingCosts = getShippingCosts()
   const shippingCost = shippingCosts[shippingMethod as keyof typeof shippingCosts]
-  const orderTotal = total + shippingCost
+  
+  // Calculate buyer protection (10% of card total, not shipping)
+  const buyerProtectionFee = total * 0.10
+  
+  // Order total includes cards + buyer protection + shipping
+  const orderTotal = total + buyerProtectionFee + shippingCost
 
   useEffect(() => {
     if (!user) {
@@ -113,7 +118,7 @@ export default function Checkout() {
         price: item.price,
         card_title: item.title,
         card_image_url: item.image_url,
-        card_nozid: item.nozid, // The actual nozid from the cards table
+        card_nozid: item.nozid,
       }))
 
       const { error: itemsError } = await supabase
@@ -133,6 +138,7 @@ export default function Checkout() {
             title: item.title,
             price: item.price,
           })),
+          buyerProtectionFee: buyerProtectionFee,
           shippingCost: shippingCost,
           shippingMethod: shippingMethod,
         }),
@@ -356,6 +362,10 @@ export default function Checkout() {
               <div className="flex justify-between text-sm">
                 <span className="opacity-70">Subtotal ({items.length} {items.length === 1 ? 'item' : 'items'})</span>
                 <span className="font-medium">£{total.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="opacity-70">Buyer Protection (10%)</span>
+                <span className="font-medium">£{buyerProtectionFee.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="opacity-70">Shipping</span>
