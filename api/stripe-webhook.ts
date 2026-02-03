@@ -203,8 +203,7 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
           price,
           card_title,
           card_image_url
-        ),
-        profiles!orders_user_id_fkey(email)
+        )
       `)
       .eq('id', orderId)
       .single()
@@ -218,7 +217,14 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
     console.log('📧 Order items count:', order?.order_items?.length || 0)
 
     if (order && order.order_items && order.order_items.length > 0) {
-      const buyerEmail = order.profiles?.email
+      // Get buyer email separately
+      const { data: buyerProfile } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('id', order.user_id)
+        .single()
+      
+      const buyerEmail = buyerProfile?.email
       console.log('📧 Buyer email:', buyerEmail)
       
       // Send email for each card sold
