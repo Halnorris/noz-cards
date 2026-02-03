@@ -16,7 +16,7 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const { orderId, items, shippingCost, shippingMethod } = req.body
+    const { orderId, items, buyerProtectionFee, shippingCost, shippingMethod } = req.body
     const host = req.headers.host
     const protocol = host?.includes('localhost') ? 'http' : 'https'
     const siteUrl = `${protocol}://${host}`
@@ -45,24 +45,42 @@ export default async function handler(req: any, res: any) {
       quantity: 1,
     }))
 
-    // Add shipping as a line item
-    lineItems.push({
-      price_data: {
-        currency: 'gbp',
-        product_data: {
-          name: 'Shipping',
+    // Add buyer protection fee as a line item (10% of card total)
+    if (buyerProtectionFee && buyerProtectionFee > 0) {
+      lineItems.push({
+        price_data: {
+          currency: 'gbp',
+          product_data: {
+            name: 'Buyer Protection',
+            description: 'Protection against fraud and disputes',
+          },
+          unit_amount: Math.round(buyerProtectionFee * 100),
         },
-        unit_amount: Math.round(shippingCost * 100),
-      },
-      quantity: 1,
-    })
+        quantity: 1,
+      })
+    }
+
+    // Add shipping as a line item
+    if (shippingCost && shippingCost > 0) {
+      lineItems.push({
+        price_data: {
+          currency: 'gbp',
+          product_data: {
+            name: 'Shipping',
+          },
+          unit_amount: Math.round(shippingCost * 100),
+        },
+        quantity: 1,
+      })
+    }
 
     // Calculate totals
     const subtotal = items.reduce((sum: number, item: any) => sum + (item.price || 0), 0)
+    const buyerProtection = buyerProtectionFee || 0
     const shipping = shippingCost || 0
-    const total = subtotal + shipping
+    const total = subtotal + buyerProtection + shipping
 
-    // Calculate platform fee (15% of subtotal only, not shipping)
+    // Calculate platform fee (15% of subtotal only, not shipping or buyer protection)
     const platformFeeAmount = Math.round(subtotal * 0.15 * 100) // 15% in pence
 
     // Build metadata with transfer instructions for webhook
@@ -70,6 +88,7 @@ export default async function handler(req: any, res: any) {
       orderId,
       shippingMethod,
       subtotal: subtotal.toFixed(2),
+      buyerProtectionFee: buyerProtection.toFixed(2),
       shippingCost: shipping.toFixed(2),
       platformFee: (platformFeeAmount / 100).toFixed(2),
     }
@@ -81,7 +100,7 @@ export default async function handler(req: any, res: any) {
         const payoutsEnabled = card.profiles?.stripe_payouts_enabled
         
         if (ownerStripeAccountId && payoutsEnabled) {
-          // Calculate 85% of this card's price
+          // Calculate 85% of this card's price (original price, not including buyer protection)
           const cardPrice = card.price || 0
           const ownerAmount = Math.round(cardPrice * 0.85 * 100)
           
