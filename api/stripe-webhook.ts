@@ -188,9 +188,10 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
   }
 
   // Send sale notification emails
+  console.log('📧 Starting email process for order:', orderId)
   try {
     // Get order details including buyer email and card info
-    const { data: order } = await supabase
+    const { data: order, error: orderError } = await supabase
       .from('orders')
       .select(`
         id,
@@ -208,11 +209,22 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
       .eq('id', orderId)
       .single()
 
+    if (orderError) {
+      console.error('❌ Error fetching order:', orderError)
+      return
+    }
+
+    console.log('📧 Order data fetched:', order ? 'success' : 'null')
+    console.log('📧 Order items count:', order?.order_items?.length || 0)
+
     if (order && order.order_items && order.order_items.length > 0) {
       const buyerEmail = order.profiles?.email
+      console.log('📧 Buyer email:', buyerEmail)
       
       // Send email for each card sold
       for (const item of order.order_items) {
+        console.log('📧 Processing card:', item.card_title)
+        
         // Get seller info
         const { data: card } = await supabase
           .from('cards')
@@ -224,12 +236,14 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
           .single()
 
         const sellerEmail = card?.profiles?.email
+        console.log('📧 Seller email:', sellerEmail)
 
         // Calculate seller payout (85% of card price)
         const sellerPayout = item.price * 0.85
 
+        console.log('📧 Calling email API...')
         // Call email API
-        await fetch(`${process.env.FRONTEND_URL || 'https://nozcards.com'}/api/send-sale-email`, {
+        const emailResponse = await fetch(`${process.env.FRONTEND_URL || 'https://nozcards.com'}/api/send-sale-email`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -245,11 +259,22 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
           }),
         })
 
-        console.log(`📧 Sale email sent for card: ${item.card_title}`)
+        console.log('📧 Email API response status:', emailResponse.status)
+        
+        if (!emailResponse.ok) {
+          const errorText = await emailResponse.text()
+          console.error('📧 Email API error:', errorText)
+        }
+        
+        console.log(`✅ Sale email sent for card: ${item.card_title}`)
       }
+    } else {
+      console.log('📧 No order items found or order is null')
     }
-  } catch (emailError) {
-    console.error('Failed to send sale emails:', emailError)
+  } catch (emailError: any) {
+    console.error('❌ Failed to send sale emails:', emailError)
+    console.error('❌ Error message:', emailError.message)
+    console.error('❌ Error stack:', emailError.stack)
     // Don't fail the webhook if emails fail
   }
 }
