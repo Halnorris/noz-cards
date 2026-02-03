@@ -22,11 +22,27 @@ export default function SignIn() {
     if (isSignUp) {
       // Sign Up
       const { error } = await signUp(email, password)
-      setLoading(false)
       
       if (error) {
+        setLoading(false)
         setError(error.message)
       } else {
+        // Send welcome email
+        try {
+          await fetch('/api/send-signup-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userEmail: email,
+              userName: email.split('@')[0], // Use email username as name for now
+            }),
+          })
+        } catch (emailError) {
+          console.error('Failed to send welcome email:', emailError)
+          // Don't show error to user - signup still succeeded
+        }
+        
+        setLoading(false)
         setSuccess('Account created! Check your email to verify your account.')
       }
     } else {
