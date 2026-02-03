@@ -1,13 +1,5 @@
-// Disable body parsing, need raw body for signature verification
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-}
-
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
-import { buffer } from 'micro'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-10-16',
@@ -19,6 +11,15 @@ const supabase = createClient(
 )
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+
+// Helper to read raw body from request
+async function getRawBody(req: any): Promise<Buffer> {
+  const chunks: Buffer[] = []
+  for await (const chunk of req) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk)
+  }
+  return Buffer.concat(chunks)
+}
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
@@ -35,11 +36,11 @@ export default async function handler(req: any, res: any) {
   let event: Stripe.Event
 
   try {
-    // Read raw body as buffer
-    const buf = await buffer(req)
+    // Read raw body
+    const rawBody = await getRawBody(req)
     
     // Verify webhook signature
-    event = stripe.webhooks.constructEvent(buf, sig, webhookSecret)
+    event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret)
   } catch (err: any) {
     console.error('Webhook signature verification failed:', err.message)
     return res.status(400).send(`Webhook Error: ${err.message}`)
@@ -185,4 +186,76 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
       }
     }
   }
+
+  // Send sale notification emails
+  try {
+    // Get order details including buyer email and card info
+    const { data: order } = await supabase
+      .from('orders')
+      .select(`
+        id,
+        user_id,
+        shipping_method,
+        shipping_address,
+        order_items(
+          card_id,
+          price,
+          card_title,
+          card_image_url
+        ),
+        profiles!orders_user_id_fkey(email)
+      `)
+      .eq('id', orderId)
+      .single()
+
+    if (order && order.order_items && order.order_items.length > 0) {
+      const buyerEmail = order.profiles?.email
+      
+      // Send email for each card sold
+      for (const item of order.order_items) {
+        // Get seller info
+        const { data: card } = await supabase
+          .from('cards')
+          .select(`
+            owner_user_id,
+            profiles!cards_owner_user_id_fkey(email)
+          `)
+          .eq('id', item.card_id)
+          .single()
+
+        const sellerEmail = card?.profiles?.email
+
+        // Calculate seller payout (85% of card price)
+        const sellerPayout = item.price * 0.85
+
+        // Call email API
+        await fetch(`${process.env.FRONTEND_URL || 'https://nozcards.com'}/api/send-sale-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            buyerEmail,
+            sellerEmail,
+            orderId: order.id,
+            cardTitle: item.card_title,
+            cardPrice: item.price,
+            cardImageUrl: item.card_image_url,
+            shippingMethod: order.shipping_method,
+            shippingAddress: order.shipping_address,
+            sellerPayout,
+          }),
+        })
+
+        console.log(`📧 Sale email sent for card: ${item.card_title}`)
+      }
+    }
+  } catch (emailError) {
+    console.error('Failed to send sale emails:', emailError)
+    // Don't fail the webhook if emails fail
+  }
+}
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
 }
