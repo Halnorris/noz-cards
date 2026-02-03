@@ -234,14 +234,21 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
         // Get seller info
         const { data: card } = await supabase
           .from('cards')
-          .select(`
-            owner_user_id,
-            profiles!cards_owner_user_id_fkey(email)
-          `)
+          .select('owner_user_id')
           .eq('id', item.card_id)
           .single()
 
-        const sellerEmail = card?.profiles?.email
+        let sellerEmail = null
+        if (card?.owner_user_id) {
+          const { data: sellerProfile } = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('id', card.owner_user_id)
+            .single()
+          
+          sellerEmail = sellerProfile?.email
+        }
+        
         console.log('📧 Seller email:', sellerEmail)
 
         // Calculate seller payout (85% of card price)
