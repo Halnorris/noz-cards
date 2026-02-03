@@ -290,6 +290,76 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
     console.error('❌ Error stack:', emailError.stack)
     // Don't fail the webhook if emails fail
   }
+
+  // Handle shipping orders (for stored cards being shipped)
+  const { shippingOrderId, storedOrderIds } = metadata
+  
+  if (shippingOrderId) {
+    console.log('📦 Processing shipping order:', shippingOrderId)
+    
+    try {
+      // Get shipping order details
+      const { data: shippingOrder } = await supabase
+        .from('orders')
+        .select('id, user_id, shipping_method, shipping_address, shipping_cost')
+        .eq('id', shippingOrderId)
+        .single()
+
+      if (shippingOrder) {
+        // Get buyer email
+        const { data: buyerProfile } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('id', shippingOrder.user_id)
+          .single()
+
+        // Get cards from stored orders
+        const storedOrderIdList = storedOrderIds ? storedOrderIds.split(',') : []
+        let allCards: any[] = []
+        
+        if (storedOrderIdList.length > 0) {
+          const { data: storedOrders } = await supabase
+            .from('orders')
+            .select(`
+              order_items(
+                card_title,
+                price,
+                card_image_url
+              )
+            `)
+            .in('id', storedOrderIdList)
+
+          if (storedOrders) {
+            allCards = storedOrders.flatMap(o => o.order_items || [])
+          }
+        }
+
+        const buyerEmail = buyerProfile?.email
+        const cardCount = allCards.length
+
+        console.log('📧 Sending shipping emails for', cardCount, 'cards')
+
+        // Send shipping confirmation emails
+        await fetch(`${process.env.FRONTEND_URL || 'https://nozcards.com'}/api/send-shipping-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            buyerEmail,
+            shippingOrderId,
+            cardCount,
+            shippingCost: shippingOrder.shipping_cost,
+            shippingMethod: shippingOrder.shipping_method,
+            shippingAddress: shippingOrder.shipping_address,
+            cards: allCards,
+          }),
+        })
+
+        console.log('✅ Shipping emails sent')
+      }
+    } catch (shippingEmailError: any) {
+      console.error('❌ Failed to send shipping emails:', shippingEmailError)
+    }
+  }
 }
 
 export const config = {
