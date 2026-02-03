@@ -90,6 +90,9 @@ export default async function handler(req: any, res: any) {
       `,
     })
 
+    // Wait 600ms to avoid rate limit (Resend: 2 emails/second)
+    await new Promise(resolve => setTimeout(resolve, 600))
+
     // Email to SELLER - Your card sold!
     if (sellerEmail) {
       await resend.emails.send({
@@ -160,6 +163,9 @@ export default async function handler(req: any, res: any) {
         `,
       })
     }
+
+    // Wait 600ms to avoid rate limit
+    await new Promise(resolve => setTimeout(resolve, 600))
 
     // Email to YOU - Sale notification
     await resend.emails.send({
