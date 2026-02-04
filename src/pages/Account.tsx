@@ -756,7 +756,7 @@ function OrdersTab() {
           )
         `)
         .eq('user_id', user.id)
-        .not('status', 'in', '(stored,pending)') // Exclude stored and pending orders
+        .not('status', 'in', '(stored,pending,completed)') // Exclude stored, pending, and completed orders
         .order('created_at', { ascending: false })
       
       if (data) {
