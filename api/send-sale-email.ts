@@ -17,7 +17,9 @@ export default async function handler(req: any, res: any) {
       cardImageUrl,
       shippingMethod,
       shippingAddress,
-      sellerPayout 
+      sellerPayout,
+      allCards,
+      adminEmail
     } = req.body
 
     if (!buyerEmail || !orderId || !cardTitle || !cardPrice) {
@@ -55,26 +57,47 @@ export default async function handler(req: any, res: any) {
                 
                 <p>Thanks for your order! Your payment has been confirmed.</p>
                 
-                <div class="card-preview">
-                  ${cardImageUrl ? `<img src="${cardImageUrl}" alt="${cardTitle}" class="card-image">` : ''}
-                  <div>
-                    <h3 style="margin: 0 0 10px 0;">${cardTitle}</h3>
-                    <div class="price">£${cardPrice.toFixed(2)}</div>
-                    <p style="margin-top: 10px; font-size: 14px; color: #666;">Order #${orderId.slice(0, 8)}</p>
-                  </div>
+                <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                  <h3 style="margin: 0 0 15px 0;">Order #${orderId.slice(0, 8)}</h3>
+                  
+                  ${allCards && allCards.length > 0 ? `
+                    ${allCards.map((card: any) => `
+                      <div style="display: flex; gap: 15px; padding: 15px; background: white; border-radius: 6px; margin-bottom: 10px;">
+                        ${card.card_image_url ? `
+                          <img src="${card.card_image_url}" alt="${card.card_title}" style="width: 80px; height: 107px; object-fit: cover; border-radius: 4px;">
+                        ` : ''}
+                        <div style="flex: 1;">
+                          <div style="font-weight: 500; margin-bottom: 5px;">${card.card_title}</div>
+                          <div style="color: #666; font-size: 14px;">£${card.price?.toFixed(2) || '0.00'}</div>
+                        </div>
+                      </div>
+                    `).join('')}
+                    
+                    <div style="border-top: 2px solid #ddd; margin-top: 15px; padding-top: 15px;">
+                      <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: bold;">
+                        <span>Total</span>
+                        <span style="color: #000;">£${cardPrice.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  ` : `
+                    <div style="padding: 15px; background: white; border-radius: 6px;">
+                      <h3 style="margin: 0 0 10px 0;">${cardTitle}</h3>
+                      <div style="font-size: 24px; font-weight: bold;">£${cardPrice.toFixed(2)}</div>
+                    </div>
+                  `}
                 </div>
                 
                 ${shippingMethod === 'store' ? `
                   <div class="info-box">
-                    <strong>📦 Your card is being stored</strong><br>
-                    You chose to store this card for later shipment. We'll hold it securely until you're ready to ship!
+                    <strong>📦 Your ${allCards && allCards.length > 1 ? 'cards are' : 'card is'} being stored</strong><br>
+                    You chose to store ${allCards && allCards.length > 1 ? 'these cards' : 'this card'} for later shipment. We'll hold ${allCards && allCards.length > 1 ? 'them' : 'it'} securely until you're ready to ship!
                   </div>
                 ` : `
                   <div class="info-box">
                     <strong>📦 Shipping to:</strong><br>
                     ${shippingAddress || 'Address on file'}
                   </div>
-                  <p>Your card will be shipped within 1-2 business days. You'll receive tracking information once it's on its way!</p>
+                  <p>Your ${allCards && allCards.length > 1 ? 'cards' : 'card'} will be shipped within 1-2 business days. You'll receive tracking information once ${allCards && allCards.length > 1 ? "they're" : "it's"} on ${allCards && allCards.length > 1 ? 'their' : 'its'} way!</p>
                 `}
                 
                 <p>If you have any questions about your order, just reply to this email.</p>
