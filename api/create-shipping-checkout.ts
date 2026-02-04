@@ -10,11 +10,12 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const { shippingOrderId, storedOrderIds, shippingCost, shippingMethod, cardCount } = req.body
-
+    const { shippingOrderId, storedOrderIds, selectedCardIds, shippingCost, shippingMethod, cardCount } = req.body
+    
     console.log('=== SHIPPING CHECKOUT DEBUG ===')
     console.log('shippingOrderId:', shippingOrderId)
     console.log('storedOrderIds:', storedOrderIds)
+    console.log('selectedCardIds:', selectedCardIds)
     console.log('shippingCost:', shippingCost)
     console.log('shippingMethod:', shippingMethod)
     console.log('cardCount:', cardCount)
@@ -22,7 +23,7 @@ export default async function handler(req: any, res: any) {
     if (!shippingOrderId || !storedOrderIds || !shippingCost || !shippingMethod) {
       return res.status(400).json({ 
         error: 'Missing required fields',
-        received: { shippingOrderId, storedOrderIds, shippingCost, shippingMethod, cardCount }
+        received: { shippingOrderId, storedOrderIds, selectedCardIds, shippingCost, shippingMethod, cardCount }
       })
     }
 
@@ -49,6 +50,9 @@ export default async function handler(req: any, res: any) {
       metadata: {
         shippingOrderId,
         storedOrderIds: Array.isArray(storedOrderIds) ? storedOrderIds.join(',') : storedOrderIds,
+        selectedCardIds: selectedCardIds && selectedCardIds.length > 0 
+          ? (Array.isArray(selectedCardIds) ? selectedCardIds.join(',') : selectedCardIds)
+          : '', // Pass selected card IDs
         shippingMethod,
       },
     })
