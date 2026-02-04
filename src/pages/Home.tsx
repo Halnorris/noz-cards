@@ -159,22 +159,47 @@ function HeroFeaturedCards() {
       return
     }
 
-    const { data: existing } = await supabase
+    // FIXED: Use maybeSingle() instead of single() - single() throws error when no row found
+    const { data: existing, error: checkError } = await supabase
       .from('wishlists')
       .select('id')
       .eq('user_id', user.id)
       .eq('card_id', card.id)
-      .single()
+      .maybeSingle()
+
+    if (checkError) {
+      console.error('Error checking wishlist:', checkError)
+      return
+    }
 
     if (existing) {
-      await supabase.from('wishlists').delete().eq('id', existing.id)
+      // Remove from wishlist
+      const { error: deleteError } = await supabase
+        .from('wishlists')
+        .delete()
+        .eq('id', existing.id)
+      
+      if (deleteError) {
+        console.error('Error removing from wishlist:', deleteError)
+        return
+      }
+      
       setWishlistCardIds(prev => {
         const next = new Set(prev)
         next.delete(card.id)
         return next
       })
     } else {
-      await supabase.from('wishlists').insert({ user_id: user.id, card_id: card.id })
+      // Add to wishlist
+      const { error: insertError } = await supabase
+        .from('wishlists')
+        .insert({ user_id: user.id, card_id: card.id })
+      
+      if (insertError) {
+        console.error('Error adding to wishlist:', insertError)
+        return
+      }
+      
       setWishlistCardIds(prev => new Set(prev).add(card.id))
     }
   }
@@ -468,22 +493,47 @@ function RecentlyUploadedGrid() {
       return
     }
 
-    const { data: existing } = await supabase
+    // FIXED: Use maybeSingle() instead of single()
+    const { data: existing, error: checkError } = await supabase
       .from('wishlists')
       .select('id')
       .eq('user_id', user.id)
       .eq('card_id', card.id)
-      .single()
+      .maybeSingle()
+
+    if (checkError) {
+      console.error('Error checking wishlist:', checkError)
+      return
+    }
 
     if (existing) {
-      await supabase.from('wishlists').delete().eq('id', existing.id)
+      // Remove from wishlist
+      const { error: deleteError } = await supabase
+        .from('wishlists')
+        .delete()
+        .eq('id', existing.id)
+      
+      if (deleteError) {
+        console.error('Error removing from wishlist:', deleteError)
+        return
+      }
+      
       setWishlistCardIds(prev => {
         const next = new Set(prev)
         next.delete(card.id)
         return next
       })
     } else {
-      await supabase.from('wishlists').insert({ user_id: user.id, card_id: card.id })
+      // Add to wishlist
+      const { error: insertError } = await supabase
+        .from('wishlists')
+        .insert({ user_id: user.id, card_id: card.id })
+      
+      if (insertError) {
+        console.error('Error adding to wishlist:', insertError)
+        return
+      }
+      
       setWishlistCardIds(prev => new Set(prev).add(card.id))
     }
   }
