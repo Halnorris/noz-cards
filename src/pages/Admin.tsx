@@ -61,11 +61,38 @@ export default function Admin() {
       .order('created_at', { ascending: false })
 
     if (data) {
-      setOrders(data)
+      // For shipping orders, fetch the actual cards from related stored orders
+      const ordersWithCards = await Promise.all(
+        data.map(async (order) => {
+          if (order.order_type === 'shipping' && order.related_order_ids) {
+            // Get cards from the stored orders
+            const { data: storedOrders } = await supabase
+              .from('orders')
+              .select(`
+                order_items(
+                  id,
+                  card_title,
+                  card_nozid,
+                  card_image_url,
+                  price
+                )
+              `)
+              .in('id', order.related_order_ids)
+            
+            if (storedOrders) {
+              const allCards = storedOrders.flatMap(o => o.order_items || [])
+              return { ...order, order_items: allCards }
+            }
+          }
+          return order
+        })
+      )
+      
+      setOrders(ordersWithCards)
       
       // Initialize tracking data
       const initialTracking: {[key: string]: { number: string, carrier: string }} = {}
-      data.forEach(order => {
+      ordersWithCards.forEach(order => {
         initialTracking[order.id] = { number: '', carrier: '' }
       })
       setTrackingData(initialTracking)
@@ -209,19 +236,26 @@ export default function Admin() {
                 </div>
 
                 {/* Cards to Ship */}
-                {!isShippingOrder && cardCount > 0 && (
+                {cardCount > 0 && (
                   <div className="mb-4">
-                    <div className="text-sm font-medium mb-2">Cards to Ship ({cardCount}):</div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
-                      {order.order_items.map((item: any) => (
-                        <div key={item.id} className="border border-black/10 rounded-lg p-2">
-                          <div className="aspect-[3/4] rounded bg-black/5 mb-1 overflow-hidden">
+                    <div className="text-sm font-medium mb-3">📦 Cards to Ship ({cardCount}):</div>
+                    <div className="space-y-2">
+                      {order.order_items.map((item: any, idx: number) => (
+                        <div key={item.id} className="flex items-center gap-3 p-3 border border-black/10 rounded-lg bg-gray-50">
+                          <div className="text-lg font-bold text-gray-500 w-8">{idx + 1}.</div>
+                          <div className="w-16 h-20 rounded bg-black/5 overflow-hidden shrink-0">
                             {item.card_image_url && (
                               <img src={item.card_image_url} alt={item.card_title} className="w-full h-full object-cover" />
                             )}
                           </div>
-                          <div className="text-[10px] font-mono font-bold">{item.card_nozid || 'N/A'}</div>
-                          <div className="text-[9px] opacity-70 line-clamp-1">{item.card_title}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-mono font-bold text-lg text-primary">{item.card_nozid || 'N/A'}</div>
+                            <div className="text-sm opacity-80 line-clamp-2">{item.card_title}</div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="text-sm opacity-70">Price</div>
+                            <div className="font-medium">£{item.price?.toFixed(2)}</div>
+                          </div>
                         </div>
                       ))}
                     </div>
