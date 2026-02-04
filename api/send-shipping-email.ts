@@ -108,10 +108,25 @@ export default async function handler(req: any, res: any) {
             <p><strong>Cost:</strong> £${shippingCost.toFixed(2)}</p>
             <p><strong>Address:</strong> ${shippingAddress || 'N/A'}</p>
             ${cards && cards.length > 0 ? `
-              <p><strong>Cards:</strong></p>
-              <ul>
-                ${cards.map((card: any) => `<li>${card.card_title || 'Card'} - £${card.price?.toFixed(2) || '0.00'}</li>`).join('')}
-              </ul>
+              <p><strong>Cards to Ship:</strong></p>
+              <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
+                <thead>
+                  <tr style="background: #f5f5f5; border-bottom: 2px solid #ddd;">
+                    <th style="padding: 10px; text-align: left;">Noz ID</th>
+                    <th style="padding: 10px; text-align: left;">Card</th>
+                    <th style="padding: 10px; text-align: right;">Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${cards.map((card: any) => `
+                    <tr style="border-bottom: 1px solid #eee;">
+                      <td style="padding: 10px; font-family: monospace; font-weight: bold;">${card.card_nozid || 'N/A'}</td>
+                      <td style="padding: 10px;">${card.card_title || 'Card'}</td>
+                      <td style="padding: 10px; text-align: right;">£${card.price?.toFixed(2) || '0.00'}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
             ` : ''}
             <p><strong>Time:</strong> ${new Date().toLocaleString('en-GB')}</p>
             <hr>
