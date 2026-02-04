@@ -956,6 +956,15 @@ function OrdersTab() {
                         <div>{order.shipping_address}</div>
                       </div>
                     )}
+                    {order.status === 'shipped' && order.tracking_number && (
+                      <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="text-xs font-medium text-green-800 mb-1">📦 Tracking Information</div>
+                        <div className="text-sm font-mono font-bold text-green-900">{order.tracking_number}</div>
+                        {order.tracking_carrier && (
+                          <div className="text-xs text-green-700 mt-1">Carrier: {order.tracking_carrier}</div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
