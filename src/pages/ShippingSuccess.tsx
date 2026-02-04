@@ -60,7 +60,18 @@ export default function ShippingSuccess() {
         
         console.log(`✅ Shipping order ${shippingOrderId} marked as paid`)
         
-        // Note: Stored orders stay as 'stored' - only the shipping order tracks shipping status
+        // Update stored orders to 'completed' so they leave the Stored Cards tab
+        // but don't appear in Orders tab (only 'paid' and 'shipped' orders appear there)
+        const { error: ordersError } = await supabaseServiceRole
+          .from('orders')
+          .update({ status: 'completed' })
+          .in('id', orderIds)
+
+        if (ordersError) {
+          console.error('Error updating stored orders:', ordersError)
+        } else {
+          console.log(`✅ ${orderIds.length} stored orders marked as completed`)
+        }
         
         // Get all card IDs from these orders and update their status to 'sold'
         const { data: orderItems, error: itemsError } = await supabaseServiceRole
