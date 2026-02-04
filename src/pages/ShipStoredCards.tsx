@@ -8,6 +8,7 @@ export default function ShipStoredCards() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const orderIds = searchParams.get('orders')?.split(',') || []
+  const selectedCardIds = searchParams.get('cards')?.split(',') || [] // Get selected card IDs
   
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
@@ -81,7 +82,19 @@ export default function ShipStoredCards() {
         .eq('status', 'stored')
       
       if (data && data.length > 0) {
-        setOrders(data)
+        // Filter order_items to only include selected cards
+        if (selectedCardIds.length > 0) {
+          const filteredOrders = data.map(order => ({
+            ...order,
+            order_items: order.order_items.filter((item: any) => 
+              selectedCardIds.includes(item.id)
+            )
+          })).filter(order => order.order_items.length > 0) // Remove orders with no selected items
+          
+          setOrders(filteredOrders)
+        } else {
+          setOrders(data)
+        }
       } else {
         navigate('/account?tab=stored')
       }
@@ -89,7 +102,7 @@ export default function ShipStoredCards() {
     }
 
     fetchOrders()
-  }, [user, navigate, orderIds])
+  }, [user, navigate, orderIds, selectedCardIds])
 
   const handleShipment = async () => {
     if (!shippingAddress.line1 || !shippingAddress.city || !shippingAddress.postcode) {
