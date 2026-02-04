@@ -2,9 +2,22 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/auth'
 import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 
 // Admin emails that can access this page
 const ADMIN_EMAILS = ['support@nozcards.com', 'habnorris@gmail.com']
+
+// Create service role client for admin operations
+const supabaseAdmin = createClient(
+  import.meta.env.VITE_SUPABASE_URL!,
+  import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+)
 
 export default function Admin() {
   const { user, loading: authLoading } = useAuth()
@@ -116,8 +129,8 @@ export default function Admin() {
     setUpdating(orderId)
 
     try {
-      // Update order status to 'shipped' and add tracking info
-      const { error: updateError } = await supabase
+      // Update order status to 'shipped' and add tracking info using admin client
+      const { error: updateError } = await supabaseAdmin
         .from('orders')
         .update({ 
           status: 'shipped',
@@ -126,7 +139,12 @@ export default function Admin() {
         })
         .eq('id', orderId)
 
-      if (updateError) throw updateError
+      if (updateError) {
+        console.error('Update error:', updateError)
+        throw updateError
+      }
+
+      console.log('✅ Order status updated to shipped in database')
 
       // Get order details for email
       const order = orders.find(o => o.id === orderId)
