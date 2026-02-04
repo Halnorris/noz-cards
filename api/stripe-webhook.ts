@@ -127,7 +127,7 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
 
   console.log('Session metadata:', metadata)
 
-  const { orderId, shippingOrderId, storedOrderIds, shippingMethod } = metadata
+  const { orderId, shippingOrderId, storedOrderIds, selectedCardIds, shippingMethod } = metadata
 
   // HANDLE SHIPPING ORDERS (stored cards being shipped)
   if (shippingOrderId) {
@@ -155,6 +155,7 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
 
       // Get cards from stored orders
       const storedOrderIdList = storedOrderIds ? storedOrderIds.split(',') : []
+      const selectedCardIdList = selectedCardIds ? selectedCardIds.split(',') : []
       let allCards: any[] = []
       
       if (storedOrderIdList.length > 0) {
@@ -162,6 +163,7 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
           .from('orders')
           .select(`
             order_items(
+              id,
               card_title,
               price,
               card_image_url,
@@ -172,6 +174,12 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
 
         if (storedOrders) {
           allCards = storedOrders.flatMap(o => o.order_items || [])
+          
+          // Filter by selected card IDs if provided
+          if (selectedCardIdList.length > 0) {
+            allCards = allCards.filter(card => selectedCardIdList.includes(card.id))
+            console.log(`📋 Filtered to ${allCards.length} selected cards from ${selectedCardIdList.length} IDs`)
+          }
         }
       }
 
@@ -406,8 +414,26 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
       }
     }
 
-    // Send admin email
+    // Send admin email with full card details
     await new Promise(resolve => setTimeout(resolve, 600))
+    
+    // Get full card details with Noz IDs for admin
+    const cardIdsForAdmin = order.order_items.map((item: any) => item.card_id)
+    const { data: cardsWithNozIds } = await supabase
+      .from('cards')
+      .select('id, nozid, title, price')
+      .in('id', cardIdsForAdmin)
+    
+    // Merge Noz IDs with order items
+    const cardsForAdmin = order.order_items.map((item: any) => {
+      const cardData = cardsWithNozIds?.find((c: any) => c.id === item.card_id)
+      return {
+        card_title: item.card_title,
+        card_nozid: cardData?.nozid || 'N/A',
+        price: item.price,
+        card_image_url: item.card_image_url,
+      }
+    })
     
     await fetch(`${process.env.FRONTEND_URL || 'https://nozcards.com'}/api/send-sale-email`, {
       method: 'POST',
@@ -423,6 +449,7 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
         shippingAddress: order.shipping_address,
         sellerPayout: totalPayout,
         adminEmail: true,
+        allCards: cardsForAdmin, // Include full card details with Noz IDs
       }),
     })
 
