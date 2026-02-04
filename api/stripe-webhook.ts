@@ -164,7 +164,8 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
             order_items(
               card_title,
               price,
-              card_image_url
+              card_image_url,
+              card_nozid
             )
           `)
           .in('id', storedOrderIdList)
