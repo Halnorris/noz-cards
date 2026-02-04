@@ -827,6 +827,14 @@ function OrdersTab() {
           const displayCards = isShippingOrder ? (relatedCards[order.id] || []) : (order.order_items || [])
           const itemCount = displayCards.length
           
+          // Determine order type label
+          let orderTypeLabel = '🛒 Purchase'
+          let orderTypeDesc = 'Card purchase'
+          if (isShippingOrder) {
+            orderTypeLabel = '📦 Shipping'
+            orderTypeDesc = 'Shipping fee for stored cards'
+          }
+          
           return (
             <div 
               key={order.id} 
@@ -839,35 +847,37 @@ function OrdersTab() {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="font-medium">
-                      {isShippingOrder ? '📦 Shipping Order' : 'Order'} #{order.id.slice(0, 8)}
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium">{orderTypeLabel}</span>
+                      <span className="text-xs opacity-60">#{order.id.slice(0, 8)}</span>
                     </div>
-                    <div className="text-sm opacity-70 mt-1">
-                      {itemCount} {itemCount === 1 ? 'card' : 'cards'} • £{order.total.toFixed(2)}
-                      {isShippingOrder && <span className="ml-2 text-xs">(Shipping only)</span>}
+                    <div className="text-sm opacity-70">
+                      {isShippingOrder ? orderTypeDesc : `${itemCount} ${itemCount === 1 ? 'card' : 'cards'}`} • £{order.total.toFixed(2)}
                     </div>
                     <div className="text-xs opacity-60 mt-1">
                       {new Date(order.created_at).toLocaleDateString('en-GB', {
                         day: 'numeric',
                         month: 'short',
-                        year: 'numeric'
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
                       })}
                     </div>
                   </div>
                   <div className="text-right flex flex-col items-end gap-2">
-                    <span className={`text-xs px-2 py-1 rounded-full ${
+                    <span className={`text-xs px-3 py-1 rounded-full font-medium ${
                       order.status === 'paid' 
-                        ? 'bg-green-100 text-green-700' 
+                        ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' 
                         : order.status === 'stored'
-                        ? 'bg-blue-100 text-blue-700'
+                        ? 'bg-blue-100 text-blue-800 border border-blue-200'
                         : order.status === 'shipped'
-                        ? 'bg-purple-100 text-purple-700'
-                        : 'bg-yellow-100 text-yellow-700'
+                        ? 'bg-green-100 text-green-800 border border-green-200'
+                        : 'bg-gray-100 text-gray-800 border border-gray-200'
                     }`}>
-                      {order.status === 'paid' ? 'Paid' : 
-                       order.status === 'stored' ? 'Stored' : 
-                       order.status === 'shipped' ? 'Shipped' : 
-                       'Pending'}
+                      {order.status === 'paid' ? '⏳ Processing' : 
+                       order.status === 'stored' ? '📦 Stored' : 
+                       order.status === 'shipped' ? '✓ Shipped' : 
+                       '⚠️ Pending'}
                     </span>
                     <svg 
                       className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
