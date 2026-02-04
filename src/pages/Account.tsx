@@ -623,7 +623,6 @@ function StoredCardsTab() {
   const navigate = useNavigate()
   const [cards, setCards] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (!user) return
@@ -664,43 +663,18 @@ function StoredCardsTab() {
     fetchStoredCards()
   }, [user])
 
-  const toggleCard = (cardId: string) => {
-    setSelectedCards(prev => {
-      const next = new Set(prev)
-      if (next.has(cardId)) {
-        next.delete(cardId)
-      } else {
-        next.add(cardId)
-      }
-      return next
-    })
-  }
-
-  const toggleAll = () => {
-    if (selectedCards.size === cards.length) {
-      setSelectedCards(new Set())
-    } else {
-      setSelectedCards(new Set(cards.map(c => c.id)))
-    }
-  }
-
-  const shipSelected = () => {
-    if (selectedCards.size === 0) {
-      alert('Please select cards to ship')
+  const shipAllCards = () => {
+    if (cards.length === 0) {
+      alert('No cards to ship')
       return
     }
     
-    // Get selected card objects
-    const selectedCardObjects = cards.filter(c => selectedCards.has(c.id))
+    // Get unique order IDs from all cards
+    const uniqueOrderIds = [...new Set(cards.map(c => c.order_id))]
     
-    // Get unique order IDs from selected cards
-    const uniqueOrderIds = [...new Set(selectedCardObjects.map(c => c.order_id))]
-    
-    // Pass both order IDs AND selected card IDs
+    // Navigate to shipping checkout with order IDs (no card filtering)
     const orderIdsParam = uniqueOrderIds.join(',')
-    const cardIdsParam = Array.from(selectedCards).join(',')
-    
-    navigate(`/ship-stored?orders=${orderIdsParam}&cards=${cardIdsParam}`)
+    navigate(`/ship-stored?orders=${orderIdsParam}`)
   }
 
   if (loading) return <div className="text-center py-8 opacity-70">Loading...</div>
@@ -721,53 +695,30 @@ function StoredCardsTab() {
           <h2 className="font-header text-lg">Stored Cards</h2>
           <p className="text-sm opacity-70">{cards.length} {cards.length === 1 ? 'card' : 'cards'} waiting to ship</p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={toggleAll}
-            className="px-4 py-2 rounded-xl border border-black/10 text-sm hover:bg-black/5"
-          >
-            {selectedCards.size === cards.length ? 'Deselect All' : 'Select All'}
-          </button>
-          <button
-            onClick={shipSelected}
-            disabled={selectedCards.size === 0}
-            className="px-4 py-2 rounded-xl bg-primary text-white text-sm hover:opacity-90 disabled:opacity-50"
-          >
-            Ship Selected ({selectedCards.size})
-          </button>
-        </div>
+        <button
+          onClick={shipAllCards}
+          className="px-4 py-2 rounded-xl bg-primary text-white text-sm hover:opacity-90"
+        >
+          Ship Cards ({cards.length})
+        </button>
       </div>
 
       <div className="grid sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
         {cards.map((card) => (
           <div 
             key={card.id} 
-            className={`rounded-xl border p-2 cursor-pointer transition ${
-              selectedCards.has(card.id) 
-                ? 'border-primary bg-primary/5 shadow-md' 
-                : 'border-black/5 hover:border-black/20 hover:shadow-md'
-            }`}
-            onClick={() => toggleCard(card.id)}
+            className="rounded-xl border border-black/5 p-2 hover:shadow-md transition"
           >
-            <div className="relative">
-              <div className="aspect-[3/4] rounded bg-black/5 mb-1 overflow-hidden">
-                {card.card_image_url ? (
-                  <img 
-                    src={card.card_image_url} 
-                    alt={card.card_title || 'Card'} 
-                    className="w-full h-full object-cover" 
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-xs opacity-50">
-                    No image
-                  </div>
-                )}
-              </div>
-              {selectedCards.has(card.id) && (
-                <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center">
-                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
+            <div className="aspect-[3/4] rounded bg-black/5 mb-1 overflow-hidden">
+              {card.card_image_url ? (
+                <img 
+                  src={card.card_image_url} 
+                  alt={card.card_title || 'Card'} 
+                  className="w-full h-full object-cover" 
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-xs opacity-50">
+                  No image
                 </div>
               )}
             </div>
