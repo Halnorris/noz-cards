@@ -159,7 +159,90 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
   }
 
   // Update card statuses
-  const { orderId, shippingMethod } = metadata
+  const { orderId, shippingMethod, shippingOrderId, storedOrderIds } = metadata
+
+  // Handle shipping orders FIRST (for stored cards being shipped)
+  if (shippingOrderId) {
+    console.log('📦 Processing shipping order:', shippingOrderId)
+    
+    try {
+      // Mark shipping order as paid
+      await supabase
+        .from('orders')
+        .update({ status: 'paid' })
+        .eq('id', shippingOrderId)
+
+      // Get shipping order details
+      const { data: shippingOrder } = await supabase
+        .from('orders')
+        .select('id, user_id, shipping_method, shipping_address, shipping_cost')
+        .eq('id', shippingOrderId)
+        .single()
+
+      if (shippingOrder) {
+        // Get buyer email
+        const { data: buyerProfile } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('id', shippingOrder.user_id)
+          .single()
+
+        // Get cards from stored orders
+        const storedOrderIdList = storedOrderIds ? storedOrderIds.split(',') : []
+        let allCards: any[] = []
+        
+        if (storedOrderIdList.length > 0) {
+          const { data: storedOrders } = await supabase
+            .from('orders')
+            .select(`
+              order_items(
+                card_title,
+                price,
+                card_image_url
+              )
+            `)
+            .in('id', storedOrderIdList)
+
+          if (storedOrders) {
+            allCards = storedOrders.flatMap(o => o.order_items || [])
+          }
+        }
+
+        const buyerEmail = buyerProfile?.email
+        const cardCount = allCards.length
+
+        console.log('📧 Sending shipping emails for', cardCount, 'cards')
+
+        // Send shipping confirmation emails
+        await fetch(`${process.env.FRONTEND_URL || 'https://nozcards.com'}/api/send-shipping-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            buyerEmail,
+            shippingOrderId,
+            cardCount,
+            shippingCost: shippingOrder.shipping_cost,
+            shippingMethod: shippingOrder.shipping_method,
+            shippingAddress: shippingOrder.shipping_address,
+            cards: allCards,
+          }),
+        })
+
+        console.log('✅ Shipping emails sent')
+      }
+    } catch (shippingEmailError: any) {
+      console.error('❌ Failed to send shipping emails:', shippingEmailError)
+    }
+    
+    // Exit early - this is a shipping order, not a sale
+    return
+  }
+
+  // Only process sale logic if there's an orderId (not a shipping order)
+  if (!orderId) {
+    console.log('No orderId found - skipping sale processing')
+    return
+  }
 
   if (shippingMethod === 'store') {
     // Cards will be stored, don't mark as sold yet
