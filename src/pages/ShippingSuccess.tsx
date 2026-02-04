@@ -58,20 +58,9 @@ export default function ShippingSuccess() {
           .update({ status: 'paid' })
           .eq('id', shippingOrderId)
         
-        // Update all the stored orders to 'shipped' status
-        const { error: ordersError } = await supabaseServiceRole
-          .from('orders')
-          .update({ 
-            status: 'shipped',
-            shipping_method: shippingMethod 
-          })
-          .in('id', orderIds)
-
-        if (ordersError) {
-          console.error('Error updating stored orders:', ordersError)
-        } else {
-          console.log(`✅ ${orderIds.length} orders marked as shipped`)
-        }
+        console.log(`✅ Shipping order ${shippingOrderId} marked as paid`)
+        
+        // Note: Stored orders stay as 'stored' - only the shipping order tracks shipping status
         
         // Get all card IDs from these orders and update their status to 'sold'
         const { data: orderItems, error: itemsError } = await supabaseServiceRole
