@@ -690,13 +690,17 @@ function StoredCardsTab() {
       return
     }
     
-    // Get unique order IDs from selected cards
+    // Get selected card objects
     const selectedCardObjects = cards.filter(c => selectedCards.has(c.id))
+    
+    // Get unique order IDs from selected cards
     const uniqueOrderIds = [...new Set(selectedCardObjects.map(c => c.order_id))]
     
-    // Navigate to shipping checkout with order IDs
+    // Pass both order IDs AND selected card IDs
     const orderIdsParam = uniqueOrderIds.join(',')
-    navigate(`/ship-stored?orders=${orderIdsParam}`)
+    const cardIdsParam = Array.from(selectedCards).join(',')
+    
+    navigate(`/ship-stored?orders=${orderIdsParam}&cards=${cardIdsParam}`)
   }
 
   if (loading) return <div className="text-center py-8 opacity-70">Loading...</div>
@@ -1406,26 +1410,35 @@ function SettingsTab() {
 /* ===== SUBMIT CARDS TAB ===== */
 function SubmitCardsTab() {
   return (
-    <div className="max-w-2xl">
-      <h2 className="font-header text-xl mb-4">Submit New Cards</h2>
-      <p className="opacity-70 mb-6">
-        Ready to sell your cards? Fill out our consignment form and we'll handle the rest.
-      </p>
+    <div className="max-w-2xl space-y-6">
+      <div>
+        <h2 className="font-header text-xl mb-2">Submit New Cards</h2>
+        <p className="opacity-70">
+          Ready to sell your cards? Connect Stripe for payouts, then fill out our consignment form.
+        </p>
+      </div>
+
+      {/* Stripe Connect Section */}
+      <div>
+        <h3 className="font-header text-lg mb-3">Get Paid When Your Cards Sell</h3>
+        <StripeConnectButton />
+      </div>
       
       <div className="p-6 rounded-xl border border-black/5 bg-black/[0.02]">
         <h3 className="font-medium mb-3">How it works:</h3>
         <ol className="space-y-2 text-sm opacity-80">
-          <li>1. Fill out the submission form with your card details</li>
-          <li>2. Send your cards to us (we'll provide the address)</li>
-          <li>3. We scan, list, and promote your cards</li>
-          <li>4. Set your price and approve them to go live</li>
-          <li>5. Get paid when they sell!</li>
+          <li>1. Connect your Stripe account above (one-time setup)</li>
+          <li>2. Fill out the submission form with your card details</li>
+          <li>3. Send your cards to us (we'll provide the address)</li>
+          <li>4. We scan, list, and promote your cards</li>
+          <li>5. Set your price and approve them to go live</li>
+          <li>6. Get paid automatically when they sell! (85% to you)</li>
         </ol>
       </div>
 
       <Link 
         to="/submit-cards"
-        className="mt-6 inline-block px-6 py-3 rounded-xl bg-primary text-white hover:opacity-90"
+        className="inline-block px-6 py-3 rounded-xl bg-primary text-white hover:opacity-90"
       >
         Start Submission Form
       </Link>
