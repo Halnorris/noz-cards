@@ -194,23 +194,50 @@ export default async function handler(req: any, res: any) {
     await resend.emails.send({
       from: 'Noz Cards <support@nozcards.com>',
       to: 'support@nozcards.com',
-      subject: `💰 Card Sold - Order #${orderId.slice(0, 8)}`,
+      subject: `💰 Card${allCards && allCards.length > 1 ? 's' : ''} Sold - Order #${orderId.slice(0, 8)}`,
       html: `
         <!DOCTYPE html>
         <html>
           <body style="font-family: Arial, sans-serif; padding: 20px;">
             <h2>Card Sale! 💰</h2>
             <p><strong>Order ID:</strong> ${orderId}</p>
-            <p><strong>Card:</strong> ${cardTitle}</p>
-            <p><strong>Price:</strong> £${cardPrice.toFixed(2)}</p>
-            ${sellerPayout ? `<p><strong>Seller Payout:</strong> £${sellerPayout.toFixed(2)}</p>` : '<p><strong>Seller Payout:</strong> N/A (no Stripe account)</p>'}
             <p><strong>Buyer:</strong> ${buyerEmail}</p>
-            ${sellerEmail ? `<p><strong>Seller:</strong> ${sellerEmail}</p>` : ''}
-            <p><strong>Shipping:</strong> ${shippingMethod === 'store' ? 'Stored' : shippingMethod}</p>
+            <p><strong>Shipping:</strong> ${shippingMethod === 'store' ? 'Stored' : shippingMethod.replace(/_/g, ' ')}</p>
             ${shippingAddress ? `<p><strong>Address:</strong> ${shippingAddress}</p>` : ''}
+            
+            ${allCards && allCards.length > 0 ? `
+              <p><strong>Cards to ${shippingMethod === 'store' ? 'Store' : 'Ship'}:</strong></p>
+              <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
+                <thead>
+                  <tr style="background: #f5f5f5; border-bottom: 2px solid #ddd;">
+                    <th style="padding: 10px; text-align: left;">Noz ID</th>
+                    <th style="padding: 10px; text-align: left;">Card</th>
+                    <th style="padding: 10px; text-align: right;">Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${allCards.map((card: any) => `
+                    <tr style="border-bottom: 1px solid #eee;">
+                      <td style="padding: 10px; font-family: monospace; font-weight: bold;">${card.card_nozid || 'N/A'}</td>
+                      <td style="padding: 10px;">${card.card_title || 'Card'}</td>
+                      <td style="padding: 10px; text-align: right;">£${card.price?.toFixed(2) || '0.00'}</td>
+                    </tr>
+                  `).join('')}
+                  <tr style="border-top: 2px solid #ddd; font-weight: bold;">
+                    <td colspan="2" style="padding: 10px;">Total</td>
+                    <td style="padding: 10px; text-align: right;">£${cardPrice.toFixed(2)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            ` : `
+              <p><strong>Card:</strong> ${cardTitle}</p>
+              <p><strong>Price:</strong> £${cardPrice.toFixed(2)}</p>
+            `}
+            
+            ${sellerPayout ? `<p><strong>Seller Payout (85%):</strong> £${sellerPayout.toFixed(2)}</p>` : ''}
             <p><strong>Time:</strong> ${new Date().toLocaleString('en-GB')}</p>
             <hr>
-            ${shippingMethod !== 'store' ? '<p><em>⚠️ Ship this card within 1-2 business days</em></p>' : '<p><em>Card is being stored - no immediate action needed</em></p>'}
+            ${shippingMethod !== 'store' ? '<p><em>⚠️ Ship these cards within 1-2 business days</em></p>' : '<p><em>Cards are being stored - no immediate action needed</em></p>'}
           </body>
         </html>
       `,
