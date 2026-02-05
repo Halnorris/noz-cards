@@ -9,7 +9,7 @@ const ADMIN_EMAILS = ['support@nozcards.com', 'habnorris@gmail.com']
 
 // Create service role client for admin operations
 const supabaseAdmin = createClient(
-  import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY!,
+  import.meta.env.VITE_SUPABASE_URL!,
   import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY!,
   {
     auth: {
