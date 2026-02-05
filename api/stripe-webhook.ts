@@ -375,30 +375,71 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
         shippingAddress: order.shipping_address,
         sellerPayout: null,
         allCards: order.order_items, // Pass all cards for the email
+        isBuyerEmail: true, // Flag to indicate this is the buyer email
       }),
     })
 
     console.log(`✅ Buyer email sent to ${buyerEmail}`)
 
     // Send ONE email per seller (if they sold multiple cards, group them)
+    console.log(`📧 Processing ${sellerCards.size} seller(s) for notifications`)
+    
     for (const [sellerId, sellerCardsList] of sellerCards.entries()) {
-      const { data: sellerProfile } = await supabase
+      console.log(`🔍 Looking up seller email for user ID: ${sellerId}`)
+      
+      // IMPROVED: Try both profiles table and auth.users
+      let sellerEmail: string | null = null
+      
+      // First try: profiles table
+      const { data: sellerProfile, error: profileError } = await supabase
         .from('profiles')
         .select('email')
         .eq('id', sellerId)
         .single()
 
-      const sellerEmail = sellerProfile?.email
+      if (profileError) {
+        console.error(`⚠️ Failed to fetch seller profile from profiles table:`, profileError)
+      } else if (sellerProfile?.email) {
+        sellerEmail = sellerProfile.email
+        console.log(`✅ Found seller email in profiles table: ${sellerEmail}`)
+      }
+
+      // Second try: If not in profiles, try auth.users
+      if (!sellerEmail) {
+        console.log(`🔍 Trying to get email from auth.users for ${sellerId}`)
+        try {
+          const { data: { user: authUser }, error: authError } = await supabase.auth.admin.getUserById(sellerId)
+          
+          if (authError) {
+            console.error(`❌ Failed to get auth user:`, authError)
+          } else if (authUser?.email) {
+            sellerEmail = authUser.email
+            console.log(`✅ Found seller email in auth.users: ${sellerEmail}`)
+          } else {
+            console.error(`❌ Auth user has no email`)
+          }
+        } catch (authErr) {
+          console.error(`❌ Exception getting auth user:`, authErr)
+        }
+      }
+
+      if (!sellerEmail) {
+        console.error(`❌ Could not find email for seller ${sellerId} - skipping notification`)
+        console.error(`⚠️ Cards affected:`, sellerCardsList.map(c => c.id))
+        continue
+      }
+
       const sellerPayout = sellerCardsList.reduce((sum, card) => sum + (card.price * 0.85), 0)
 
-      if (sellerEmail) {
-        await new Promise(resolve => setTimeout(resolve, 600)) // Rate limit
+      console.log(`💰 Seller ${sellerEmail} earned £${sellerPayout.toFixed(2)} from ${sellerCardsList.length} card(s)`)
 
+      await new Promise(resolve => setTimeout(resolve, 600)) // Rate limit
+
+      try {
         await fetch(`${process.env.FRONTEND_URL || 'https://nozcards.com'}/api/send-sale-email`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            buyerEmail: null, // Already sent buyer email
             sellerEmail,
             orderId: order.id,
             cardTitle: `${sellerCardsList.length} card${sellerCardsList.length > 1 ? 's' : ''}`,
@@ -407,10 +448,13 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
             shippingMethod: order.shipping_method,
             shippingAddress: order.shipping_address,
             sellerPayout,
+            isSellerEmail: true, // Flag to indicate this is the seller email
           }),
         })
 
         console.log(`✅ Seller email sent to ${sellerEmail}`)
+      } catch (emailErr) {
+        console.error(`❌ Failed to send seller email to ${sellerEmail}:`, emailErr)
       }
     }
 
@@ -439,8 +483,7 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        buyerEmail: 'support@nozcards.com', // Admin notification
-        sellerEmail: null,
+        adminEmail: 'support@nozcards.com', // Admin notification
         orderId: order.id,
         cardTitle: `${order.order_items.length} cards`,
         cardPrice: order.subtotal,
@@ -448,7 +491,7 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
         shippingMethod: order.shipping_method,
         shippingAddress: order.shipping_address,
         sellerPayout: totalPayout,
-        adminEmail: true,
+        isAdminEmail: true,
         allCards: cardsForAdmin, // Include full card details with Noz IDs
       }),
     })
