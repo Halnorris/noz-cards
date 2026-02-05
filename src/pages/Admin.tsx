@@ -9,7 +9,7 @@ const ADMIN_EMAILS = ['support@nozcards.com', 'habnorris@gmail.com']
 
 // Create service role client for admin operations
 const supabaseAdmin = createClient(
-  import.meta.env.VITE_SUPABASE_URL!,
+  import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY!,
   import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY!,
   {
     auth: {
@@ -57,8 +57,10 @@ export default function Admin() {
   }, [user, authLoading, navigate])
 
   async function fetchOrders() {
-    // Get all orders with status 'paid' that need shipping
-    const { data } = await supabase
+    console.log('🔍 [ADMIN] Fetching orders with status=paid...')
+    
+    // Get orders with status 'paid' that need shipping
+    const { data, error } = await supabase
       .from('orders')
       .select(`
         *,
@@ -73,34 +75,69 @@ export default function Admin() {
       .eq('status', 'paid')
       .order('created_at', { ascending: false })
 
+    if (error) {
+      console.error('❌ [ADMIN] Error fetching orders:', error)
+      setLoading(false)
+      return
+    }
+
+    console.log('📦 [ADMIN] Found', data?.length || 0, 'paid orders')
+
     if (data) {
       // For shipping orders, fetch the actual cards from related stored orders
       const ordersWithCards = await Promise.all(
         data.map(async (order) => {
-          if (order.order_type === 'shipping' && order.related_order_ids) {
-            // Get cards from the stored orders
-            const { data: storedOrders } = await supabase
-              .from('orders')
-              .select(`
-                order_items(
-                  id,
-                  card_title,
-                  card_nozid,
-                  card_image_url,
-                  price
-                )
-              `)
-              .in('id', order.related_order_ids)
+          if (order.order_type === 'shipping') {
+            console.log(`📦 [ADMIN] Processing shipping order ${order.id}`)
+            console.log('   related_order_ids:', order.related_order_ids)
+            console.log('   related_order_ids type:', typeof order.related_order_ids)
             
-            if (storedOrders) {
-              const allCards = storedOrders.flatMap(o => o.order_items || [])
-              return { ...order, order_items: allCards }
+            // Handle related_order_ids as either array or comma-separated string
+            let relatedIds: string[] = []
+            
+            if (order.related_order_ids) {
+              if (Array.isArray(order.related_order_ids)) {
+                // It's already an array
+                relatedIds = order.related_order_ids
+              } else if (typeof order.related_order_ids === 'string') {
+                // It's a comma-separated string
+                relatedIds = order.related_order_ids.split(',').map((id: string) => id.trim()).filter(Boolean)
+              }
+              
+              console.log('   Parsed related IDs:', relatedIds)
+            }
+            
+            if (relatedIds.length > 0) {
+              // Get cards from the stored orders
+              const { data: storedOrders, error: storedError } = await supabase
+                .from('orders')
+                .select(`
+                  order_items(
+                    id,
+                    card_title,
+                    card_nozid,
+                    card_image_url,
+                    price
+                  )
+                `)
+                .in('id', relatedIds)
+              
+              if (storedError) {
+                console.error('❌ [ADMIN] Error fetching stored orders:', storedError)
+              } else if (storedOrders) {
+                const allCards = storedOrders.flatMap(o => o.order_items || [])
+                console.log(`✅ [ADMIN] Found ${allCards.length} cards for shipping order`)
+                return { ...order, order_items: allCards }
+              }
+            } else {
+              console.warn(`⚠️ [ADMIN] Shipping order ${order.id} has no related_order_ids`)
             }
           }
           return order
         })
       )
       
+      console.log(`✅ [ADMIN] Processed ${ordersWithCards.length} orders`)
       setOrders(ordersWithCards)
       
       // Initialize tracking data
@@ -109,6 +146,8 @@ export default function Admin() {
         initialTracking[order.id] = { number: '', carrier: '' }
       })
       setTrackingData(initialTracking)
+    } else {
+      setOrders([])
     }
     
     setLoading(false)
@@ -129,6 +168,8 @@ export default function Admin() {
     setUpdating(orderId)
 
     try {
+      console.log(`📦 [ADMIN] Marking order ${orderId} as shipped...`)
+      
       // Update order status to 'shipped' and add tracking info using admin client
       const { error: updateError } = await supabaseAdmin
         .from('orders')
@@ -140,16 +181,17 @@ export default function Admin() {
         .eq('id', orderId)
 
       if (updateError) {
-        console.error('Update error:', updateError)
+        console.error('❌ [ADMIN] Update error:', updateError)
         throw updateError
       }
 
-      console.log('✅ Order status updated to shipped in database')
+      console.log('✅ [ADMIN] Order status updated to shipped')
 
       // Get order details for email
       const order = orders.find(o => o.id === orderId)
       
       // Send tracking email
+      console.log('📧 [ADMIN] Sending tracking email...')
       const response = await fetch('/api/send-tracking-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -162,14 +204,19 @@ export default function Admin() {
         }),
       })
 
-      if (!response.ok) throw new Error('Failed to send tracking email')
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('❌ [ADMIN] Email API error:', errorText)
+        throw new Error('Failed to send tracking email: ' + errorText)
+      }
 
+      console.log('✅ [ADMIN] Tracking email sent')
       alert('✅ Order marked as shipped and tracking email sent!')
       
       // Remove from list
       setOrders(prev => prev.filter(o => o.id !== orderId))
     } catch (error: any) {
-      console.error('Error:', error)
+      console.error('❌ [ADMIN] Error:', error)
       alert('Failed to mark as shipped: ' + error.message)
     } finally {
       setUpdating(null)
@@ -202,6 +249,9 @@ export default function Admin() {
       {orders.length === 0 ? (
         <div className="rounded-2xl bg-white p-12 shadow-soft border border-black/5 text-center">
           <p className="text-xl opacity-70">🎉 All caught up! No orders to ship.</p>
+          <p className="text-sm opacity-50 mt-2">
+            Press F12 and check Console for debug logs if you expected to see orders here
+          </p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -254,7 +304,7 @@ export default function Admin() {
                 </div>
 
                 {/* Cards to Ship */}
-                {cardCount > 0 && (
+                {cardCount > 0 ? (
                   <div className="mb-4">
                     <div className="text-sm font-medium mb-3">📦 Cards to Ship ({cardCount}):</div>
                     <div className="space-y-2">
@@ -277,6 +327,12 @@ export default function Admin() {
                         </div>
                       ))}
                     </div>
+                  </div>
+                ) : (
+                  <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+                    <p className="text-sm text-yellow-800">
+                      ⚠️ No cards found for this order. Check browser console (F12) for debug logs.
+                    </p>
                   </div>
                 )}
 
