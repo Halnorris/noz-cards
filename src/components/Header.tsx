@@ -7,23 +7,29 @@ export default function Header() {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   
-  const linkBase = 'px-3 py-1 rounded-full text-sm transition'
-  const linkInactive = 'hover:bg-black/5'
-  const linkActive = 'bg-primary text-white'
+  const linkBase = 'px-4 py-2 text-sm font-medium transition-all relative'
+  const linkInactive = 'text-foreground/70 hover:text-foreground after:absolute after:bottom-0 after:left-0 after:w-0 after:h-[2px] after:bg-black after:transition-all hover:after:w-full'
+  const linkActive = 'text-foreground after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-black'
 
   return (
-    <header className="sticky top-0 z-30 bg-white border-b border-black/5">
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-        {/* Brand */}
+    <header className="sticky top-0 z-30 bg-white border-b border-black">
+      <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+        {/* Brand - Updated Logo */}
         <Link to="/" className="flex items-center gap-3">
-          <span className="inline-grid place-items-center w-8 h-8 rounded-full bg-primary/10 text-primary text-sm font-bold">
-            NC
-          </span>
-          <span className="font-header text-xl">Noz Cards</span>
+          <img 
+            src="https://rmviffmljrfpskwkznhk.supabase.co/storage/v1/object/public/logos/2.jpg%20small.jpg" 
+            alt="Noz Cards" 
+            className="h-10 w-10 object-contain"
+          />
+          <img 
+            src="https://rmviffmljrfpskwkznhk.supabase.co/storage/v1/object/public/logos/Black%20and%20White%20Modern%20Streetwear%20Logo.png" 
+            alt="Noz Cards - Card Marketplace" 
+            className="h-8 object-contain hidden sm:block"
+          />
         </Link>
         
-        {/* Nav */}
-        <nav className="flex items-center gap-5">
+        {/* Nav - Underline style */}
+        <nav className="flex items-center gap-1">
           <NavLink
             to="/"
             end
@@ -56,14 +62,14 @@ export default function Header() {
           {user ? (
             <button
               onClick={() => signOut()}
-              className="text-sm px-3 py-1 rounded-full hover:bg-black/5"
+              className="text-sm px-4 py-2 border-b-2 border-transparent hover:border-black transition-all"
             >
               Sign out
             </button>
           ) : (
             <Link
               to="/signin"
-              className="text-sm px-3 py-1 rounded-full hover:bg-black/5"
+              className="text-sm px-4 py-2 border-b-2 border-transparent hover:border-black transition-all"
             >
               Sign in
             </Link>
@@ -72,7 +78,7 @@ export default function Header() {
           <button
             onClick={openMiniCart}
             aria-label="Basket"
-            className="relative p-2 rounded-lg border border-black/10 hover:bg-black/5"
+            className="relative p-2 border border-black hover:bg-black hover:text-white transition-all"
           >
             <svg
               viewBox="0 0 24 24"
@@ -86,7 +92,7 @@ export default function Header() {
               <circle cx="18" cy="20" r="1.5" />
             </svg>
             {count > 0 && (
-              <span className="absolute -top-1 -right-1 text-[10px] px-1.5 py-0.5 rounded-full bg-primary text-white">
+              <span className="absolute -top-2 -right-2 text-xs px-2 py-0.5 bg-black text-white font-bold">
                 {count}
               </span>
             )}
