@@ -359,10 +359,17 @@ export default function Marketplace() {
     if (currentFilters.minPrice) query = query.gte('price', Number(currentFilters.minPrice))
     if (currentFilters.maxPrice) query = query.lte('price', Number(currentFilters.maxPrice))
     
-    // Multi-word search: For multi-word, we'll fetch more results and filter client-side
-    // This is a workaround since Supabase doesn't support AND with multiple ILIKE easily
+    // Multi-word search: Search for any word in the database, then filter all words client-side
     if (currentFilters.search) {
-      query = query.ilike('title', `%${currentFilters.search.split(/\s+/)[0]}%`)
+      const searchTerms = currentFilters.search.trim().split(/\s+/).filter(Boolean)
+      if (searchTerms.length === 1) {
+        // Single word - simple search
+        query = query.ilike('title', `%${searchTerms[0]}%`)
+      } else {
+        // Multi-word - use OR to match ANY word, then filter ALL words client-side
+        const orConditions = searchTerms.map(term => `title.ilike.%${term}%`).join(',')
+        query = query.or(orConditions)
+      }
     }
 
     if (currentFilters.sort === 'newest') query = query.order('created_at', { ascending: false })
