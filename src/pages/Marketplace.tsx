@@ -358,7 +358,12 @@ export default function Marketplace() {
     if (currentFilters.set) query = query.eq('set', currentFilters.set)
     if (currentFilters.minPrice) query = query.gte('price', Number(currentFilters.minPrice))
     if (currentFilters.maxPrice) query = query.lte('price', Number(currentFilters.maxPrice))
-    if (currentFilters.search) query = query.ilike('title', `%${currentFilters.search}%`)
+    
+    // Multi-word search: For multi-word, we'll fetch more results and filter client-side
+    // This is a workaround since Supabase doesn't support AND with multiple ILIKE easily
+    if (currentFilters.search) {
+      query = query.ilike('title', `%${currentFilters.search.split(/\s+/)[0]}%`)
+    }
 
     if (currentFilters.sort === 'newest') query = query.order('created_at', { ascending: false })
     if (currentFilters.sort === 'oldest') query = query.order('created_at', { ascending: true })
@@ -372,10 +377,24 @@ export default function Marketplace() {
     const { data, error } = await query
 
     if (!error && data) {
+      let filteredData = data as Card[]
+      
+      // Client-side multi-word search filtering
+      if (currentFilters.search && currentFilters.search.trim()) {
+        const searchTerms = currentFilters.search.trim().toLowerCase().split(/\s+/).filter(Boolean)
+        if (searchTerms.length > 1) {
+          // Filter to only include cards where ALL search terms appear in the title
+          filteredData = filteredData.filter(card => {
+            const title = (card.title || '').toLowerCase()
+            return searchTerms.every(term => title.includes(term))
+          })
+        }
+      }
+      
       if (append) {
-        setCards(prev => [...prev, ...(data as Card[])])
+        setCards(prev => [...prev, ...filteredData])
       } else {
-        setCards(data as Card[])
+        setCards(filteredData)
       }
       setHasMore(data.length === PAGE_SIZE)
     }
