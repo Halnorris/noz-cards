@@ -9,13 +9,8 @@ export default function Footer() {
           <div className="flex items-center gap-2">
             <img 
               src="https://rmviffmljrfpskwkznhk.supabase.co/storage/v1/object/public/logos/2.jpg%20small.jpg" 
-              alt="NC" 
-              className="h-8 w-8 object-contain invert"
-            />
-            <img 
-              src="https://rmviffmljrfpskwkznhk.supabase.co/storage/v1/object/public/logos/Black%20and%20White%20Modern%20Streetwear%20Logo.png" 
               alt="Noz Cards" 
-              className="h-6 object-contain invert"
+              className="h-10 w-10 object-contain"
             />
           </div>
           <p className="text-sm opacity-80">
