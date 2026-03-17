@@ -359,17 +359,14 @@ export default function Marketplace() {
     if (currentFilters.minPrice) query = query.gte('price', Number(currentFilters.minPrice))
     if (currentFilters.maxPrice) query = query.lte('price', Number(currentFilters.maxPrice))
     
-    // Multi-word search: Search for any word in the database, then filter all words client-side
+    // Search: For single word use database filter, for multi-word we'll filter client-side
     if (currentFilters.search) {
       const searchTerms = currentFilters.search.trim().split(/\s+/).filter(Boolean)
       if (searchTerms.length === 1) {
-        // Single word - simple search
+        // Single word - database filter
         query = query.ilike('title', `%${searchTerms[0]}%`)
-      } else {
-        // Multi-word - use OR to match ANY word, then filter ALL words client-side
-        const orConditions = searchTerms.map(term => `title.ilike.%${term}%`).join(',')
-        query = query.or(orConditions)
       }
+      // For multi-word, don't filter in database - get all results and filter client-side below
     }
 
     if (currentFilters.sort === 'newest') query = query.order('created_at', { ascending: false })
@@ -377,9 +374,18 @@ export default function Marketplace() {
     if (currentFilters.sort === 'price_asc') query = query.order('price', { ascending: true, nullsFirst: true })
     if (currentFilters.sort === 'price_desc') query = query.order('price', { ascending: false, nullsLast: true })
 
-    const from = pageNum * PAGE_SIZE
-    const to = from + PAGE_SIZE - 1
-    query = query.range(from, to)
+    // For multi-word searches, fetch more results to filter client-side
+    const isMultiWordSearch = currentFilters.search && currentFilters.search.trim().split(/\s+/).length > 1
+    
+    if (isMultiWordSearch) {
+      // Fetch up to 1000 cards for multi-word search (will filter client-side)
+      query = query.range(0, 999)
+    } else {
+      // Normal pagination
+      const from = pageNum * PAGE_SIZE
+      const to = from + PAGE_SIZE - 1
+      query = query.range(from, to)
+    }
 
     const { data, error } = await query
 
@@ -390,7 +396,7 @@ export default function Marketplace() {
       if (currentFilters.search && currentFilters.search.trim()) {
         const searchTerms = currentFilters.search.trim().toLowerCase().split(/\s+/).filter(Boolean)
         if (searchTerms.length > 1) {
-          // Filter to only include cards where ALL search terms appear in the title
+          // For multi-word: filter to cards where ALL search terms appear in the title (any order)
           filteredData = filteredData.filter(card => {
             const title = (card.title || '').toLowerCase()
             return searchTerms.every(term => title.includes(term))
