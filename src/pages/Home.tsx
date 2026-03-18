@@ -97,10 +97,11 @@ function HeroSection() {
       if (displayText.length === 0) {
         setIsDeleting(false)
         setIsTransitioningCards(true)
+        // Add 500ms delay before switching to next category
         setTimeout(() => {
           setCurrentIndex((prev) => (prev + 1) % ROTATION_CATEGORIES.length)
           setIsTransitioningCards(false)
-        }, 200)
+        }, 500)
         return
       }
       const timeout = setTimeout(() => {
@@ -117,7 +118,7 @@ function HeroSection() {
       }, 100)
       return () => clearTimeout(timeout)
     }
-  }, [displayText, isDeleting, targetText])
+  }, [displayText, isDeleting, targetText, currentIndex])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -143,8 +144,8 @@ function HeroSection() {
                 <span className="animate-pulse">|</span>
               </span>
             </h1>
-            <p className="text-2xl text-black/60 mb-8">
-              collecting better
+            <p className="text-4xl text-black/60 mb-8">
+              easier than ever before
             </p>
 
             <p className="text-lg text-black/70 mb-8">
