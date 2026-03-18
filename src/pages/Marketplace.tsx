@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useBasket } from '@/context/basket'
 import { useAuth } from '@/context/auth'
+import { formatNumber } from '@/lib/utils'
 
 type Card = {
   id: string
@@ -552,7 +553,7 @@ export default function Marketplace() {
       {/* Mobile filter button */}
       <div className="md:hidden mb-4 flex items-center justify-between">
         <div className="text-sm opacity-70">
-          <span className="font-medium">{liveTotal}</span> cards live
+          <span className="font-medium">{formatNumber(liveTotal)}</span> cards live
         </div>
         <button
           onClick={() => setShowFilters(!showFilters)}
@@ -617,7 +618,7 @@ export default function Marketplace() {
           {/* Header */}
           <div className="hidden md:flex items-center justify-between">
             <div className="text-sm opacity-70">
-              <span className="font-medium">{liveTotal}</span> cards live
+              <span className="font-medium">{formatNumber(liveTotal)}</span> cards live
             </div>
           </div>
 
