@@ -95,14 +95,16 @@ function HeroSection() {
   useEffect(() => {
     if (isDeleting) {
       if (displayText.length === 0) {
-        setIsDeleting(false)
-        setIsTransitioningCards(true)
-        // 250ms pause between rotations
-        setTimeout(() => {
-          setCurrentIndex((prev) => (prev + 1) % ROTATION_CATEGORIES.length)
-          setIsTransitioningCards(false)
-        }, 250)
-        return
+        // Pause with blank screen before moving to next word
+        const timeout = setTimeout(() => {
+          setIsDeleting(false)
+          setIsTransitioningCards(true)
+          setTimeout(() => {
+            setCurrentIndex((prev) => (prev + 1) % ROTATION_CATEGORIES.length)
+            setIsTransitioningCards(false)
+          }, 100)
+        }, 500) // 500ms blank pause
+        return () => clearTimeout(timeout)
       }
       // Slow down at the end of deletion
       const deleteSpeed = displayText.length <= 2 ? 150 : 50
