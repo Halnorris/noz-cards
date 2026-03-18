@@ -24,11 +24,11 @@ export default function Home() {
       {/* HERO SECTION - Rotating */}
       <HeroSection />
 
-      {/* TOP 16 MOST EXPENSIVE CARDS */}
-      <TopExpensiveCards />
-
       {/* FEATURES SECTION */}
       <FeaturesSection />
+
+      {/* TOP 16 MOST EXPENSIVE CARDS */}
+      <TopExpensiveCards />
 
       {/* BANNER */}
       <BannerSection />
@@ -97,16 +97,18 @@ function HeroSection() {
       if (displayText.length === 0) {
         setIsDeleting(false)
         setIsTransitioningCards(true)
-        // Add 500ms delay before switching to next category
+        // Quick 200ms delay before switching to next category
         setTimeout(() => {
           setCurrentIndex((prev) => (prev + 1) % ROTATION_CATEGORIES.length)
           setIsTransitioningCards(false)
-        }, 500)
+        }, 200)
         return
       }
+      // Slow down at the end of deletion (when 2 or fewer letters left)
+      const deleteSpeed = displayText.length <= 2 ? 150 : 50
       const timeout = setTimeout(() => {
         setDisplayText(displayText.slice(0, -1))
-      }, 50)
+      }, deleteSpeed)
       return () => clearTimeout(timeout)
     } else {
       if (displayText === targetText) {
@@ -137,15 +139,15 @@ function HeroSection() {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left: Text & Search */}
           <div>
-            <h1 className="font-header text-5xl md:text-6xl leading-tight mb-2">
+            <h1 className="text-4xl leading-tight mb-2">
               Making{' '}
               <span className="inline-block min-w-[200px]">
                 {displayText}
                 <span className="animate-pulse">|</span>
               </span>
             </h1>
-            <p className="text-4xl text-black/60 mb-8">
-              easier than ever before
+            <p className="text-6xl md:text-7xl font-header text-brass mb-8">
+              collecting easier
             </p>
 
             <p className="text-lg text-black/70 mb-8">
