@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/auth'
 import { useBasket } from '@/context/basket'
 import StripeConnectButton from '@/components/StripeConnectButton'
+import { formatNumber } from '@/lib/utils'
 
 type Tab = 'dashboard' | 'live' | 'pending' | 'stored' | 'orders' | 'wishlist' | 'settings' | 'submit'
 
@@ -121,23 +122,23 @@ export default function Account() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           <div className="p-3 rounded-xl border border-black/5 bg-black/[0.02]">
             <div className="text-xs opacity-70">Live Cards</div>
-            <div className="text-2xl font-header">{stats.liveCount}</div>
+            <div className="text-2xl font-header">{formatNumber(stats.liveCount)}</div>
           </div>
           <div className="p-3 rounded-xl border border-black/5 bg-black/[0.02]">
             <div className="text-xs opacity-70">Pending</div>
-            <div className="text-2xl font-header">{stats.pendingCount}</div>
+            <div className="text-2xl font-header">{formatNumber(stats.pendingCount)}</div>
           </div>
           <div className="p-3 rounded-xl border border-black/5 bg-black/[0.02]">
             <div className="text-xs opacity-70">Stored</div>
-            <div className="text-2xl font-header">{stats.storedCount}</div>
+            <div className="text-2xl font-header">{formatNumber(stats.storedCount)}</div>
           </div>
           <div className="p-3 rounded-xl border border-black/5 bg-black/[0.02]">
             <div className="text-xs opacity-70">Orders</div>
-            <div className="text-2xl font-header">{stats.ordersCount}</div>
+            <div className="text-2xl font-header">{formatNumber(stats.ordersCount)}</div>
           </div>
           <div className="p-3 rounded-xl border border-black/5 bg-black/[0.02]">
             <div className="text-xs opacity-70">Wishlist</div>
-            <div className="text-2xl font-header">{stats.wishlistCount}</div>
+            <div className="text-2xl font-header">{formatNumber(stats.wishlistCount)}</div>
           </div>
         </div>
       </div>
@@ -159,7 +160,7 @@ export default function Account() {
               <span className={`ml-2 px-1.5 py-0.5 rounded-full text-xs ${
                 activeTab === tab.id ? 'bg-white/20' : 'bg-black/10'
               }`}>
-                {tab.count}
+                {formatNumber(tab.count)}
               </span>
             )}
           </button>
