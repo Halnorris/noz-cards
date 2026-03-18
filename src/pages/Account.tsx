@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/auth'
@@ -226,43 +226,87 @@ function LiveCardsTab() {
   const [cards, setCards] = useState<Card[]>([])
   const [filteredCards, setFilteredCards] = useState<Card[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const [page, setPage] = useState(0)
   const [editingPrice, setEditingPrice] = useState<{ [key: string]: string }>({})
   const [updating, setUpdating] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'price_asc' | 'price_desc'>('newest')
 
-  useEffect(() => {
-    if (!user) return
-    async function fetchCards() {
-      const { data } = await supabase
-        .from('cards')
-        .select('*')
-        .eq('owner_user_id', user.id)
-        .eq('status', 'live')
-        .order('created_at', { ascending: false })
-      
-      setCards(data || [])
-      setLoading(false)
-    }
-    fetchCards()
-  }, [user])
+  const PAGE_SIZE = 24
 
-  // Filter and sort
+  // Load cards with pagination
+  const loadCards = useCallback(async (pageNum: number, append = false) => {
+    if (!user) return
+    
+    if (append) setLoadingMore(true)
+    else setLoading(true)
+
+    const from = pageNum * PAGE_SIZE
+    const to = from + PAGE_SIZE - 1
+
+    let query = supabase
+      .from('cards')
+      .select('*')
+      .eq('owner_user_id', user.id)
+      .eq('status', 'live')
+      .range(from, to)
+
+    if (sortBy === 'newest') query = query.order('created_at', { ascending: false })
+    if (sortBy === 'oldest') query = query.order('created_at', { ascending: true })
+    if (sortBy === 'price_asc') query = query.order('price', { ascending: true })
+    if (sortBy === 'price_desc') query = query.order('price', { ascending: false })
+
+    const { data } = await query
+    
+    if (data) {
+      if (append) {
+        setCards(prev => [...prev, ...data])
+      } else {
+        setCards(data)
+      }
+      setHasMore(data.length === PAGE_SIZE)
+    }
+    
+    setLoading(false)
+    setLoadingMore(false)
+  }, [user, sortBy])
+
+  // Initial load
+  useEffect(() => {
+    setPage(0)
+    setCards([])
+    loadCards(0, false)
+  }, [user, sortBy, loadCards])
+
+  // Infinite scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if (loadingMore || !hasMore) return
+      
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+      const scrollHeight = document.documentElement.scrollHeight
+      const clientHeight = document.documentElement.clientHeight
+      
+      if (scrollTop + clientHeight >= scrollHeight - 500) {
+        const nextPage = page + 1
+        setPage(nextPage)
+        loadCards(nextPage, true)
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [page, loadingMore, hasMore, loadCards])
+
+  // Filter by search term
   useEffect(() => {
     let filtered = cards.filter(card => 
       (card.title || card.text || '').toLowerCase().includes(searchTerm.toLowerCase())
     )
-
-    filtered.sort((a, b) => {
-      if (sortBy === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      if (sortBy === 'oldest') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      if (sortBy === 'price_asc') return (a.price || 0) - (b.price || 0)
-      if (sortBy === 'price_desc') return (b.price || 0) - (a.price || 0)
-      return 0
-    })
-
     setFilteredCards(filtered)
-  }, [cards, searchTerm, sortBy])
+  }, [cards, searchTerm])
 
   const updatePrice = async (cardId: string) => {
     const newPrice = parseFloat(editingPrice[cardId])
@@ -311,7 +355,7 @@ function LiveCardsTab() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <h2 className="font-header text-lg">Your Live Cards ({filteredCards.length})</h2>
+        <h2 className="font-header text-lg">Your Live Cards ({formatNumber(filteredCards.length)})</h2>
         
         <div className="flex gap-2 w-full sm:w-auto">
           <input
@@ -373,6 +417,13 @@ function LiveCardsTab() {
           </div>
         ))}
       </div>
+      
+      {/* Loading more indicator */}
+      {loadingMore && (
+        <div className="text-center py-4 opacity-70">
+          Loading more cards...
+        </div>
+      )}
     </div>
   )
 }
