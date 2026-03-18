@@ -97,14 +97,14 @@ function HeroSection() {
       if (displayText.length === 0) {
         setIsDeleting(false)
         setIsTransitioningCards(true)
-        // Quick 200ms delay before switching to next category
+        // 250ms pause between rotations
         setTimeout(() => {
           setCurrentIndex((prev) => (prev + 1) % ROTATION_CATEGORIES.length)
           setIsTransitioningCards(false)
-        }, 200)
+        }, 250)
         return
       }
-      // Slow down at the end of deletion (when 2 or fewer letters left)
+      // Slow down at the end of deletion
       const deleteSpeed = displayText.length <= 2 ? 150 : 50
       const timeout = setTimeout(() => {
         setDisplayText(displayText.slice(0, -1))
@@ -112,7 +112,8 @@ function HeroSection() {
       return () => clearTimeout(timeout)
     } else {
       if (displayText === targetText) {
-        const timeout = setTimeout(() => setIsDeleting(true), 2000)
+        // Wait 4 seconds before starting to delete
+        const timeout = setTimeout(() => setIsDeleting(true), 4000)
         return () => clearTimeout(timeout)
       }
       const timeout = setTimeout(() => {
@@ -139,14 +140,14 @@ function HeroSection() {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left: Text & Search */}
           <div>
-            <h1 className="text-4xl leading-tight mb-2">
+            <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-2">
               Making{' '}
               <span className="inline-block min-w-[200px]">
                 {displayText}
                 <span className="animate-pulse">|</span>
               </span>
             </h1>
-            <p className="text-6xl md:text-7xl font-header text-brass mb-8">
+            <p className="text-4xl md:text-5xl font-header text-brass mb-8">
               collecting easier
             </p>
 
@@ -355,6 +356,7 @@ function FeaturesSection() {
     <section className="bg-gray-50 py-16">
       <div className="max-w-7xl mx-auto px-4">
         <div className="text-center mb-12">
+          <h3 className="text-2xl font-bold mb-4 tracking-wide">BUY SMART. SELL SMART.</h3>
           <h2 className="font-header text-4xl mb-4">
             Everything you need to build up your collection or get extra cash to splash on that Holy Grail
           </h2>
@@ -366,7 +368,7 @@ function FeaturesSection() {
               key={idx}
               className="text-center p-8 bg-white rounded-lg hover:shadow-md transition"
             >
-              <div className="flex justify-center mb-4 text-black">{feature.icon}</div>
+              <div className="flex justify-center mb-4 text-brass">{feature.icon}</div>
               <h3 className="font-header text-xl mb-3">{feature.title}</h3>
               <p className="text-sm text-black/70">{feature.desc}</p>
             </div>
@@ -394,7 +396,10 @@ function BannerSection() {
 function HowItWorksSection() {
   return (
     <section className="max-w-7xl mx-auto px-4 space-y-8">
-      <h2 className="font-header text-3xl text-center">How It Works</h2>
+      <div className="text-center">
+        <h2 className="font-header text-3xl mb-2">How It Works</h2>
+        <p className="text-black/60">Learn how to sell your cards with us</p>
+      </div>
       <div className="grid md:grid-cols-3 gap-6">
         {[
           {
@@ -445,7 +450,7 @@ function EbaySection() {
       <div className="rounded-2xl bg-white shadow-soft border border-black/5 p-6 md:p-10">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div>
-            <h2 className="font-header text-2xl">Shop Noz Cards on eBay</h2>
+            <h2 className="font-header text-2xl">Shop Noz Cards on <span className="text-brass">eBay</span></h2>
             <p className="opacity-80 text-sm mt-1 max-w-xl">
               If you're more of an eBay browser, you can check out our listings and feedback history
               there too. Every card's handled with the same care and consistency as what you'll find
