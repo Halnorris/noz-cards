@@ -6,6 +6,7 @@ export default {
       colors: {
         primary: "#000000",
         secondary: "#FFFFFF",
+        brass: "#B8860B",
         background: "#FFFFFF",
         foreground: "#000000",
         accent: "#000000",
