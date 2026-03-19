@@ -70,7 +70,7 @@ function HeroSection() {
           .eq('status', 'live')
           .not('price', 'is', null)
           .order('price', { ascending: false })
-          .limit(3)
+          .limit(6)
 
         // Apply the category filter
         if (category.query.team) {
@@ -137,8 +137,8 @@ function HeroSection() {
   const cards = categoryCards[currentCategory.text] || []
 
   return (
-    <section className="bg-white text-black py-20 px-4">
-      <div className="max-w-7xl mx-auto">
+    <section className="bg-white text-black min-h-screen flex items-center py-20 px-4">
+      <div className="max-w-7xl mx-auto w-full">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left: Text & Search */}
           <div>
@@ -175,14 +175,14 @@ function HeroSection() {
             </form>
           </div>
 
-          {/* Right: Card Images */}
+          {/* Right: Card Images - 2 rows of 3 */}
           <div 
-            className={`grid grid-cols-3 gap-4 transition-opacity duration-300 ${
+            className={`grid grid-cols-3 grid-rows-2 gap-4 transition-opacity duration-300 ${
               isTransitioningCards ? 'opacity-0' : 'opacity-100'
             }`}
             key={`cards-${currentCategory.text}`}
           >
-            {cards.map((card, idx) => (
+            {cards.slice(0, 6).map((card, idx) => (
               <Link
                 key={card.id}
                 to={`/card/${card.id}`}
@@ -203,6 +203,7 @@ function HeroSection() {
                 </div>
               </Link>
             ))}
+          </div>
           </div>
         </div>
       </div>
@@ -246,6 +247,7 @@ function TopExpensiveCards() {
 
   return (
     <section className="max-w-7xl mx-auto px-4">
+      <h2 className="font-header text-3xl mb-6">Most Viewed</h2>
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
         {cards.map((card) => (
           <Link
