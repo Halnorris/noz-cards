@@ -20,7 +20,7 @@ const ROTATION_CATEGORIES = [
 
 export default function Home() {
   return (
-    <div className="space-y-16">
+    <div className="space-y-8">
       {/* HERO SECTION - Rotating */}
       <HeroSection />
 
@@ -137,7 +137,7 @@ function HeroSection() {
   const cards = categoryCards[currentCategory.text] || []
 
   return (
-    <section className="bg-white text-black min-h-screen flex items-center py-20 px-4">
+    <section className="bg-white text-black min-h-screen flex items-center px-4">
       <div className="max-w-7xl mx-auto w-full">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left: Text & Search */}
