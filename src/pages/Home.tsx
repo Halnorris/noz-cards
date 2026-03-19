@@ -137,7 +137,7 @@ function HeroSection() {
   const cards = categoryCards[currentCategory.text] || []
 
   return (
-    <section className="bg-white text-black min-h-screen flex items-center px-4">
+    <section className="bg-white text-black flex items-center px-4" style={{ minHeight: '85vh' }}>
       <div className="max-w-7xl mx-auto w-full">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left: Text & Search */}
