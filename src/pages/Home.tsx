@@ -115,7 +115,7 @@ function HeroSection() {
     } else {
       if (displayText === targetText) {
         // Wait 4 seconds before starting to delete
-        const timeout = setTimeout(() => setIsDeleting(true), 4000)
+        const timeout = setTimeout(() => setIsDeleting(true), 3000)
         return () => clearTimeout(timeout)
       }
       const timeout = setTimeout(() => {
