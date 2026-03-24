@@ -278,8 +278,9 @@ export default function UploadCards() {
               <thead className="border-b border-black/10">
                 <tr className="text-left">
                   <th className="p-2">Card</th>
-                  <th className="p-2">Preview</th>
-                  <th className="p-2">Title</th>
+                  <th className="p-2">Front</th>
+                  <th className="p-2">Back</th>
+                  <th className="p-2 w-96">Title</th>
                   <th className="p-2">League</th>
                   <th className="p-2">Team</th>
                   <th className="p-2">Set</th>
@@ -292,14 +293,21 @@ export default function UploadCards() {
                   <tr key={card.nozid} className="border-b border-black/5 hover:bg-gray-50">
                     <td className="p-2 font-mono">{card.nozid}</td>
                     <td className="p-2">
-                      <img src={card.image_url} alt={card.nozid} className="w-16 h-20 object-cover border border-black/10" />
+                      <img src={card.image_url} alt={`${card.nozid} front`} className="w-16 h-20 object-cover border border-black/10" />
                     </td>
                     <td className="p-2">
-                      <input
-                        type="text"
+                      {card.image_back_url ? (
+                        <img src={card.image_back_url} alt={`${card.nozid} back`} className="w-16 h-20 object-cover border border-black/10" />
+                      ) : (
+                        <span className="text-xs text-black/40">No back</span>
+                      )}
+                    </td>
+                    <td className="p-2">
+                      <textarea
                         value={card.title}
                         onChange={(e) => updateCard(card.nozid, 'title', e.target.value)}
-                        className={`w-full p-1 border ${card.aiConfidence?.title ? 'border-green-500' : 'border-yellow-500'} rounded text-xs`}
+                        rows={2}
+                        className={`w-full p-2 border ${card.aiConfidence?.title ? 'border-green-500' : 'border-yellow-500'} rounded text-xs`}
                       />
                     </td>
                     <td className="p-2">
