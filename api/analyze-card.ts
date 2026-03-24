@@ -40,17 +40,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 text: `Analyze this football card image and extract the following information. Respond ONLY with valid JSON, no markdown formatting:
 
 {
-  "player": "Player name",
+  "player": "Player full name",
   "team": "Team name",
   "league": "League name (Premier League, La Liga, Serie A, Bundesliga, Ligue 1, etc.)",
-  "set": "Card set name (Topps Chrome, Panini Prizm, Obsidian, etc.)",
-  "year": "Year or season (e.g., 2023-24)",
-  "parallel": "Parallel type if any (Gold, Silver, Refractor, etc.)",
-  "numbered": "Serial number if visible (e.g., /50, /99)",
+  "set": "Card set name (Panini Prizm, Topps Chrome, Obsidian, etc.)",
+  "year": "Year or season in format YY/YY (e.g., 24/25 for 2024-25 season)",
+  "variant": "Colour and variant type (e.g., Pink Breakaway, Gold Refractor, Silver, etc.)",
+  "numbered": "Serial number if visible (e.g., /99, /50, /199)",
   "auto": true/false,
-  "relic": true/false,
-  "title": "Complete card description"
+  "relic": true/false
 }
+
+IMPORTANT: Extract the exact variant name including colour. Examples:
+- "Pink Breakaway"
+- "Gold Refractor" 
+- "Silver"
+- "Orange Wave"
+- "Blue Shimmer"
 
 Be as accurate as possible. If you're unsure about something, still make your best guess.`
               }
@@ -74,20 +80,30 @@ Be as accurate as possible. If you're unsure about something, still make your be
     
     const aiResponse = JSON.parse(cleanJson)
 
-    // Build title and return structured data
+    // Build title in format: {year} {player} {numbered} {variant} {set} {team}
+    // Example: 24/25 Bryan Mbuemo /99 Pink Breakaway Panini Prizm Brentford
+    const titleParts = [
+      aiResponse.year,
+      aiResponse.player,
+      aiResponse.numbered,
+      aiResponse.variant,
+      aiResponse.set,
+      aiResponse.team
+    ].filter(Boolean) // Remove empty values
+    
     const result = {
-      title: aiResponse.title || `${aiResponse.year || ''} ${aiResponse.set || ''} ${aiResponse.player || ''} ${aiResponse.parallel || ''}`.trim(),
+      title: titleParts.join(' '),
       league: aiResponse.league || '',
       team: aiResponse.team || '',
       set: aiResponse.set || '',
       player: aiResponse.player || '',
       year: aiResponse.year || '',
-      parallel: aiResponse.parallel || '',
+      variant: aiResponse.variant || '',
       numbered: aiResponse.numbered || '',
       auto: aiResponse.auto || false,
       relic: aiResponse.relic || false,
       confidence: {
-        title: Boolean(aiResponse.title),
+        title: Boolean(aiResponse.year && aiResponse.player && aiResponse.team),
         league: Boolean(aiResponse.league),
         team: Boolean(aiResponse.team),
         set: Boolean(aiResponse.set)
