@@ -30,6 +30,7 @@ import CheckoutSuccess from '@/pages/CheckoutSuccess'
 import ShipStoredCards from '@/pages/ShipStoredCards'
 import ShippingSuccess from '@/pages/ShippingSuccess'
 import Admin from '@/pages/Admin'
+import UploadCards from '@/pages/UploadCards'
 
 // Providers
 import { BasketProvider } from '@/context/basket'
@@ -64,6 +65,7 @@ const router = createBrowserRouter([
       { path: 'checkout', element: <Checkout /> },
       { path: 'checkout/success', element: <CheckoutSuccess /> },
       { path: 'admin', element: <Admin /> },
+      { path: 'admin/upload-cards', element: <UploadCards /> },
       { path: 'ship-stored' , element: <ShipStoredCards /> },
       { path: 'shipping-success' , element: <ShippingSuccess /> },
     ],
