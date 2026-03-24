@@ -62,15 +62,17 @@ export default function UploadCards() {
           offset: 0
         })
 
+      console.log('Supabase response:', { files, error, folderName })
+
       if (error) {
         console.error('Error listing files:', error)
-        setProgress(`Failed to load folder "${folderName}". Make sure it exists in card-scans bucket.`)
+        setProgress(`Failed to load folder "${folderName}". Error: ${error.message}`)
         setProcessing(false)
         return
       }
 
-      if (files.length === 0) {
-        setProgress(`Folder "${folderName}" is empty or doesn't exist.`)
+      if (!files || files.length === 0) {
+        setProgress(`Folder "${folderName}" is empty or doesn't exist. Received ${files?.length || 0} files.`)
         setProcessing(false)
         return
       }
