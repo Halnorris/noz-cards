@@ -2,15 +2,6 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/auth'
 
-// Create admin client for storage uploads (bypasses RLS)
-const getAdminClient = () => {
-  const { createClient } = require('@supabase/supabase-js')
-  return createClient(
-    import.meta.env.VITE_SUPABASE_URL,
-    import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
-  )
-}
-
 type CardData = {
   nozid: string
   title: string
@@ -61,6 +52,18 @@ export default function UploadCards() {
     }
   }
 
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(',')[1]
+        resolve(base64)
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+  }
+
   const handleUploadAndProcess = async () => {
     if (files.length === 0) {
       alert('Please select files first')
@@ -94,9 +97,6 @@ export default function UploadCards() {
 
       const uploadedCards: CardData[] = []
 
-      // Use admin client for uploads
-      const adminClient = getAdminClient()
-
       for (const [nozid, pair] of Object.entries(pairs)) {
         if (!pair.front) {
           console.warn(`No front image for ${nozid}`)
@@ -105,39 +105,48 @@ export default function UploadCards() {
 
         setProgress(`Uploading ${nozid}...`)
 
-        // Upload front image with admin client
+        // Upload front image via serverless function
         const frontPath = `New scans/${nozid}.jpg`
-        const { data: frontData, error: frontError } = await adminClient.storage
-          .from('card-scans')
-          .upload(frontPath, pair.front, {
-            upsert: true,
-            contentType: 'image/jpeg'
+        const frontBase64 = await fileToBase64(pair.front)
+        
+        const frontUpload = await fetch('/api/upload-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            file: frontBase64,
+            filename: `${nozid}.jpg`,
+            bucket: 'card-scans',
+            path: frontPath
           })
+        })
 
-        if (frontError) {
-          console.error(`Error uploading front ${nozid}:`, frontError)
+        if (!frontUpload.ok) {
+          const error = await frontUpload.json()
+          console.error(`Error uploading front ${nozid}:`, error)
           continue
         }
 
-        const { data: { publicUrl: frontUrl } } = adminClient.storage
-          .from('card-scans')
-          .getPublicUrl(frontPath)
+        const { publicUrl: frontUrl } = await frontUpload.json()
 
         // Upload back image if exists
         let backUrl = ''
         if (pair.back) {
           const backPath = `New scans/${nozid}a.jpg`
-          const { data: backData, error: backError } = await adminClient.storage
-            .from('card-scans')
-            .upload(backPath, pair.back, {
-              upsert: true,
-              contentType: 'image/jpeg'
+          const backBase64 = await fileToBase64(pair.back)
+          
+          const backUpload = await fetch('/api/upload-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              file: backBase64,
+              filename: `${nozid}a.jpg`,
+              bucket: 'card-scans',
+              path: backPath
             })
+          })
 
-          if (!backError) {
-            const { data: { publicUrl } } = adminClient.storage
-              .from('card-scans')
-              .getPublicUrl(backPath)
+          if (backUpload.ok) {
+            const { publicUrl } = await backUpload.json()
             backUrl = publicUrl
           }
         }
