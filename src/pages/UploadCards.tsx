@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/auth'
 
@@ -25,12 +25,10 @@ type CardData = {
 
 export default function UploadCards() {
   const { user } = useAuth()
-  const [folders, setFolders] = useState<string[]>([])
-  const [selectedFolder, setSelectedFolder] = useState('')
+  const [folderName, setFolderName] = useState('')
   const [processing, setProcessing] = useState(false)
   const [cards, setCards] = useState<CardData[]>([])
   const [progress, setProgress] = useState('')
-  const [loadingFolders, setLoadingFolders] = useState(true)
 
   // Check if user is admin
   const isAdmin = user?.email === 'support@nozcards.com' || user?.email === 'habnorris@gmail.com'
@@ -46,83 +44,50 @@ export default function UploadCards() {
     )
   }
 
-  // Load available folders from Supabase storage
-  useEffect(() => {
-    // Only load if user is admin
-    if (!user?.email) return
-    if (user.email !== 'support@nozcards.com' && user.email !== 'habnorris@gmail.com') return
-
-    async function loadFolders() {
-      try {
-        const { data, error } = await supabase.storage
-          .from('card-scans')
-          .list('New scans', {
-            limit: 100,
-            offset: 0
-          })
-
-        if (error) {
-          console.error('Error loading folders:', error)
-          setLoadingFolders(false)
-          return
-        }
-
-        // Filter for folders only (not files)
-        const folderNames = data
-          .filter(item => item.id === null) // Folders have null id
-          .map(item => item.name)
-
-        setFolders(folderNames)
-        setLoadingFolders(false)
-      } catch (error) {
-        console.error('Error:', error)
-        setLoadingFolders(false)
-      }
-    }
-
-    loadFolders()
-  }, [user])
-
   const handleProcessFolder = async () => {
-    if (!selectedFolder) {
-      alert('Please select a folder first')
+    if (!folderName.trim()) {
+      alert('Please enter a folder name')
       return
     }
 
     setProcessing(true)
-    setProgress(`Loading images from ${selectedFolder}...`)
+    setProgress(`Loading images from ${folderName}...`)
 
     try {
-      // List all files in the selected folder
+      // List all files in the folder
       const { data: files, error } = await supabase.storage
         .from('card-scans')
-        .list(`New scans/${selectedFolder}`, {
+        .list(`New scans/${folderName}`, {
           limit: 1000,
           offset: 0
         })
 
       if (error) {
         console.error('Error listing files:', error)
-        setProgress('Failed to load images from folder')
+        setProgress(`Failed to load folder "${folderName}". Make sure it exists in "New scans/".`)
+        setProcessing(false)
+        return
+      }
+
+      if (files.length === 0) {
+        setProgress(`Folder "${folderName}" is empty or doesn't exist.`)
         setProcessing(false)
         return
       }
 
       setProgress(`Found ${files.length} files. Processing...`)
 
-      // Group files into pairs (front and back)
+      // Group files into pairs
       const pairs: { [key: string]: { front?: string; back?: string } } = {}
 
       files.forEach(file => {
         const filename = file.name.replace(/\.(jpg|jpeg|png)$/i, '')
         
         if (filename.endsWith('a')) {
-          // Back image
           const nozid = filename.slice(0, -1)
           if (!pairs[nozid]) pairs[nozid] = {}
           pairs[nozid].back = file.name
         } else {
-          // Front image
           const nozid = filename
           if (!pairs[nozid]) pairs[nozid] = {}
           pairs[nozid].front = file.name
@@ -134,28 +99,23 @@ export default function UploadCards() {
       const processedCards: CardData[] = []
 
       for (const [nozid, pair] of Object.entries(pairs)) {
-        if (!pair.front) {
-          console.warn(`No front image for ${nozid}`)
-          continue
-        }
+        if (!pair.front) continue
 
-        // Get public URLs for front and back images
-        const frontPath = `New scans/${selectedFolder}/${pair.front}`
+        const frontPath = `New scans/${folderName}/${pair.front}`
         const { data: { publicUrl: frontUrl } } = supabase.storage
           .from('card-scans')
           .getPublicUrl(frontPath)
 
         let backUrl = ''
         if (pair.back) {
-          const backPath = `New scans/${selectedFolder}/${pair.back}`
+          const backPath = `New scans/${folderName}/${pair.back}`
           const { data: { publicUrl } } = supabase.storage
             .from('card-scans')
             .getPublicUrl(backPath)
           backUrl = publicUrl
         }
 
-        // Detect orientation from URL (we'll fetch and check dimensions)
-        const orientation = await detectOrientationFromUrl(frontUrl)
+        const orientation = await detectOrientation(frontUrl)
 
         processedCards.push({
           nozid,
@@ -176,24 +136,22 @@ export default function UploadCards() {
       setCards(processedCards)
       setProgress(`Found ${processedCards.length} cards. Starting AI analysis...`)
 
-      // Run AI analysis
+      // Run AI
       await processWithAI(processedCards)
 
     } catch (error) {
       console.error('Processing error:', error)
-      setProgress('Processing failed. Check console for errors.')
+      setProgress('Processing failed. Check console.')
       setProcessing(false)
     }
   }
 
-  const detectOrientationFromUrl = async (imageUrl: string): Promise<'portrait' | 'landscape'> => {
+  const detectOrientation = (url: string): Promise<'portrait' | 'landscape'> => {
     return new Promise((resolve) => {
       const img = new Image()
-      img.onload = () => {
-        resolve(img.width > img.height ? 'landscape' : 'portrait')
-      }
-      img.onerror = () => resolve('portrait') // Default to portrait if loading fails
-      img.src = imageUrl
+      img.onload = () => resolve(img.width > img.height ? 'landscape' : 'portrait')
+      img.onerror = () => resolve('portrait')
+      img.src = url
     })
   }
 
@@ -205,7 +163,11 @@ export default function UploadCards() {
       setProgress(`Analyzing ${card.nozid} (${i + 1}/${updatedCards.length})...`)
 
       try {
-        const analysis = await analyzeCardImage(card.image_url)
+        const analysis = await fetch('/api/analyze-card', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageUrl: card.image_url })
+        }).then(r => r.json())
         
         updatedCards[i] = {
           ...card,
@@ -213,56 +175,25 @@ export default function UploadCards() {
           league: analysis.league,
           team: analysis.team,
           set: analysis.set,
-          aiConfidence: {
-            title: analysis.confidence.title,
-            league: analysis.confidence.league,
-            team: analysis.confidence.team,
-            set: analysis.confidence.set
-          }
+          aiConfidence: analysis.confidence
         }
-
       } catch (error) {
-        console.error(`AI analysis failed for ${card.nozid}:`, error)
+        console.error(`AI failed for ${card.nozid}:`, error)
         updatedCards[i] = {
           ...card,
           title: `[AI FAILED] ${card.nozid}`,
-          aiConfidence: {
-            title: false,
-            league: false,
-            team: false,
-            set: false
-          }
+          aiConfidence: { title: false, league: false, team: false, set: false }
         }
       }
     }
 
     setCards(updatedCards)
     setProcessing(false)
-    setProgress(`AI analysis complete! Review and edit the results below.`)
-  }
-
-  const analyzeCardImage = async (imageUrl: string) => {
-    const response = await fetch('/api/analyze-card', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ imageUrl })
-    })
-
-    if (!response.ok) {
-      throw new Error('Failed to analyze card')
-    }
-
-    return await response.json()
+    setProgress(`AI analysis complete! Review and edit below.`)
   }
 
   const updateCard = (nozid: string, field: keyof CardData, value: any) => {
-    setCards(prev =>
-      prev.map(card =>
-        card.nozid === nozid ? { ...card, [field]: value } : card
-      )
-    )
+    setCards(prev => prev.map(c => c.nozid === nozid ? { ...c, [field]: value } : c))
   }
 
   const downloadCSV = () => {
@@ -272,31 +203,19 @@ export default function UploadCards() {
     }
 
     const header = 'nozid,title,sport,league,team,set,image_orientation,price,status,image_url,image_back_url,owner_user_id\n'
-    
-    const rows = cards.map(card => {
-      return [
-        card.nozid,
-        `"${card.title.replace(/"/g, '""')}"`,
-        card.sport,
-        card.league,
-        card.team,
-        card.set,
-        card.image_orientation,
-        card.price,
-        card.status,
-        card.image_url,
-        card.image_back_url,
-        card.owner_user_id
-      ].join(',')
-    }).join('\n')
+    const rows = cards.map(card => [
+      card.nozid,
+      `"${card.title.replace(/"/g, '""')}"`,
+      card.sport, card.league, card.team, card.set,
+      card.image_orientation, card.price, card.status,
+      card.image_url, card.image_back_url, card.owner_user_id
+    ].join(',')).join('\n')
 
-    const csv = header + rows
-
-    const blob = new Blob([csv], { type: 'text/csv' })
+    const blob = new Blob([header + rows], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `cards_${selectedFolder}_${Date.now()}.csv`
+    a.download = `cards_${folderName}_${Date.now()}.csv`
     a.click()
   }
 
@@ -304,39 +223,27 @@ export default function UploadCards() {
     <div className="max-w-7xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">AI Card Analyzer</h1>
 
-      {/* Folder Selection */}
       <div className="bg-white border border-black/10 rounded-lg p-6 mb-8">
-        <h2 className="text-xl font-bold mb-4">Step 1: Select Folder to Process</h2>
+        <h2 className="text-xl font-bold mb-4">Step 1: Enter Folder Name</h2>
         <p className="text-sm text-black/70 mb-4">
-          Upload your scans to Supabase first in a folder like <code>New scans/batch-001/</code>, then select it here.
+          Upload your scans to Supabase in <code>New scans/your-folder-name/</code> first, then enter the folder name here.
         </p>
 
-        {loadingFolders ? (
-          <p className="text-sm opacity-70">Loading folders...</p>
-        ) : folders.length === 0 ? (
-          <p className="text-sm opacity-70">No folders found in "New scans/". Create a folder and upload images first.</p>
-        ) : (
-          <>
-            <select
-              value={selectedFolder}
-              onChange={(e) => setSelectedFolder(e.target.value)}
-              className="w-full p-3 border border-black/10 rounded mb-4"
-            >
-              <option value="">-- Select a folder --</option>
-              {folders.map(folder => (
-                <option key={folder} value={folder}>{folder}</option>
-              ))}
-            </select>
+        <input
+          type="text"
+          value={folderName}
+          onChange={(e) => setFolderName(e.target.value)}
+          placeholder="e.g. batch-001"
+          className="w-full p-3 border border-black/10 rounded mb-4"
+        />
 
-            <button
-              onClick={handleProcessFolder}
-              disabled={processing || !selectedFolder}
-              className="px-6 py-3 bg-black text-white font-medium hover:bg-black/80 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {processing ? 'Processing...' : 'Analyze Folder with AI'}
-            </button>
-          </>
-        )}
+        <button
+          onClick={handleProcessFolder}
+          disabled={processing || !folderName.trim()}
+          className="px-6 py-3 bg-black text-white font-medium hover:bg-black/80 transition disabled:opacity-50"
+        >
+          {processing ? 'Processing...' : 'Analyze Folder with AI'}
+        </button>
 
         {progress && (
           <div className="mt-4 p-4 bg-gray-50 border border-black/10 rounded">
@@ -345,15 +252,11 @@ export default function UploadCards() {
         )}
       </div>
 
-      {/* Review Table */}
       {cards.length > 0 && (
         <div className="bg-white border border-black/10 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold">Step 2: Review & Edit ({cards.length} cards)</h2>
-            <button
-              onClick={downloadCSV}
-              className="px-4 py-2 bg-brass text-white font-medium hover:bg-brass/80 transition"
-            >
+            <button onClick={downloadCSV} className="px-4 py-2 bg-brass text-white font-medium hover:bg-brass/80 transition">
               Download CSV
             </button>
           </div>
@@ -439,9 +342,9 @@ export default function UploadCards() {
 
           <div className="mt-4 p-4 bg-gray-50 border border-black/10 rounded">
             <p className="text-xs text-black/70">
-              <strong>Green borders</strong> = AI is confident. <strong>Yellow borders</strong> = AI is uncertain, please review.
+              <strong>Green borders</strong> = AI is confident. <strong>Yellow borders</strong> = AI uncertain.
               <br />
-              After reviewing, click "Download CSV", then add <code>owner_user_id</code> column in Excel before uploading to Supabase.
+              After reviewing, click "Download CSV", add <code>owner_user_id</code> in Excel, then upload to Supabase.
             </p>
           </div>
         </div>
