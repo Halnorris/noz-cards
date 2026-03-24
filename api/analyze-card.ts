@@ -51,14 +51,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   "relic": true/false
 }
 
-IMPORTANT: Extract the exact variant name including colour. Examples:
-- "Pink Breakaway"
-- "Gold Refractor" 
-- "Silver"
-- "Orange Wave"
-- "Blue Shimmer"
+CRITICAL INSTRUCTIONS FOR YEAR:
+- Look for the season year printed on the card (usually top corner or near team logo)
+- Common formats: "2024-25", "24-25", "2024/25" - convert ALL to YY/YY format (e.g., 24/25)
+- If you see "2024-25" convert to "24/25"
+- If you see "2023-24" convert to "23/24"
+- Recent cards are typically 23/24, 24/25, or 25/26 (we're currently in 2024-25 season)
+- DO NOT guess old years like 21/22 unless clearly printed on the card
 
-Be as accurate as possible. If you're unsure about something, still make your best guess.`
+VARIANT EXTRACTION:
+- Extract the exact colour and variant name (e.g., "Pink Breakaway", "Gold Refractor", "Silver", "Orange Wave", "Blue Shimmer")
+- Look for shimmer, refractor, wave, breakaway, cracked ice, etc. patterns
+
+Be as accurate as possible. If unsure about the year, look for ANY printed date on the card.`
               }
             ]
           }
