@@ -48,6 +48,10 @@ export default function UploadCards() {
 
   // Load available folders from Supabase storage
   useEffect(() => {
+    // Only load if user is admin
+    if (!user?.email) return
+    if (user.email !== 'support@nozcards.com' && user.email !== 'habnorris@gmail.com') return
+
     async function loadFolders() {
       try {
         const { data, error } = await supabase.storage
@@ -59,6 +63,7 @@ export default function UploadCards() {
 
         if (error) {
           console.error('Error loading folders:', error)
+          setLoadingFolders(false)
           return
         }
 
@@ -75,10 +80,8 @@ export default function UploadCards() {
       }
     }
 
-    if (isAdmin) {
-      loadFolders()
-    }
-  }, [isAdmin])
+    loadFolders()
+  }, [user])
 
   const handleProcessFolder = async () => {
     if (!selectedFolder) {
