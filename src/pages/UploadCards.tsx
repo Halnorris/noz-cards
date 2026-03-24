@@ -56,13 +56,13 @@ export default function UploadCards() {
     try {
       // List all files in the folder
       const { data: files, error } = await supabase.storage
-        .from('card-scans')
-        .list(`New scans/${folderName}`, {
+        .from('batch-scans')
+        .list(folderName, {
           limit: 1000,
           offset: 0
         })
 
-      console.log('Supabase response:', { files, error, folderName, path: `New scans/${folderName}` })
+      console.log('Supabase response:', { files, error, folderName, path: folderName })
 
       if (error) {
         console.error('Error listing files:', error)
@@ -103,16 +103,16 @@ export default function UploadCards() {
       for (const [nozid, pair] of Object.entries(pairs)) {
         if (!pair.front) continue
 
-        const frontPath = `New scans/${folderName}/${pair.front}`
+        const frontPath = `${folderName}/${pair.front}`
         const { data: { publicUrl: frontUrl } } = supabase.storage
-          .from('card-scans')
+          .from('batch-scans')
           .getPublicUrl(frontPath)
 
         let backUrl = ''
         if (pair.back) {
-          const backPath = `New scans/${folderName}/${pair.back}`
+          const backPath = `${folderName}/${pair.back}`
           const { data: { publicUrl } } = supabase.storage
-            .from('card-scans')
+            .from('batch-scans')
             .getPublicUrl(backPath)
           backUrl = publicUrl
         }
@@ -228,7 +228,7 @@ export default function UploadCards() {
       <div className="bg-white border border-black/10 rounded-lg p-6 mb-8">
         <h2 className="text-xl font-bold mb-4">Step 1: Enter Folder Name</h2>
         <p className="text-sm text-black/70 mb-4">
-          Upload your scans to Supabase in <code>New scans/your-folder-name/</code> first, then enter the folder name here.
+          Upload your scans to Supabase in <code>batch-scans/your-folder-name/</code> first, then enter the folder name here.
         </p>
 
         <input
