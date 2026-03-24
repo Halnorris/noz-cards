@@ -54,6 +54,16 @@ export default function UploadCards() {
     setProgress(`Loading images from ${folderName}...`)
 
     try {
+      // First, let's see what's in the root of the bucket
+      const { data: rootFiles, error: rootError } = await supabase.storage
+        .from('batch-scans')
+        .list('', {
+          limit: 100,
+          offset: 0
+        })
+      
+      console.log('Root bucket contents:', rootFiles)
+
       // List all files in the folder
       const { data: files, error } = await supabase.storage
         .from('batch-scans')
