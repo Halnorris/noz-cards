@@ -213,7 +213,6 @@ function HeroSection() {
 /* ===== TOP 16 MOST EXPENSIVE CARDS ===== */
 function TopExpensiveCards() {
   const [cards, setCards] = useState<Card[]>([])
-  const { addItem } = useBasket()
 
   useEffect(() => {
     async function fetchTopCards() {
@@ -230,19 +229,6 @@ function TopExpensiveCards() {
 
     fetchTopCards()
   }, [])
-
-  const handleAddToBasket = (e: React.MouseEvent, card: Card) => {
-    e.preventDefault()
-    if (card.price) {
-      addItem({
-        id: card.id,
-        title: card.title || '',
-        price: card.price,
-        image_url: card.image_url || '',
-        nozid: card.nozid || '',
-      })
-    }
-  }
 
   return (
     <section className="max-w-7xl mx-auto px-4">
@@ -262,28 +248,6 @@ function TopExpensiveCards() {
                   className="w-full h-full object-cover"
                 />
               )}
-              
-              {/* Hover overlay with icons */}
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                <button
-                  onClick={(e) => handleAddToBasket(e, card)}
-                  className="p-2 bg-white text-black hover:bg-black hover:text-white transition"
-                  title="Add to basket"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                  </svg>
-                </button>
-                <button
-                  onClick={(e) => e.preventDefault()}
-                  className="p-2 bg-white text-black hover:bg-black hover:text-white transition"
-                  title="Add to wishlist"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
-                </button>
-              </div>
             </div>
             <div className="mt-2 text-xs">
               <div className="line-clamp-1 text-black/70">{card.title}</div>
