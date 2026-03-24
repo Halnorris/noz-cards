@@ -75,8 +75,10 @@ export default function UploadCards() {
       }
     }
 
-    loadFolders()
-  }, [])
+    if (isAdmin) {
+      loadFolders()
+    }
+  }, [isAdmin])
 
   const handleProcessFolder = async () => {
     if (!selectedFolder) {
