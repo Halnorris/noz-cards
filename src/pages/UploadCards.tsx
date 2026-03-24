@@ -2,6 +2,15 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/auth'
 
+// Create admin client for storage uploads (bypasses RLS)
+const getAdminClient = () => {
+  const { createClient } = require('@supabase/supabase-js')
+  return createClient(
+    import.meta.env.VITE_SUPABASE_URL,
+    import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
+  )
+}
+
 type CardData = {
   nozid: string
   title: string
@@ -85,6 +94,9 @@ export default function UploadCards() {
 
       const uploadedCards: CardData[] = []
 
+      // Use admin client for uploads
+      const adminClient = getAdminClient()
+
       for (const [nozid, pair] of Object.entries(pairs)) {
         if (!pair.front) {
           console.warn(`No front image for ${nozid}`)
@@ -93,9 +105,9 @@ export default function UploadCards() {
 
         setProgress(`Uploading ${nozid}...`)
 
-        // Upload front image
+        // Upload front image with admin client
         const frontPath = `New scans/${nozid}.jpg`
-        const { data: frontData, error: frontError } = await supabase.storage
+        const { data: frontData, error: frontError } = await adminClient.storage
           .from('card-scans')
           .upload(frontPath, pair.front, {
             upsert: true,
@@ -107,7 +119,7 @@ export default function UploadCards() {
           continue
         }
 
-        const { data: { publicUrl: frontUrl } } = supabase.storage
+        const { data: { publicUrl: frontUrl } } = adminClient.storage
           .from('card-scans')
           .getPublicUrl(frontPath)
 
@@ -115,7 +127,7 @@ export default function UploadCards() {
         let backUrl = ''
         if (pair.back) {
           const backPath = `New scans/${nozid}a.jpg`
-          const { data: backData, error: backError } = await supabase.storage
+          const { data: backData, error: backError } = await adminClient.storage
             .from('card-scans')
             .upload(backPath, pair.back, {
               upsert: true,
@@ -123,7 +135,7 @@ export default function UploadCards() {
             })
 
           if (!backError) {
-            const { data: { publicUrl } } = supabase.storage
+            const { data: { publicUrl } } = adminClient.storage
               .from('card-scans')
               .getPublicUrl(backPath)
             backUrl = publicUrl
