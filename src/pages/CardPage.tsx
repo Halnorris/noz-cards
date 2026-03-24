@@ -522,7 +522,7 @@ export default function CardPage() {
               </summary>
               <div className="mt-2 text-sm opacity-80">
                 For details, see our{' '}
-                <Link to="/returns" className="underline">Returns & Refunds Policy</Link>.
+                <Link to="/legal/returns" className="underline">Returns & Refunds Policy</Link>.
               </div>
             </details>
             <hr className="border-black/5 my-2" />
@@ -533,7 +533,7 @@ export default function CardPage() {
               </summary>
               <div className="mt-2 text-sm opacity-80">
                 These listings may be on consignment. Learn more in our{' '}
-                <Link to="/consignment-policy" className="underline">Consignment Policy</Link>.
+                <Link to="/legal/consignment" className="underline">Consignment Policy</Link>.
               </div>
             </details>
             <hr className="border-black/5 my-2" />
