@@ -52,18 +52,6 @@ export default function UploadCards() {
     }
   }
 
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => {
-        const base64 = (reader.result as string).split(',')[1]
-        resolve(base64)
-      }
-      reader.onerror = reject
-      reader.readAsDataURL(file)
-    })
-  }
-
   const handleUploadAndProcess = async () => {
     if (files.length === 0) {
       alert('Please select files first')
@@ -105,48 +93,39 @@ export default function UploadCards() {
 
         setProgress(`Uploading ${nozid}...`)
 
-        // Upload front image via serverless function
+        // Upload front image
         const frontPath = `New scans/${nozid}.jpg`
-        const frontBase64 = await fileToBase64(pair.front)
-        
-        const frontUpload = await fetch('/api/upload-image', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            file: frontBase64,
-            filename: `${nozid}.jpg`,
-            bucket: 'card-scans',
-            path: frontPath
+        const { error: frontError } = await supabase.storage
+          .from('card-scans')
+          .upload(frontPath, pair.front, {
+            upsert: true,
+            contentType: 'image/jpeg'
           })
-        })
 
-        if (!frontUpload.ok) {
-          const error = await frontUpload.json()
-          console.error(`Error uploading front ${nozid}:`, error)
+        if (frontError) {
+          console.error(`Error uploading front ${nozid}:`, frontError)
           continue
         }
 
-        const { publicUrl: frontUrl } = await frontUpload.json()
+        const { data: { publicUrl: frontUrl } } = supabase.storage
+          .from('card-scans')
+          .getPublicUrl(frontPath)
 
         // Upload back image if exists
         let backUrl = ''
         if (pair.back) {
           const backPath = `New scans/${nozid}a.jpg`
-          const backBase64 = await fileToBase64(pair.back)
-          
-          const backUpload = await fetch('/api/upload-image', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              file: backBase64,
-              filename: `${nozid}a.jpg`,
-              bucket: 'card-scans',
-              path: backPath
+          const { error: backError } = await supabase.storage
+            .from('card-scans')
+            .upload(backPath, pair.back, {
+              upsert: true,
+              contentType: 'image/jpeg'
             })
-          })
 
-          if (backUpload.ok) {
-            const { publicUrl } = await backUpload.json()
+          if (!backError) {
+            const { data: { publicUrl } } = supabase.storage
+              .from('card-scans')
+              .getPublicUrl(backPath)
             backUrl = publicUrl
           }
         }
@@ -205,7 +184,7 @@ export default function UploadCards() {
       setProgress(`Analyzing ${card.nozid} (${i + 1}/${updatedCards.length})...`)
 
       try {
-        // Call Claude API to analyze the card image
+        // Call our serverless function to analyze the card
         const analysis = await analyzeCardImage(card.image_url)
         
         updatedCards[i] = {
@@ -243,7 +222,7 @@ export default function UploadCards() {
   }
 
   const analyzeCardImage = async (imageUrl: string) => {
-    // Call our serverless function instead of Anthropic API directly
+    // Call our serverless function
     const response = await fetch('/api/analyze-card', {
       method: 'POST',
       headers: {
